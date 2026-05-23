@@ -93,3 +93,25 @@ async def update_diary(
     await db.commit()
     await db.refresh(diary)
     return diary
+
+
+@router.delete("/{diary_id}", status_code=204)
+async def delete_diary(
+    diary_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Diary).where(Diary.id == diary_id, Diary.user_id == current_user.id)
+    )
+    diary = result.scalar_one_or_none()
+    if not diary:
+        raise HTTPException(status_code=404, detail="Diary not found")
+    if diary.diary_date != today_local():
+        raise HTTPException(status_code=403, detail="Can only delete today's diary")
+    if diary.is_locked:
+        raise HTTPException(status_code=409, detail="Diary is locked")
+
+    await db.delete(diary)
+    current_user.diary_count = max(0, current_user.diary_count - 1)
+    await db.commit()

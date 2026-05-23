@@ -35,6 +35,17 @@ export default function DiaryEditorPage() {
     onSuccess: () => { setEditingId(null); invalidate(); },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id) => client.delete(`/api/diaries/${id}`),
+    onSuccess: invalidate,
+  });
+
+  const handleDelete = (id) => {
+    if (window.confirm("이 일기를 삭제할까요?")) {
+      deleteMutation.mutate(id);
+    }
+  };
+
   if (isLoading) return <div className="page-loading">불러오는 중...</div>;
 
   return (
@@ -68,7 +79,10 @@ export default function DiaryEditorPage() {
                 <div className="diary-meta">
                   <span>{new Date(d.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span>
                   {!d.is_locked && isToday && (
-                    <button onClick={() => { setEditingId(d.id); setEditContent(d.content); }}>수정</button>
+                    <>
+                      <button onClick={() => { setEditingId(d.id); setEditContent(d.content); }}>수정</button>
+                      <button onClick={() => handleDelete(d.id)}>삭제</button>
+                    </>
                   )}
                   {d.is_locked && <span className="locked-badge">🔒</span>}
                 </div>
