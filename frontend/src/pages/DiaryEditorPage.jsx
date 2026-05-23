@@ -1,7 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import client from "../api/client";
+
+function KebabMenu({ onEdit, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="kebab-wrap" ref={ref}>
+      <button className="kebab-btn" onClick={() => setOpen((v) => !v)}>⋮</button>
+      {open && (
+        <div className="kebab-dropdown">
+          <button onClick={() => { setOpen(false); onEdit(); }}>수정</button>
+          <button onClick={() => { setOpen(false); onDelete(); }}>삭제</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function DiaryEditorPage() {
   const { date } = useParams();
@@ -61,6 +86,14 @@ export default function DiaryEditorPage() {
         )}
         {diaries.map((d) => (
           <div key={d.id} className="diary-entry">
+            {!d.is_locked && isToday && (
+              <KebabMenu
+                onEdit={() => { setEditingId(d.id); setEditContent(d.content); }}
+                onDelete={() => handleDelete(d.id)}
+              />
+            )}
+            {d.is_locked && <span className="locked-badge">🔒</span>}
+
             {editingId === d.id ? (
               <>
                 <textarea
@@ -78,13 +111,6 @@ export default function DiaryEditorPage() {
                 <p className="diary-content">{d.content}</p>
                 <div className="diary-meta">
                   <span>{new Date(d.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span>
-                  {!d.is_locked && isToday && (
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <button onClick={() => { setEditingId(d.id); setEditContent(d.content); }}>수정</button>
-                      <button onClick={() => handleDelete(d.id)}>삭제</button>
-                    </div>
-                  )}
-                  {d.is_locked && <span className="locked-badge">🔒</span>}
                 </div>
               </>
             )}

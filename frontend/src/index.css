@@ -327,7 +327,50 @@ body { background: var(--bg); min-height: 100vh; }
   border-radius: var(--radius);
   padding: 16px;
   box-shadow: var(--shadow);
+  position: relative;
 }
+.kebab-wrap {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.kebab-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.kebab-btn:hover { background: var(--border); }
+.kebab-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  min-width: 90px;
+  z-index: 100;
+  overflow: hidden;
+}
+.kebab-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.kebab-dropdown button:hover { background: var(--bg); }
+.kebab-dropdown button:last-child { color: #e53e3e; }
 .diary-content { font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
 .diary-meta {
   display: flex;
