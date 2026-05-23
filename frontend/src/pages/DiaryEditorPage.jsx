@@ -79,10 +79,10 @@ export default function DiaryEditorPage() {
                 <div className="diary-meta">
                   <span>{new Date(d.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span>
                   {!d.is_locked && isToday && (
-                    <>
+                    <div style={{ display: "flex", gap: "8px" }}>
                       <button onClick={() => { setEditingId(d.id); setEditContent(d.content); }}>수정</button>
                       <button onClick={() => handleDelete(d.id)}>삭제</button>
-                    </>
+                    </div>
                   )}
                   {d.is_locked && <span className="locked-badge">🔒</span>}
                 </div>
