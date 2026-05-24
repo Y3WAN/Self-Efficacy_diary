@@ -38,10 +38,6 @@ export default function ProfilePage() {
             <span className="profile-value">{joinDate}</span>
           </div>
           <div className="profile-row">
-            <span className="profile-label">초기 성적</span>
-            <span className="profile-value">{user.initial_grade}</span>
-          </div>
-          <div className="profile-row">
             <span className="profile-label">작성한 일기</span>
             <span className="profile-value">{user.diary_count}개</span>
           </div>

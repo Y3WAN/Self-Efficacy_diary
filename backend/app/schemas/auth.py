@@ -1,14 +1,15 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Literal
-
-GradeType = Literal["상", "중상", "중", "중하", "하"]
 
 
 class SignupRequest(BaseModel):
     username: str
     password: str
-    initial_grade: GradeType
+    answer_m: int = Field(..., ge=1, le=5)
+    answer_v: int = Field(..., ge=1, le=5)
+    answer_p: int = Field(..., ge=1, le=5)
+    answer_a: int = Field(..., ge=1, le=5)
 
 
 class LoginRequest(BaseModel):
@@ -24,7 +25,6 @@ class TokenResponse(BaseModel):
 class MeResponse(BaseModel):
     id: int
     username: str
-    initial_grade: str
     diary_count: int
     completed_missions_count: int
     created_at: datetime

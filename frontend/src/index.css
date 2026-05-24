@@ -70,10 +70,13 @@ body { background: var(--bg); min-height: 100vh; }
 .auth-link { font-size: 13px; color: var(--text-muted); text-align: center; margin-top: 20px; }
 .auth-link a { color: var(--orange); text-decoration: none; font-weight: 600; }
 
-/* Grade selector */
+/* Grade / Survey selector */
 .grade-group { display: flex; flex-direction: column; gap: 8px; }
 .grade-label { font-size: 13px; color: var(--text-muted); }
 .grade-options { display: flex; gap: 6px; }
+.survey-group { display: flex; flex-direction: column; gap: 8px; }
+.survey-label { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+.survey-options { display: flex; gap: 6px; }
 .grade-btn {
   flex: 1;
   padding: 9px 4px;

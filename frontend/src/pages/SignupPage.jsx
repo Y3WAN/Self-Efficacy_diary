@@ -3,10 +3,20 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/auth";
 import client from "../api/client";
 
-const GRADES = ["상", "중상", "중", "중하", "하"];
+const QUESTIONS = [
+  { key: "answer_m", label: "최근에 어렵거나 힘든 일을 스스로 해냈다고 느낀 적이 얼마나 있나요?" },
+  { key: "answer_v", label: "나와 비슷한 처지의 사람이 성공하는 모습을 보고 자극받은 적이 있나요?" },
+  { key: "answer_p", label: "가족, 친구 등 주변 사람들이 나를 믿어주거나 격려해준다고 느끼나요?" },
+  { key: "answer_a", label: "평소에 감정이 안정되고 컨디션이 괜찮다고 느끼나요?" },
+];
+
+const OPTIONS = ["전혀", "별로", "보통", "자주", "항상"];
 
 export default function SignupPage() {
-  const [form, setForm] = useState({ username: "", password: "", initial_grade: "중" });
+  const [form, setForm] = useState({
+    username: "", password: "",
+    answer_m: 3, answer_v: 3, answer_p: 3, answer_a: 3,
+  });
   const [error, setError] = useState("");
   const { setToken, setUser } = useAuthStore();
   const navigate = useNavigate();
@@ -50,23 +60,25 @@ export default function SignupPage() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
           />
-          <div className="grade-group">
-            <p className="grade-label">현재 학업 수준</p>
-            <div className="grade-options">
-              {GRADES.map((g) => (
-                <label key={g} className={`grade-btn ${form.initial_grade === g ? "active" : ""}`}>
-                  <input
-                    type="radio"
-                    name="grade"
-                    value={g}
-                    checked={form.initial_grade === g}
-                    onChange={() => setForm({ ...form, initial_grade: g })}
-                  />
-                  {g}
-                </label>
-              ))}
+          {QUESTIONS.map(({ key, label }) => (
+            <div key={key} className="survey-group">
+              <p className="survey-label">{label}</p>
+              <div className="survey-options">
+                {OPTIONS.map((opt, i) => (
+                  <label key={i} className={`grade-btn ${form[key] === i + 1 ? "active" : ""}`}>
+                    <input
+                      type="radio"
+                      name={key}
+                      value={i + 1}
+                      checked={form[key] === i + 1}
+                      onChange={() => setForm({ ...form, [key]: i + 1 })}
+                    />
+                    {opt}
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
           {error && <p className="auth-error">{error}</p>}
           <button className="auth-btn" type="submit">시작하기</button>
         </form>
