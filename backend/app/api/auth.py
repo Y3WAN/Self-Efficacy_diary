@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from app.db.session import get_db
-from app.db.models import User, PersonaHistory
+from app.db.models import User, PersonaHistory, Mission
 from app.schemas.auth import SignupRequest, LoginRequest, TokenResponse, MeResponse
 from app.core.security import hash_password, verify_password, create_access_token
 from app.core.deps import get_current_user
@@ -57,12 +57,18 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/me", response_model=MeResponse)
-async def me(current_user: User = Depends(get_current_user)):
+async def me(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(func.count()).where(Mission.user_id == current_user.id, Mission.status == "done")
+    )
+    completed_count = result.scalar() or 0
+
     return MeResponse(
         id=current_user.id,
         username=current_user.username,
         initial_grade=current_user.initial_grade,
         current_persona=current_user.current_persona,
         diary_count=current_user.diary_count,
+        completed_missions_count=completed_count,
         created_at=current_user.created_at,
     )

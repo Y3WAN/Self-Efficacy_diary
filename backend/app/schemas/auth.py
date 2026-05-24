@@ -28,6 +28,7 @@ class MeResponse(BaseModel):
     initial_grade: str
     current_persona: str
     diary_count: int
+    completed_missions_count: int
     created_at: datetime
 
     model_config = {"from_attributes": True}

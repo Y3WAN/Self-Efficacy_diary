@@ -52,6 +52,10 @@ export default function ProfilePage() {
             <span className="profile-label">작성한 일기</span>
             <span className="profile-value">{user.diary_count}개</span>
           </div>
+          <div className="profile-row">
+            <span className="profile-label">완료한 미션</span>
+            <span className="profile-value">{user.completed_missions_count}개</span>
+          </div>
         </div>
 
         <button
