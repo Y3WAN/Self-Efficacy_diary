@@ -30,3 +30,4 @@ Thumbs.db
 # 내부 문서
 CLAUDE.md
 netlify.toml
+spec/
