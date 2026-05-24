@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import client from "../api/client";
 import { useAuthStore } from "../store/auth";
-import { PERSONAS } from "../lib/persona";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -15,7 +14,6 @@ export default function ProfilePage() {
 
   if (isLoading) return <div className="page-loading">불러오는 중…</div>;
 
-  const persona = PERSONAS[user.current_persona] ?? { emoji: "❓" };
   const joinDate = new Date(user.created_at).toLocaleDateString("ko-KR", {
     year: "numeric",
     month: "long",
@@ -30,11 +28,6 @@ export default function ProfilePage() {
       </div>
 
       <div className="profile-content">
-        <div className="profile-avatar-card">
-          <span className="profile-avatar">{persona.emoji}</span>
-          <span className="profile-persona-name">{user.current_persona}</span>
-        </div>
-
         <div className="profile-info-card">
           <div className="profile-row">
             <span className="profile-label">아이디</span>

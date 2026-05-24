@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from typing import Literal
 
 GradeType = Literal["상", "중상", "중", "중하", "하"]
-PersonaType = Literal["당차미", "헤맹이", "멍하미", "지치미"]
 
 
 class SignupRequest(BaseModel):
@@ -26,7 +25,6 @@ class MeResponse(BaseModel):
     id: int
     username: str
     initial_grade: str
-    current_persona: str
     diary_count: int
     completed_missions_count: int
     created_at: datetime

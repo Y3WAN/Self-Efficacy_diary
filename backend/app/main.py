@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.db.session import engine
 from app.db.models import Base
-from app.api import auth, diary, mission, dashboard, persona, debug
+from app.api import auth, diary, mission, dashboard, debug
 from app.core.config import settings
 
 scheduler = AsyncIOScheduler(timezone="UTC")
@@ -41,7 +41,6 @@ app.include_router(auth.router)
 app.include_router(diary.router)
 app.include_router(mission.router)
 app.include_router(dashboard.router)
-app.include_router(persona.router)
 app.include_router(debug.router)
 
 

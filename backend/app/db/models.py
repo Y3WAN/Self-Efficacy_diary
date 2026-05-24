@@ -21,14 +21,12 @@ class User(Base):
     username = Column(String(50), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     initial_grade = Column(String(4), nullable=False)
-    current_persona = Column(String(10), nullable=False)
     diary_count = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc)
 
     diaries = relationship("Diary", back_populates="user", cascade="all, delete-orphan")
     daily_analyses = relationship("DailyAnalysis", back_populates="user", cascade="all, delete-orphan")
-    persona_history = relationship("PersonaHistory", back_populates="user", cascade="all, delete-orphan")
     missions = relationship("Mission", back_populates="user", cascade="all, delete-orphan")
 
 
@@ -73,22 +71,6 @@ class DailyAnalysis(Base):
     __table_args__ = (
         Index("idx_analyses_user_date", "user_id", "diary_date"),
     )
-
-
-class PersonaHistory(Base):
-    __tablename__ = "persona_history"
-
-    id = Column(BigInteger, primary_key=True)
-    user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    persona = Column(String(10), nullable=False)
-    source = Column(String(20), nullable=False)
-    reasoning = Column(Text, nullable=True)
-    diary_count_at = Column(Integer, nullable=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
-
-    user = relationship("User", back_populates="persona_history")
-
-    __table_args__ = (Index("idx_persona_user", "user_id", "created_at"),)
 
 
 class Mission(Base):
