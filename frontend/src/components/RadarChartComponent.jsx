@@ -66,7 +66,7 @@ export default function RadarChartComponent() {
           dataKey="score" stroke="#F5A65B" fill="#F5A65B"
           fillOpacity={0.25} strokeWidth={2}
         />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip content={(props) => <CustomTooltip {...props} chartData={chartData} />} />
       </RadarChart>
     </ResponsiveContainer>
   );
