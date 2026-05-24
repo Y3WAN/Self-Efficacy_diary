@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from sqlalchemy import text
 from app.db.session import engine
 from app.db.models import Base
 from app.api import auth, diary, mission, dashboard, debug
@@ -14,6 +15,8 @@ scheduler = AsyncIOScheduler(timezone="UTC")
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text("DROP TABLE IF EXISTS persona_history CASCADE"))
+        await conn.execute(text("ALTER TABLE users DROP COLUMN IF EXISTS current_persona"))
 
     from app.jobs.midnight_analysis import run_midnight_analysis
     from app.jobs.morning_mission import run_morning_mission
