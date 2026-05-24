@@ -12,26 +12,23 @@ const SOURCE_DESC = {
   "정서(A)": { label: "정서·신체(A)", desc: "감정이 안정되고 몸 컨디션이 좋았던 상태" },
 };
 
-function CustomTooltip({ active, chartData }) {
-  if (!active) return null;
+function CustomTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const subject = payload[0]?.payload?.subject;
+  const score = payload[0]?.value;
+  const info = SOURCE_DESC[subject];
+  if (!info) return null;
 
   return (
     <div style={{
       background: "#fff", border: "1px solid #EDE8E1", borderRadius: 12,
-      padding: "12px 16px", fontSize: 13, lineHeight: 1.6,
-      boxShadow: "0 2px 12px rgba(0,0,0,0.08)", maxWidth: 230,
+      padding: "10px 14px", fontSize: 13, lineHeight: 1.6,
+      boxShadow: "0 2px 12px rgba(0,0,0,0.08)", maxWidth: 220,
     }}>
-      {chartData.map(({ subject, score }) => {
-        const info = SOURCE_DESC[subject];
-        return (
-          <div key={subject} style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 700, color: "#3A332E" }}>
-              {info.label} — {(score * 100).toFixed(0)}점
-            </div>
-            <div style={{ color: "#9E9189", fontSize: 12 }}>{info.desc}</div>
-          </div>
-        );
-      })}
+      <div style={{ fontWeight: 700, color: "#3A332E", marginBottom: 3 }}>
+        {info.label} — {(score * 100).toFixed(0)}점
+      </div>
+      <div style={{ color: "#9E9189", fontSize: 12 }}>{info.desc}</div>
     </div>
   );
 }
@@ -66,7 +63,7 @@ export default function RadarChartComponent() {
           dataKey="score" stroke="#F5A65B" fill="#F5A65B"
           fillOpacity={0.25} strokeWidth={2}
         />
-        <Tooltip content={(props) => <CustomTooltip {...props} chartData={chartData} />} />
+        <Tooltip content={<CustomTooltip />} />
       </RadarChart>
     </ResponsiveContainer>
   );
