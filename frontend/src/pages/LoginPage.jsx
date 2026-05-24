@@ -32,6 +32,7 @@ export default function LoginPage() {
           <input
             className="auth-input"
             placeholder="아이디"
+            autoComplete="username"
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
             required
@@ -40,6 +41,7 @@ export default function LoginPage() {
             className="auth-input"
             type="password"
             placeholder="비밀번호"
+            autoComplete="current-password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
