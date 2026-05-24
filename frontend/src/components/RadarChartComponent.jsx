@@ -5,6 +5,37 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import client from "../api/client";
 
+const SOURCE_DESC = {
+  "성취(M)": { label: "성취경험(M)", desc: "과제를 직접 수행하고 성공했던 경험" },
+  "대리(V)": { label: "대리경험(V)", desc: "나와 비슷한 사람이 해내는 걸 보며 자극받은 경험" },
+  "지지(P)": { label: "사회적 설득(P)", desc: "주변에서 '넌 할 수 있어'라는 격려와 지지를 받은 경험" },
+  "정서(A)": { label: "정서·신체(A)", desc: "감정이 안정되고 몸 컨디션이 좋았던 상태" },
+};
+
+function CustomTooltip({ active, chartData }) {
+  if (!active) return null;
+
+  return (
+    <div style={{
+      background: "#fff", border: "1px solid #EDE8E1", borderRadius: 12,
+      padding: "12px 16px", fontSize: 13, lineHeight: 1.6,
+      boxShadow: "0 2px 12px rgba(0,0,0,0.08)", maxWidth: 230,
+    }}>
+      {chartData.map(({ subject, score }) => {
+        const info = SOURCE_DESC[subject];
+        return (
+          <div key={subject} style={{ marginBottom: 10 }}>
+            <div style={{ fontWeight: 700, color: "#3A332E" }}>
+              {info.label} — {(score * 100).toFixed(0)}점
+            </div>
+            <div style={{ color: "#9E9189", fontSize: 12 }}>{info.desc}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function useRadar() {
   return useQuery({
     queryKey: ["dashboard", "radar"],
@@ -35,10 +66,7 @@ export default function RadarChartComponent() {
           dataKey="score" stroke="#F5A65B" fill="#F5A65B"
           fillOpacity={0.25} strokeWidth={2}
         />
-        <Tooltip
-          formatter={(v) => [`${(v * 100).toFixed(0)}점`, "점수"]}
-          contentStyle={{ borderRadius: 10, border: "1px solid #EDE8E1", fontSize: 13 }}
-        />
+        <Tooltip content={<CustomTooltip />} />
       </RadarChart>
     </ResponsiveContainer>
   );
