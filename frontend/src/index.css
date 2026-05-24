@@ -233,6 +233,37 @@ body { background: var(--bg); min-height: 100vh; }
   margin: 2px auto 0;
 }
 
+/* ── Today Diaries ── */
+.today-diaries {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.today-diaries-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.today-diary-item {
+  padding: 12px 14px;
+  background: var(--bg);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.today-diary-item:hover { opacity: 0.75; }
+.today-diary-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.today-diary-time { font-size: 12px; color: var(--text-muted); margin-top: 6px; display: block; }
+
 /* ── Mission ── */
 .mission-list {
   background: var(--card);
