@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from sqlalchemy import (
     BigInteger, Boolean, Column, Date, DateTime,
-    ForeignKey, Index, Integer, Numeric, String, Text,
+    ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
 
@@ -22,6 +22,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     initial_grade = Column(String(4), nullable=False)
     diary_count = Column(Integer, nullable=False, default=0)
+    points = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc)
 
@@ -85,5 +86,21 @@ class Mission(Base):
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
     user = relationship("User", back_populates="missions")
+    respects = relationship("Respect", back_populates="mission", cascade="all, delete-orphan")
 
     __table_args__ = (Index("idx_missions_user_status", "user_id", "status"),)
+
+
+class Respect(Base):
+    __tablename__ = "respects"
+
+    id = Column(BigInteger, primary_key=True)
+    from_user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    mission_id = Column(BigInteger, ForeignKey("missions.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
+
+    mission = relationship("Mission", back_populates="respects")
+
+    __table_args__ = (
+        UniqueConstraint("from_user_id", "mission_id", name="uq_respect_user_mission"),
+    )

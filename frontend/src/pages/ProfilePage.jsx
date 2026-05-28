@@ -45,6 +45,10 @@ export default function ProfilePage() {
             <span className="profile-label">완료한 미션</span>
             <span className="profile-value">{user.completed_missions_count}개</span>
           </div>
+          <div className="profile-row profile-row--points">
+            <span className="profile-label">포인트</span>
+            <span className="profile-value profile-points">{(user.points ?? 0).toLocaleString()} P</span>
+          </div>
         </div>
 
         <button

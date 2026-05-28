@@ -17,6 +17,7 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
         await conn.execute(text("DROP TABLE IF EXISTS persona_history CASCADE"))
         await conn.execute(text("ALTER TABLE users DROP COLUMN IF EXISTS current_persona"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER NOT NULL DEFAULT 0"))
 
     from app.jobs.midnight_analysis import run_midnight_analysis
     from app.jobs.morning_mission import run_morning_mission

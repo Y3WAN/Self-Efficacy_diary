@@ -73,5 +73,6 @@ async def me(current_user: User = Depends(get_current_user), db: AsyncSession = 
         username=current_user.username,
         diary_count=current_user.diary_count,
         completed_missions_count=completed_count,
+        points=current_user.points or 0,
         created_at=current_user.created_at,
     )

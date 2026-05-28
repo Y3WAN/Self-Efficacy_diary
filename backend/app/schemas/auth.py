@@ -27,6 +27,7 @@ class MeResponse(BaseModel):
     username: str
     diary_count: int
     completed_missions_count: int
+    points: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
