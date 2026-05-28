@@ -37,8 +37,6 @@ export default function CommunityPage() {
           {feed.map((item) => (
             <li key={item.id} className="community-card">
               <div className="community-card-header">
-                <span className="community-avatar">{item.username[0].toUpperCase()}</span>
-                <span className="community-username">{item.username}</span>
                 <span className="community-time">{timeAgo(item.completed_at)}</span>
               </div>
               <p className="community-content">✅ {item.content}</p>

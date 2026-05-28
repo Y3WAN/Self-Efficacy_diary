@@ -664,16 +664,6 @@ body { background: var(--bg); min-height: 100vh; }
   align-items: center;
   gap: 10px;
 }
-.community-avatar {
-  width: 34px; height: 34px;
-  background: var(--orange);
-  color: #fff;
-  border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 15px;
-  flex-shrink: 0;
-}
-.community-username { font-weight: 700; font-size: 14px; flex: 1; }
 .community-time { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .community-content { font-size: 14px; line-height: 1.5; margin: 0; color: var(--text); }
 .community-badge {
