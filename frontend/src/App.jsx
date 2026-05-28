@@ -8,6 +8,7 @@ import MainPage from "./pages/MainPage";
 import DiaryEditorPage from "./pages/DiaryEditorPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
+import CommunityPage from "./pages/CommunityPage";
 
 const qc = new QueryClient();
 
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/diary/:date" element={<RequireAuth><DiaryEditorPage /></RequireAuth>} />
           <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
           <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
+          <Route path="/community" element={<RequireAuth><CommunityPage /></RequireAuth>} />
         </Routes>
         <Toaster position="bottom-center" toastOptions={{ style: { fontFamily: 'Pretendard, sans-serif', borderRadius: '12px' } }} />
       </BrowserRouter>

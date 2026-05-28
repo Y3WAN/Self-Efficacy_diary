@@ -18,6 +18,14 @@ class MissionResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CommunityFeedItem(BaseModel):
+    id: int
+    username: str
+    content: str
+    target_var: str
+    completed_at: datetime
+
+
 router = APIRouter(prefix="/api/missions", tags=["missions"])
 
 
@@ -32,6 +40,31 @@ async def list_missions(
         .order_by(Mission.created_at)
     )
     return result.scalars().all()
+
+
+@router.get("/community/feed", response_model=list[CommunityFeedItem])
+async def community_feed(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Mission.id, User.username, Mission.content, Mission.target_var, Mission.completed_at)
+        .join(User, Mission.user_id == User.id)
+        .where(Mission.status == "done", Mission.completed_at.isnot(None))
+        .order_by(Mission.completed_at.desc())
+        .limit(50)
+    )
+    rows = result.all()
+    return [
+        CommunityFeedItem(
+            id=row.id,
+            username=row.username,
+            content=row.content,
+            target_var=row.target_var,
+            completed_at=row.completed_at,
+        )
+        for row in rows
+    ]
 
 
 @router.post("/{mission_id}/complete", response_model=MissionResponse)

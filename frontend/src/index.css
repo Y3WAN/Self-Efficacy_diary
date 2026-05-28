@@ -634,3 +634,53 @@ body { background: var(--bg); min-height: 100vh; }
   animation: spin 0.7s linear infinite;
   display: inline-block;
 }
+
+/* ── Community Feed ── */
+.community-page { min-height: 100vh; background: var(--bg); display: flex; flex-direction: column; }
+.community-container {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+.community-title { font-size: 20px; font-weight: 700; margin: 0; }
+.community-subtitle { font-size: 13px; color: var(--text-muted); margin: 0; }
+.community-empty { text-align: center; color: var(--text-muted); padding: 40px 0; font-size: 14px; }
+.community-feed { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.community-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.community-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.community-avatar {
+  width: 34px; height: 34px;
+  background: var(--orange);
+  color: #fff;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 15px;
+  flex-shrink: 0;
+}
+.community-username { font-weight: 700; font-size: 14px; flex: 1; }
+.community-time { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.community-content { font-size: 14px; line-height: 1.5; margin: 0; color: var(--text); }
+.community-badge {
+  align-self: flex-start;
+  font-size: 11px;
+  color: #fff;
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-weight: 600;
+}
