@@ -27,6 +27,7 @@ class CommunityFeedItem(BaseModel):
     completed_at: datetime
     respect_count: int
     has_respected: bool
+    is_own: bool
 
 
 router = APIRouter(prefix="/api/missions", tags=["missions"])
@@ -59,6 +60,7 @@ async def community_feed(
             Mission.completed_at,
             func.count(Respect.id).label("respect_count"),
             func.bool_or(Respect.from_user_id == current_user.id).label("has_respected"),
+            (Mission.user_id == current_user.id).label("is_own"),
         )
         .join(User, Mission.user_id == User.id)
         .outerjoin(Respect, Respect.mission_id == Mission.id)
@@ -77,6 +79,7 @@ async def community_feed(
             completed_at=row.completed_at,
             respect_count=row.respect_count or 0,
             has_respected=bool(row.has_respected),
+            is_own=bool(row.is_own),
         )
         for row in rows
     ]

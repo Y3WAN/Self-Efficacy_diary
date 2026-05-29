@@ -47,7 +47,7 @@ export default function ProfilePage() {
           </div>
           <div className="profile-row profile-row--points">
             <span className="profile-label">포인트</span>
-            <span className="profile-value profile-points">{(user.points ?? 0).toLocaleString()} P</span>
+            <span className="profile-value profile-points">{((user.completed_missions_count ?? 0) * 100).toLocaleString()} P</span>
           </div>
         </div>
 

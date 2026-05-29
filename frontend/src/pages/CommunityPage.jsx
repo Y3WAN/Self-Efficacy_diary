@@ -65,17 +65,19 @@ export default function CommunityPage() {
                 >
                   {VAR_LABEL[item.target_var] ?? item.target_var}
                 </span>
-                <button
-                  className={`respect-btn${item.has_respected ? " respect-btn--done" : ""}`}
-                  onClick={() => {
-                    if (!item.has_respected) respectMutation.mutate(item.id);
-                  }}
-                  disabled={item.has_respected || respectMutation.isPending}
-                  title={item.has_respected ? "이미 리스펙했습니다" : "리스펙하기 (+5 포인트)"}
-                >
-                  👊 {item.respect_count > 0 ? item.respect_count : ""}
-                  {item.has_respected ? " 리스펙됨" : " 리스펙"}
-                </button>
+                {!item.is_own && (
+                  <button
+                    className={`respect-btn${item.has_respected ? " respect-btn--done" : ""}`}
+                    onClick={() => {
+                      if (!item.has_respected) respectMutation.mutate(item.id);
+                    }}
+                    disabled={item.has_respected || respectMutation.isPending}
+                    title={item.has_respected ? "이미 리스펙했습니다" : "리스펙하기 (+5 포인트)"}
+                  >
+                    👊 {item.respect_count > 0 ? item.respect_count : ""}
+                    {item.has_respected ? " 리스펙됨" : " 리스펙"}
+                  </button>
+                )}
               </div>
             </li>
           ))}
