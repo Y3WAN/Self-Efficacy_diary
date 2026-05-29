@@ -29,6 +29,7 @@ class User(Base):
     diaries = relationship("Diary", back_populates="user", cascade="all, delete-orphan")
     daily_analyses = relationship("DailyAnalysis", back_populates="user", cascade="all, delete-orphan")
     missions = relationship("Mission", back_populates="user", cascade="all, delete-orphan")
+    failure_logs = relationship("FailureLog", back_populates="user", cascade="all, delete-orphan")
 
 
 class Diary(Base):
@@ -104,3 +105,17 @@ class Respect(Base):
     __table_args__ = (
         UniqueConstraint("from_user_id", "mission_id", name="uq_respect_user_mission"),
     )
+
+
+class FailureLog(Base):
+    __tablename__ = "failure_logs"
+
+    id = Column(BigInteger, primary_key=True)
+    user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    diary_date = Column(Date, nullable=False)
+    failure_summary = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
+
+    user = relationship("User", back_populates="failure_logs")
+
+    __table_args__ = (Index("idx_failure_logs_user_date", "user_id", "diary_date"),)

@@ -2,7 +2,7 @@ import logging
 from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import Diary, DailyAnalysis
+from app.db.models import Diary, DailyAnalysis, FailureLog, User
 from app.services.groq_client import chat_json
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,8 @@ ANALYSIS_SYSTEM = """당신은 Bandura의 자기효능감 이론 전문가입니
 - 슬픔이나 힘듦 자체는 낮은 효능감이 아님 (대처 의지·노력이 핵심)
 - confidence: 일기 내용이 충분할수록 높게 (짧은 일기 = 낮은 confidence)
 - 모든 evidence와 reasoning은 반드시 한국어로 작성
+- failure_detected: 일기에서 실패·포기·좌절·목표 미달성·후회가 명확히 드러나면 true, 그렇지 않으면 false
+- failure_summary: failure_detected가 true일 때만 한국어로 1~2문장 요약, false이면 ""
 - JSON만 반환, 다른 텍스트 없이"""
 
 ANALYSIS_USER = """일기:
@@ -37,7 +39,9 @@ ANALYSIS_USER = """일기:
   "evidence_v": "V 점수 근거 (한국어)",
   "evidence_p": "P 점수 근거 (한국어)",
   "evidence_a": "A 점수 근거 (한국어)",
-  "reasoning": "종합 분석 (한국어)"
+  "reasoning": "종합 분석 (한국어)",
+  "failure_detected": true 또는 false,
+  "failure_summary": "실패 내용 요약 (한국어, failure_detected=false면 빈 문자열)"
 }}"""
 
 
@@ -98,6 +102,19 @@ async def analyze_day(user_id: int, target_date: date, db: AsyncSession) -> bool
         is_reflected=is_reflected,
     )
     db.add(analysis)
+
+    # Handle failure log and points
+    raw = data.get("failure_detected", False)
+    failure_detected = raw is True or str(raw).lower() == "true"
+    failure_summary = data.get("failure_summary", "") or ""
+
+    if failure_detected and failure_summary.strip():
+        db.add(FailureLog(user_id=user_id, diary_date=target_date, failure_summary=failure_summary))
+        user_row = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+        if user_row:
+            user_row.points = (user_row.points or 0) + 25
+            logger.info(f"Failure logged user={user_id} date={target_date}, +25 points")
+
     await db.commit()
     logger.info(f"Analysis saved user={user_id} date={target_date} composite={composite}")
     return True
