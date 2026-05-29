@@ -23,11 +23,11 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: "#fff", border: "1px solid #EDE8E1",
+      background: "#fff", border: "1px solid #E5DDD4",
       borderRadius: 10, padding: "8px 12px", fontSize: 13,
     }}>
-      <p style={{ color: "#9E9189", marginBottom: 2 }}>{label} 주</p>
-      <p style={{ color: "#F5A65B", fontWeight: 700 }}>
+      <p style={{ color: "#8C7B70", marginBottom: 2 }}>{label} 주</p>
+      <p style={{ color: "#F4A261", fontWeight: 700 }}>
         {(payload[0].value * 100).toFixed(0)}점
       </p>
     </div>
@@ -50,17 +50,17 @@ export default function GrowthChart() {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={growth} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#EDE8E1" />
-        <XAxis dataKey="week" tick={{ fontSize: 11, fill: "#9E9189" }} tickFormatter={(v) => v.slice(5)} />
-        <YAxis domain={[0, 1]} tick={{ fontSize: 11, fill: "#9E9189" }} tickFormatter={(v) => `${(v * 100).toFixed(0)}`} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#E5DDD4" />
+        <XAxis dataKey="week" tick={{ fontSize: 11, fill: "#8C7B70" }} tickFormatter={(v) => v.slice(5)} />
+        <YAxis domain={[0, 1]} tick={{ fontSize: 11, fill: "#8C7B70" }} tickFormatter={(v) => `${(v * 100).toFixed(0)}`} />
         <Tooltip content={<CustomTooltip />} />
         {[...changeWeeks].map((w) => (
-          <ReferenceLine key={w} x={w} stroke="#A8C97F" strokeDasharray="4 2"
-            label={{ value: "페르소나 변경", position: "top", fontSize: 9, fill: "#A8C97F" }} />
+          <ReferenceLine key={w} x={w} stroke="#7A9E7E" strokeDasharray="4 2"
+            label={{ value: "페르소나 변경", position: "top", fontSize: 9, fill: "#7A9E7E" }} />
         ))}
         <Line
-          type="monotone" dataKey="avg_score" stroke="#F5A65B"
-          strokeWidth={2.5} dot={{ r: 4, fill: "#F5A65B" }}
+          type="monotone" dataKey="avg_score" stroke="#F4A261"
+          strokeWidth={2.5} dot={{ r: 4, fill: "#F4A261" }}
           activeDot={{ r: 6 }}
         />
       </LineChart>

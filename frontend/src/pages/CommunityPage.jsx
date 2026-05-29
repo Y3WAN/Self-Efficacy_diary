@@ -4,7 +4,7 @@ import AppBar from "../components/AppBar";
 import toast from "react-hot-toast";
 
 const VAR_LABEL = { M: "성취경험", V: "대리경험", P: "사회적 설득", A: "정서·신체" };
-const VAR_COLOR = { M: "#6C63FF", V: "#43B89C", P: "#F4A261", A: "#E76F51" };
+const VAR_COLOR = { M: "#E76F51", V: "#7A9E7E", P: "#6C8BAA", A: "#A68A64" };
 
 function timeAgo(dateStr) {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);

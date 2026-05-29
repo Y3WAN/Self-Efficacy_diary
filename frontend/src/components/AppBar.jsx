@@ -8,7 +8,7 @@ export default function AppBar() {
     <>
       <header className="appbar">
         <button className="hamburger" onClick={() => setSidebarOpen(true)}>☰</button>
-        <span className="appbar-title">성장 기록</span>
+        <span className="appbar-title">🌱 성장 기록</span>
       </header>
       <SideBar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
     </>

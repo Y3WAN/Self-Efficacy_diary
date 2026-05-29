@@ -21,14 +21,14 @@ function CustomTooltip({ active, payload }) {
 
   return (
     <div style={{
-      background: "#fff", border: "1px solid #EDE8E1", borderRadius: 12,
+      background: "#fff", border: "1px solid #E5DDD4", borderRadius: 12,
       padding: "10px 14px", fontSize: 13, lineHeight: 1.6,
-      boxShadow: "0 2px 12px rgba(0,0,0,0.08)", maxWidth: 220,
+      boxShadow: "0 2px 14px rgba(61,53,48,0.08)", maxWidth: 220,
     }}>
-      <div style={{ fontWeight: 700, color: "#3A332E", marginBottom: 3 }}>
+      <div style={{ fontWeight: 700, color: "#3D3530", marginBottom: 3 }}>
         {info.label} — {(score * 100).toFixed(0)}점
       </div>
-      <div style={{ color: "#9E9189", fontSize: 12 }}>{info.desc}</div>
+      <div style={{ color: "#8C7B70", fontSize: 12 }}>{info.desc}</div>
     </div>
   );
 }
@@ -56,12 +56,12 @@ export default function RadarChartComponent() {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <RadarChart data={chartData}>
-        <PolarGrid stroke="#EDE8E1" />
-        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: "#9E9189" }} />
+        <PolarGrid stroke="#E5DDD4" />
+        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: "#8C7B70" }} />
         <PolarRadiusAxis domain={[0, 1]} tick={false} axisLine={false} />
         <Radar
-          dataKey="score" stroke="#F5A65B" fill="#F5A65B"
-          fillOpacity={0.25} strokeWidth={2}
+          dataKey="score" stroke="#F4A261" fill="#F4A261"
+          fillOpacity={0.22} strokeWidth={2}
         />
         <Tooltip content={<CustomTooltip />} />
       </RadarChart>
