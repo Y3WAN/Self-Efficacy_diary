@@ -5,7 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import text
 from app.db.session import engine
 from app.db.models import Base
-from app.api import auth, diary, mission, dashboard, debug, failure_log
+from app.api import auth, diary, mission, dashboard, debug, failure_log, user_prompt
 from app.core.config import settings
 
 scheduler = AsyncIOScheduler(timezone="UTC")
@@ -31,6 +31,7 @@ async def lifespan(app: FastAPI):
             "CREATE INDEX IF NOT EXISTS idx_failure_logs_user_date "
             "ON failure_logs(user_id, diary_date)"
         ))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_prompt TEXT"))
 
     from app.jobs.midnight_analysis import run_midnight_analysis
     from app.jobs.morning_mission import run_morning_mission
@@ -60,6 +61,7 @@ app.include_router(mission.router)
 app.include_router(dashboard.router)
 app.include_router(debug.router)
 app.include_router(failure_log.router)
+app.include_router(user_prompt.router)
 
 
 @app.get("/health")

@@ -10,6 +10,7 @@ import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import FailureLogsPage from "./pages/FailureLogsPage";
 import CommunityPage from "./pages/CommunityPage";
+import PromptPage from "./pages/PromptPage";
 
 const qc = new QueryClient();
 
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
           <Route path="/failure-logs" element={<RequireAuth><FailureLogsPage /></RequireAuth>} />
           <Route path="/community" element={<RequireAuth><CommunityPage /></RequireAuth>} />
+          <Route path="/prompt" element={<RequireAuth><PromptPage /></RequireAuth>} />
         </Routes>
         <Toaster position="bottom-center" toastOptions={{ style: { fontFamily: 'Pretendard, sans-serif', borderRadius: '12px' } }} />
       </BrowserRouter>

@@ -26,6 +26,8 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc)
 
+    custom_prompt = Column(Text, nullable=True)
+
     diaries = relationship("Diary", back_populates="user", cascade="all, delete-orphan")
     daily_analyses = relationship("DailyAnalysis", back_populates="user", cascade="all, delete-orphan")
     missions = relationship("Mission", back_populates="user", cascade="all, delete-orphan")

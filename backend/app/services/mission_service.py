@@ -3,7 +3,7 @@ import re
 from datetime import date, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from app.db.models import Diary, DailyAnalysis, Mission
+from app.db.models import Diary, DailyAnalysis, Mission, User
 from app.services.groq_client import chat_json
 
 logger = logging.getLogger(__name__)
@@ -78,6 +78,10 @@ async def _get_recent_diary_text(user_id: int, db: AsyncSession) -> str:
 
 
 async def generate_missions(user_id: int, db: AsyncSession) -> int:
+    user_result = await db.execute(select(User).where(User.id == user_id))
+    user = user_result.scalar_one_or_none()
+    custom_prompt = (user.custom_prompt or "").strip() if user else ""
+
     # 기존 active 미션 (원천 + 내용)
     existing_result = await db.execute(
         select(Mission.target_var, Mission.content)
@@ -125,11 +129,10 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
     for i in range(min(slots_left, len(available_vars))):
         target_var = available_vars[i]
         current_block = "\n".join(f"- {c}" for c in generated_contents) if generated_contents else "없음"
-        user_prompt = (
-            f"타겟 원천: {target_var}\n"
-            f"일기:\n{diary_text}\n\n"
-            f"[기존 미션 목록]\n{current_block}"
-        )
+        user_prompt = f"타겟 원천: {target_var}\n일기:\n{diary_text}\n\n"
+        if custom_prompt:
+            user_prompt += f"[사용자 추가 컨텍스트]\n{custom_prompt}\n\n"
+        user_prompt += f"[기존 미션 목록]\n{current_block}"
         try:
             data = await chat_json([
                 {"role": "system", "content": MISSION_SYSTEM},
