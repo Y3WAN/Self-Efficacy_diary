@@ -1330,8 +1330,17 @@ body { background: var(--bg); min-height: 100vh; }
 .celebration-btn:hover { opacity: 0.9; }
 
 /* ═══════════════════════════════════════════════════════
-   MALLANG PAGE
+   MALLANG / SAMAL PAGE
 ═══════════════════════════════════════════════════════ */
+@keyframes samari-bubble-in {
+  0%   { transform: scale(0.65); opacity: 0; }
+  70%  { transform: scale(1.05); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.samari-bubble-inner {
+  animation: samari-bubble-in 0.42s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
 @keyframes mallang-float {
   0%, 100% { transform: translateY(0px); }
   50%       { transform: translateY(-12px); }
