@@ -1332,28 +1332,12 @@ body { background: var(--bg); min-height: 100vh; }
 /* ═══════════════════════════════════════════════════════
    MALLANG PAGE
 ═══════════════════════════════════════════════════════ */
-@keyframes mallang-bubble-pop {
-  0%   { transform: scale(0.65); opacity: 0; }
-  65%  { transform: scale(1.06); }
-  100% { transform: scale(1);    opacity: 1; }
+@keyframes mallang-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
 }
-@keyframes mallang-particle-fly {
-  0%   { transform: translate(0, 0) scale(1); opacity: 1; }
-  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
-}
-@keyframes mallang-cursor-blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}
-
-.mallang-bubble {
-  animation: mallang-bubble-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.mallang-particle {
-  animation: mallang-particle-fly 0.72s ease-out forwards;
-}
-.mallang-cursor {
-  animation: mallang-cursor-blink 1s step-end infinite;
+.mallang-float {
+  animation: mallang-float 2.8s ease-in-out infinite;
 }
 
 /* ═══════════════════════════════════════════════════════
