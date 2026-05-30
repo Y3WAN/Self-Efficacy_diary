@@ -26,6 +26,7 @@ export default function SideBar({ open, onClose }) {
           <li className={isActive("/failure-logs") ? "active" : ""} onClick={() => go("/failure-logs")}>📋 실패 로그</li>
           <li className={isActive("/community") ? "active" : ""} onClick={() => go("/community")}>🌍 커뮤니티</li>
           <li className={isActive("/prompt") ? "active" : ""} onClick={() => go("/prompt")}>✏️ 미션 프롬프트</li>
+          <li className={isActive("/mallang") ? "active" : ""} onClick={() => go("/mallang")}>🤖 사이버 말랑이</li>
           <li className="sidebar-logout" onClick={() => { logout(); go("/login"); }}>🚪 로그아웃</li>
         </ul>
       </nav>
