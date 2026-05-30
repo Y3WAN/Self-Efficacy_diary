@@ -1340,6 +1340,20 @@ body { background: var(--bg); min-height: 100vh; }
   animation: mallang-float 2.8s ease-in-out infinite;
 }
 
+@keyframes squish {
+  0%, 100% {
+    border-radius: 50% 50% 45% 55% / 55% 55% 45% 45%;
+    transform: scale(1);
+  }
+  50% {
+    border-radius: 45% 55% 55% 45% / 45% 45% 55% 55%;
+    transform: scale(1.03) translateY(-3px);
+  }
+}
+.mallang-squish {
+  animation: squish 2.8s ease-in-out infinite;
+}
+
 /* ═══════════════════════════════════════════════════════
    LOADING
 ═══════════════════════════════════════════════════════ */

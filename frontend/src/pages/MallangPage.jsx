@@ -6,50 +6,78 @@ const TRAVEL_MS = 500;
 const SQUISH_MS = 300;
 
 function MallangFace({ state, squish }) {
-  const blushAlpha = squish ? 0.62 : 0.44;
-
   return (
-    <>
-      {/* Blush */}
-      <ellipse cx="64"  cy="112" rx="21" ry="13" fill="#F080A0" opacity={blushAlpha}/>
-      <ellipse cx="136" cy="112" rx="21" ry="13" fill="#F080A0" opacity={blushAlpha}/>
+    <svg
+      viewBox="0 0 200 200"
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+    >
+      <defs>
+        <filter id="blush-blur" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" />
+        </filter>
+      </defs>
 
-      {/* Eyes */}
+      {/* 볼터치 */}
+      <ellipse
+        cx="62" cy="116" rx="22" ry="13"
+        fill={`rgba(251,113,133,${squish ? 0.52 : 0.34})`}
+        filter="url(#blush-blur)"
+      />
+      <ellipse
+        cx="138" cy="116" rx="22" ry="13"
+        fill={`rgba(251,113,133,${squish ? 0.52 : 0.34})`}
+        filter="url(#blush-blur)"
+      />
+
+      {/* 눈 — squished */}
       {state === "squished" && (
         <>
-          <line x1="80" y1="95" x2="92" y2="95" stroke="#8B4058" strokeWidth="3" strokeLinecap="round"/>
-          <line x1="108" y1="95" x2="120" y2="95" stroke="#8B4058" strokeWidth="3" strokeLinecap="round"/>
-        </>
-      )}
-      {state === "happy" && (
-        <>
-          <path d="M 80 97 Q 86 89 92 97" stroke="#8B4058" strokeWidth="3" fill="none" strokeLinecap="round"/>
-          <path d="M 108 97 Q 114 89 120 97" stroke="#8B4058" strokeWidth="3" fill="none" strokeLinecap="round"/>
-        </>
-      )}
-      {(state === "normal" || state === "moving") && (
-        <>
-          <circle cx="86"  cy="94" r={state === "moving" ? 3.8 : 5.5} fill="#8B4058"/>
-          <circle cx="114" cy="94" r={state === "moving" ? 3.8 : 5.5} fill="#8B4058"/>
+          <line x1="80" y1="95" x2="93" y2="95" stroke="#6B2D40" strokeWidth="3.5" strokeLinecap="round"/>
+          <line x1="107" y1="95" x2="120" y2="95" stroke="#6B2D40" strokeWidth="3.5" strokeLinecap="round"/>
         </>
       )}
 
-      {/* Mouth */}
-      {state === "squished" && (
-        <line x1="95" y1="116" x2="105" y2="116" stroke="#8B4058" strokeWidth="2.2" strokeLinecap="round"/>
-      )}
+      {/* 눈 — happy */}
       {state === "happy" && (
-        <path d="M 89 114 Q 100 126 111 114" stroke="#8B4058" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+        <>
+          <path d="M 79 97 Q 86 89 93 97" stroke="#6B2D40" strokeWidth="3" fill="none" strokeLinecap="round"/>
+          <path d="M 107 97 Q 114 89 121 97" stroke="#6B2D40" strokeWidth="3" fill="none" strokeLinecap="round"/>
+        </>
       )}
+
+      {/* 눈 — normal / moving: 촉촉한 눈망울 + 흰 불빛 */}
       {(state === "normal" || state === "moving") && (
-        /* w 입 */
-        <path
-          d="M 91 114 Q 94 121 97.5 115 Q 100 112 102.5 115 Q 106 121 109 114"
-          stroke="#8B4058" strokeWidth="2.2" fill="none"
-          strokeLinecap="round" strokeLinejoin="round"
-        />
+        <>
+          <circle cx="86"  cy="94" r={state === "moving" ? 3.8 : 6.2} fill="#3D1A26"/>
+          <circle cx="89.5" cy="90.5" r={state === "moving" ? 1.0 : 1.9} fill="white"/>
+          <circle cx="114" cy="94" r={state === "moving" ? 3.8 : 6.2} fill="#3D1A26"/>
+          <circle cx="117.5" cy="90.5" r={state === "moving" ? 1.0 : 1.9} fill="white"/>
+        </>
       )}
-    </>
+
+      {/* 입 — squished */}
+      {state === "squished" && (
+        <line x1="95" y1="117" x2="105" y2="117" stroke="#8B4058" strokeWidth="2.5" strokeLinecap="round"/>
+      )}
+
+      {/* 입 — happy */}
+      {state === "happy" && (
+        <path d="M 89 114 Q 100 127 111 114" stroke="#8B4058" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      )}
+
+      {/* 입 — normal / moving: ω 몽글 입 */}
+      {(state === "normal" || state === "moving") && (
+        <text
+          x="100" y="123"
+          textAnchor="middle"
+          fontSize="20"
+          fill="#8B4058"
+          fontWeight="800"
+          fontFamily="system-ui, sans-serif"
+          style={{ userSelect: "none" }}
+        >ω</text>
+      )}
+    </svg>
   );
 }
 
@@ -86,17 +114,33 @@ export default function MallangPage() {
   }, []);
 
   if (!pos) {
-    return <div style={{ minHeight: "100vh", background: "var(--bg)" }}><AppBar /></div>;
+    return <div style={{ minHeight: "100vh", background: "#FFF9F9" }}><AppBar /></div>;
   }
 
   const isIdle = !isMoving && !squish;
 
   return (
     <div
-      style={{ minHeight: "100vh", background: "var(--bg)", cursor: "crosshair", overflow: "hidden" }}
+      style={{ minHeight: "100vh", background: "#FFF9F9", cursor: "crosshair", overflow: "hidden" }}
       onClick={handleClick}
     >
       <AppBar />
+
+      {/* 화이트 룸 프레임 */}
+      <div style={{
+        position: "fixed",
+        left: "50%",
+        top: "64px",
+        transform: "translateX(-50%)",
+        width: "min(calc(100vw - 32px), 448px)",
+        height: "calc(100vh - 80px)",
+        background: "white",
+        borderRadius: "32px",
+        border: "4px solid #FFE4E8",
+        boxShadow: "0 16px 48px rgba(251,113,133,0.10), 0 4px 16px rgba(0,0,0,0.05)",
+        zIndex: 1,
+        pointerEvents: "none",
+      }}/>
 
       {/* 위치 레이어 */}
       <div style={{
@@ -110,45 +154,27 @@ export default function MallangPage() {
       }}>
         {/* 둥둥 레이어 */}
         <div className={isIdle ? "mallang-float" : ""} style={{ width: "100%", height: "100%" }}>
-          {/* 찌그러짐 레이어 */}
+          {/* 착지 찌그러짐 레이어 */}
           <div style={{
             width: "100%", height: "100%",
             transform: squish ? "scaleX(1.28) scaleY(0.74)" : "scaleX(1) scaleY(1)",
             transition: "transform 0.38s cubic-bezier(0.34,1.56,0.64,1)",
             transformOrigin: "center bottom",
           }}>
-            <svg viewBox="0 0 200 200" width={SIZE} height={SIZE}>
-              <defs>
-                <radialGradient id="mg-pink" cx="42%" cy="36%" r="62%">
-                  <stop offset="0%"   stopColor="#FFF2F5"/>
-                  <stop offset="30%"  stopColor="#FFD4E0"/>
-                  <stop offset="68%"  stopColor="#FFBDD0"/>
-                  <stop offset="100%" stopColor="#F8AABF"/>
-                </radialGradient>
-
-                <radialGradient id="mg-halo" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%"   stopColor="#FFC8D8" stopOpacity="0.40"/>
-                  <stop offset="100%" stopColor="#FFC8D8" stopOpacity="0"/>
-                </radialGradient>
-              </defs>
-
-              {/* 핑크 후광 */}
-              <circle cx="100" cy="100" r="98" fill="url(#mg-halo)"/>
-
-              {/* 몸통 */}
-              <circle cx="100" cy="100" r="80" fill="url(#mg-pink)"/>
-
-              {/* 흰 테두리 하이라이트 */}
-              <circle cx="100" cy="100" r="80"
-                fill="none" stroke="rgba(255,255,255,0.60)" strokeWidth="4"/>
-
-              {/* 상단 내부 광택 */}
-              <ellipse cx="78" cy="66" rx="28" ry="18"
-                fill="rgba(255,255,255,0.30)"
-                transform="rotate(-20,78,66)"/>
-
-              <MallangFace state={eyeState} squish={squish}/>
-            </svg>
+            {/* 바디 — 3D 마시멜로 텍스처 + 유기적 idle 일렁임 */}
+            <div
+              className={isIdle ? "mallang-squish" : ""}
+              style={{
+                width: "100%",
+                height: "100%",
+                background: "linear-gradient(135deg, #FFF0F2 0%, #FFE4E8 100%)",
+                boxShadow: "inset -10px -10px 25px rgba(251,113,133,0.15), 0 20px 35px rgba(251,113,133,0.10)",
+                borderRadius: "50% 50% 45% 55% / 55% 55% 45% 45%",
+                position: "relative",
+              }}
+            >
+              <MallangFace state={eyeState} squish={squish} />
+            </div>
           </div>
         </div>
       </div>
