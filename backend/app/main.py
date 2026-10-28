@@ -36,11 +36,12 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS elo INTEGER NOT NULL DEFAULT 1000"))
         await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS difficulty INTEGER"))
 
-    from app.jobs.midnight_analysis import run_midnight_analysis
-    from app.jobs.morning_mission import run_morning_mission
+    from app.jobs.catch_up import catch_up, midnight_job, morning_job, MORNING_HOUR
 
-    scheduler.add_job(run_midnight_analysis, "cron", hour=0, minute=5, id="midnight_analysis")
-    scheduler.add_job(run_morning_mission, "cron", hour=7, minute=0, id="morning_mission")
+    scheduler.add_job(midnight_job, "cron", hour=0, minute=5, id="midnight_analysis")
+    scheduler.add_job(morning_job, "cron", hour=MORNING_HOUR, minute=0, id="morning_mission")
+    # 서버가 잠든 사이 놓친 작업 보충 (trigger 없이 등록하면 즉시 1회 실행)
+    scheduler.add_job(catch_up, id="catch_up")
     scheduler.start()
 
     yield
