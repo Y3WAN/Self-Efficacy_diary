@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import client from "../api/client";
+import { todayKST } from "../utils/date";
 
 function useMonthDiaries(month) {
   return useQuery({
@@ -11,8 +12,11 @@ function useMonthDiaries(month) {
 }
 
 export default function DiaryCalendar() {
-  const today = new Date();
-  const [current, setCurrent] = useState(today);
+  const todayStr = todayKST();
+  const [current, setCurrent] = useState(() => {
+    const [y, m] = todayStr.split("-").map(Number);
+    return new Date(y, m - 1, 1);
+  });
   const navigate = useNavigate();
 
   const month = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`;
@@ -48,8 +52,7 @@ export default function DiaryCalendar() {
           if (!day) return <div key={`e-${i}`} />;
           const ds = dateStr(day);
           const hasEntry = writtenDates.includes(ds);
-          const isToday = ds === dateStr(today.getDate()) &&
-            mon === today.getMonth() && year === today.getFullYear();
+          const isToday = ds === todayStr;
           return (
             <div
               key={ds}

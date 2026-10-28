@@ -4,8 +4,9 @@ from typing import Literal
 
 
 class SignupRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=3, max_length=50, pattern=r"^\S+$")
+    # bcrypt는 72바이트까지만 사용
+    password: str = Field(..., min_length=4, max_length=72)
     answer_m: int = Field(..., ge=1, le=5)
     answer_v: int = Field(..., ge=1, le=5)
     answer_p: int = Field(..., ge=1, le=5)

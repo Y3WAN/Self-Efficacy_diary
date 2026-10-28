@@ -21,7 +21,7 @@ export default function PromptPage() {
   const mutation = useMutation({
     mutationFn: (val) => client.put("/api/user/prompt", { custom_prompt: val }),
     onSuccess: () => {
-      qc.invalidateQueries(["user-prompt"]);
+      qc.invalidateQueries({ queryKey: ["user-prompt"] });
       toast.success("저장했어요!");
     },
     onError: () => toast.error("저장에 실패했어요."),

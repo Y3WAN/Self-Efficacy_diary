@@ -4,10 +4,11 @@ import AppBar from "../components/AppBar";
 import DiaryCalendar from "../components/DiaryCalendar";
 import MissionList from "../components/MissionList";
 import client from "../api/client";
+import { todayKST } from "../utils/date";
 
 export default function MainPage() {
   const navigate = useNavigate();
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayKST();
 
   const { data: todayDiaries = [] } = useQuery({
     queryKey: ["diaries", today],

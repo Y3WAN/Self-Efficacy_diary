@@ -6,7 +6,9 @@ from sqlalchemy.exc import IntegrityError
 from app.db.session import get_db
 from app.db.models import Mission, User, Respect
 from app.core.deps import get_current_user
+from app.services.elo_service import apply_result, level_for_rating
 from pydantic import BaseModel
+from typing import Optional
 
 
 class MissionResponse(BaseModel):
@@ -14,9 +16,23 @@ class MissionResponse(BaseModel):
     content: str
     target_var: str
     status: str
+    difficulty: Optional[int] = None
+    level: Optional[int] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def of(cls, mission: Mission) -> "MissionResponse":
+        res = cls.model_validate(mission)
+        if mission.difficulty is not None:
+            res.level = level_for_rating(mission.difficulty)
+        return res
+
+
+class MissionResultResponse(MissionResponse):
+    elo_before: int
+    elo_after: int
 
 
 class CommunityFeedItem(BaseModel):
@@ -43,7 +59,7 @@ async def list_missions(
         .where(Mission.user_id == current_user.id, Mission.status == "active")
         .order_by(Mission.created_at)
     )
-    return result.scalars().all()
+    return [MissionResponse.of(m) for m in result.scalars().all()]
 
 
 @router.get("/community/feed", response_model=list[CommunityFeedItem])
@@ -85,27 +101,55 @@ async def community_feed(
     ]
 
 
-@router.post("/{mission_id}/complete", response_model=MissionResponse)
-async def complete_mission(
-    mission_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
+async def _get_active_mission(mission_id: int, user: User, db: AsyncSession) -> Mission:
     result = await db.execute(
-        select(Mission).where(Mission.id == mission_id, Mission.user_id == current_user.id)
+        select(Mission).where(Mission.id == mission_id, Mission.user_id == user.id)
     )
     mission = result.scalar_one_or_none()
     if not mission:
         raise HTTPException(status_code=404, detail="Mission not found")
     if mission.status != "active":
         raise HTTPException(status_code=409, detail="Mission is not active")
+    return mission
+
+
+def _result_response(mission: Mission, elo_before: int, elo_after: int) -> MissionResultResponse:
+    return MissionResultResponse(
+        **MissionResponse.of(mission).model_dump(), elo_before=elo_before, elo_after=elo_after
+    )
+
+
+@router.post("/{mission_id}/complete", response_model=MissionResultResponse)
+async def complete_mission(
+    mission_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    mission = await _get_active_mission(mission_id, current_user, db)
 
     mission.status = "done"
     mission.completed_at = datetime.now(timezone.utc)
     current_user.points = (current_user.points or 0) + 100
+    before, after = apply_result(current_user, mission, won=True, db=db)
     await db.commit()
     await db.refresh(mission)
-    return mission
+    return _result_response(mission, before, after)
+
+
+@router.post("/{mission_id}/skip", response_model=MissionResultResponse)
+async def skip_mission(
+    mission_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """'너무 어려워요' — ELO 패배로 반영해 다음 미션 난이도를 낮춘다."""
+    mission = await _get_active_mission(mission_id, current_user, db)
+
+    mission.status = "skipped"
+    before, after = apply_result(current_user, mission, won=False, db=db)
+    await db.commit()
+    await db.refresh(mission)
+    return _result_response(mission, before, after)
 
 
 @router.post("/community/{mission_id}/respect")
@@ -120,6 +164,8 @@ async def respect_mission(
     mission = mission_result.scalar_one_or_none()
     if not mission:
         raise HTTPException(status_code=404, detail="Mission not found")
+    if mission.user_id == current_user.id:
+        raise HTTPException(status_code=403, detail="Cannot respect own mission")
 
     respect = Respect(from_user_id=current_user.id, mission_id=mission_id)
     db.add(respect)

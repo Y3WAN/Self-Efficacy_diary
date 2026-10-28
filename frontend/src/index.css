@@ -577,6 +577,72 @@ body { background: var(--bg); min-height: 100vh; }
   color: var(--green);
   background: var(--green-bg);
 }
+.mission-level {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--brown);
+  background: var(--brown-bg);
+  border-radius: var(--radius-xs);
+  vertical-align: 1px;
+}
+.mission-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.mission-skip-btn {
+  background: none;
+  border: none;
+  padding: 2px 0;
+  font-size: 11px;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-family: inherit;
+}
+.mission-skip-btn:hover { color: var(--text-muted); text-decoration: underline; }
+
+/* ELO 성장 지수 */
+.elo-stats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.elo-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 4px;
+  background: var(--bg-warm);
+  border-radius: var(--radius-sm);
+}
+.elo-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--orange);
+}
+.elo-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.elo-calibration {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 8px;
+}
+.celebration-elo {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: -14px 0 22px;
+}
+.elo-up { color: var(--green); font-weight: 700; }
+.elo-down { color: var(--text-soft); font-weight: 700; }
 
 /* ═══════════════════════════════════════════════════════
    FAB

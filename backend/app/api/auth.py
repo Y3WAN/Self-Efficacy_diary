@@ -1,12 +1,15 @@
-from datetime import date
+from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError
 from app.db.session import get_db
 from app.db.models import User, Mission, DailyAnalysis
 from app.schemas.auth import SignupRequest, LoginRequest, TokenResponse, MeResponse
 from app.core.security import hash_password, verify_password, create_access_token
 from app.core.deps import get_current_user
+from app.core.timeutil import today_kst
+from app.services.analysis_service import INITIAL_REASONING
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -25,7 +28,11 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
         initial_grade="-",
     )
     db.add(user)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Username already exists")
 
     m = SCORE_MAP[body.answer_m]
     v = SCORE_MAP[body.answer_v]
@@ -33,9 +40,10 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
     a = SCORE_MAP[body.answer_a]
     composite = round(m * 0.4 + v * 0.2 + p * 0.2 + a * 0.2, 2)
 
+    # 가입 당일 일기 분석과 날짜가 겹치지 않도록 전날로 기록
     initial_analysis = DailyAnalysis(
         user_id=user.id,
-        diary_date=date.today(),
+        diary_date=today_kst() - timedelta(days=1),
         score_m=round(m, 2),
         score_v=round(v, 2),
         score_p=round(p, 2),
@@ -43,7 +51,7 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
         composite_score=composite,
         confidence=0.8,
         is_reflected=True,
-        reasoning="초기 자기효능감 설문 결과",
+        reasoning=INITIAL_REASONING,
     )
     db.add(initial_analysis)
     await db.commit()

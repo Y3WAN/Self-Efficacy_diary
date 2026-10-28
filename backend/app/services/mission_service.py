@@ -1,12 +1,16 @@
 import logging
 import re
-from datetime import date, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select
 from app.db.models import Diary, DailyAnalysis, Mission, User
+from app.core.timeutil import today_kst
 from app.services.groq_client import chat_json
+from app.services.elo_service import BASE_RATING, LEVEL_GUIDES, LEVEL_RATINGS, apply_result, target_level
 
 logger = logging.getLogger(__name__)
+
+MISSION_EXPIRE_DAYS = 3
 
 MISSION_SYSTEM = """당신은 ZPD(근접발달영역) 기반 자기계발 미션 전문가입니다.
 학생의 일기와 가장 낮은 자기효능감 원천을 바탕으로 오늘 실천 가능한 미션 1개를 만드세요.
@@ -19,6 +23,7 @@ MISSION_SYSTEM = """당신은 ZPD(근접발달영역) 기반 자기계발 미션
 
 미션 조건:
 - 오늘 30분 안에 실행 가능한 구체적 행동
+- [목표 난이도]에 적힌 수준에 정확히 맞출 것 (더 쉽거나 어렵게 만들지 마세요)
 - 실제로 도움이 되는 현실적인 행동 (수동적 시청·암기 반복 금지)
 - 20자 이상 50자 이하
 - 아래 [기존 미션 목록]과 내용·맥락이 겹치지 않는 새로운 미션
@@ -46,8 +51,8 @@ JSON만 반환: {"content": "미션 내용"}"""
 def _fix_tone(content: str) -> str:
     """반말·명사형 종결을 '~해 보세요' 존댓말로 교정."""
     content = content.rstrip(".")
-    content = re.sub(r'([어아])보기$', r'\1 보세요', content)
-    content = re.sub(r'해보기$', '해 보세요', content)
+    content = re.sub(r'([어아]) ?보기$', r'\1 보세요', content)
+    content = re.sub(r'해 ?보기$', '해 보세요', content)
     content = re.sub(r'([가-힣])하기$', r'\1해 보세요', content)
     content = re.sub(r'([가-힣])보자$', r'\1 보세요', content)
     content = re.sub(r'([가-힣])하자$', r'\1해 보세요', content)
@@ -56,7 +61,7 @@ def _fix_tone(content: str) -> str:
 
 async def _get_recent_diary_text(user_id: int, db: AsyncSession) -> str:
     """어제 일기가 없으면 가장 최근 일기로 fallback."""
-    yesterday = date.today() - timedelta(days=1)
+    yesterday = today_kst() - timedelta(days=1)
     result = await db.execute(
         select(Diary.content)
         .where(Diary.user_id == user_id, Diary.diary_date == yesterday)
@@ -77,10 +82,31 @@ async def _get_recent_diary_text(user_id: int, db: AsyncSession) -> str:
     return "\n---\n".join(recent) if recent else "최근 일기 없음"
 
 
+async def expire_stale_missions(user: User, db: AsyncSession) -> int:
+    """기한이 지난 active 미션을 만료 처리하고 ELO 패배로 반영. 커밋은 호출자가 한다."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=MISSION_EXPIRE_DAYS)
+    result = await db.execute(
+        select(Mission)
+        .where(Mission.user_id == user.id, Mission.status == "active", Mission.created_at < cutoff)
+        .order_by(Mission.created_at)
+    )
+    stale = result.scalars().all()
+    for mission in stale:
+        mission.status = "expired"
+        apply_result(user, mission, won=False, db=db)
+    return len(stale)
+
+
 async def generate_missions(user_id: int, db: AsyncSession) -> int:
     user_result = await db.execute(select(User).where(User.id == user_id))
     user = user_result.scalar_one_or_none()
     custom_prompt = (user.custom_prompt or "").strip() if user else ""
+
+    if user and await expire_stale_missions(user, db):
+        await db.commit()
+
+    # ELO 레이팅으로 이번 미션의 목표 난이도 결정
+    level = target_level(user.elo if user and user.elo is not None else BASE_RATING)
 
     # 기존 active 미션 (원천 + 내용)
     existing_result = await db.execute(
@@ -98,7 +124,7 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
     analysis_result = await db.execute(
         select(DailyAnalysis)
         .where(DailyAnalysis.user_id == user_id, DailyAnalysis.is_reflected == True)
-        .order_by(DailyAnalysis.diary_date.desc())
+        .order_by(DailyAnalysis.diary_date.desc(), DailyAnalysis.created_at.desc())
         .limit(1)
     )
     analysis = analysis_result.scalar_one_or_none()
@@ -112,6 +138,9 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
         }
         # 0.5 미만인 부족한 원천만, 낮은 순으로 정렬
         weak_vars = sorted([v for v, s in scores.items() if s < 0.5], key=lambda v: scores[v])
+        # 부족한 원천이 없으면 가장 낮은 원천 하나로 미션 생성
+        if not weak_vars:
+            weak_vars = [min(scores, key=scores.get)]
     else:
         # 분석 없으면 M 하나만 기본 생성
         weak_vars = ["M"]
@@ -129,7 +158,11 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
     for i in range(min(slots_left, len(available_vars))):
         target_var = available_vars[i]
         current_block = "\n".join(f"- {c}" for c in generated_contents) if generated_contents else "없음"
-        user_prompt = f"타겟 원천: {target_var}\n일기:\n{diary_text}\n\n"
+        user_prompt = (
+            f"타겟 원천: {target_var}\n"
+            f"[목표 난이도] Lv{level}/5 — {LEVEL_GUIDES[level]}\n"
+            f"일기:\n{diary_text}\n\n"
+        )
         if custom_prompt:
             user_prompt += f"[사용자 추가 컨텍스트]\n{custom_prompt}\n\n"
         user_prompt += f"[기존 미션 목록]\n{current_block}"
@@ -146,6 +179,7 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
                 content=content,
                 target_var=target_var,
                 status="active",
+                difficulty=LEVEL_RATINGS[level],
             )
             db.add(mission)
             generated_contents.append(content)
@@ -155,5 +189,5 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
 
     if generated:
         await db.commit()
-        logger.info(f"Generated {generated} missions for user={user_id}, vars={available_vars[:slots_left]}")
+        logger.info(f"Generated {generated} missions for user={user_id}, vars={available_vars[:slots_left]}, level={level}")
     return generated

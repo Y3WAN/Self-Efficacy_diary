@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
+import jwt
+from jwt import PyJWTError
 import bcrypt
 from app.core.config import settings
 
@@ -25,5 +26,5 @@ def decode_token(token: str) -> int | None:
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         return int(payload["sub"])
-    except (JWTError, KeyError, ValueError):
+    except (PyJWTError, KeyError, ValueError, TypeError):
         return None

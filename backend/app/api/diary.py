@@ -6,12 +6,9 @@ from app.db.session import get_db
 from app.db.models import Diary, User
 from app.schemas.diary import DiaryCreate, DiaryUpdate, DiaryResponse, MonthDiariesResponse
 from app.core.deps import get_current_user
+from app.core.timeutil import today_kst
 
 router = APIRouter(prefix="/api/diaries", tags=["diaries"])
-
-
-def today_local() -> date:
-    return datetime.now(timezone.utc).date()
 
 
 @router.get("", response_model=MonthDiariesResponse)
@@ -58,7 +55,9 @@ async def create_diary(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    diary_date = body.diary_date or today_local()
+    diary_date = today_kst()
+    if body.diary_date is not None and body.diary_date != diary_date:
+        raise HTTPException(status_code=403, detail="Can only write today's diary")
     diary = Diary(
         user_id=current_user.id,
         diary_date=diary_date,
@@ -85,6 +84,8 @@ async def update_diary(
     diary = result.scalar_one_or_none()
     if not diary:
         raise HTTPException(status_code=404, detail="Diary not found")
+    if diary.diary_date != today_kst():
+        raise HTTPException(status_code=403, detail="Can only edit today's diary")
     if diary.is_locked:
         raise HTTPException(status_code=409, detail="Diary is locked")
 
@@ -107,7 +108,7 @@ async def delete_diary(
     diary = result.scalar_one_or_none()
     if not diary:
         raise HTTPException(status_code=404, detail="Diary not found")
-    if diary.diary_date != today_local():
+    if diary.diary_date != today_kst():
         raise HTTPException(status_code=403, detail="Can only delete today's diary")
     if diary.is_locked:
         raise HTTPException(status_code=409, detail="Diary is locked")

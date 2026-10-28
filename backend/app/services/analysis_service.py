@@ -7,6 +7,17 @@ from app.services.groq_client import chat_json
 
 logger = logging.getLogger(__name__)
 
+# 회원가입 설문으로 만든 DailyAnalysis 식별용
+INITIAL_REASONING = "초기 자기효능감 설문 결과"
+
+
+def _score(data: dict, key: str) -> float:
+    try:
+        value = float(data.get(key, 0.5))
+    except (TypeError, ValueError):
+        value = 0.5
+    return max(0.0, min(1.0, value))
+
 ANALYSIS_SYSTEM = """당신은 Bandura의 자기효능감 이론 전문가입니다.
 일기를 분석하여 4원천 자기효능감 점수를 평가하고 JSON만 반환하세요.
 
@@ -46,12 +57,13 @@ ANALYSIS_USER = """일기:
 
 
 async def analyze_day(user_id: int, target_date: date, db: AsyncSession) -> bool:
-    # idempotency guard
+    # idempotency guard (가입 설문 결과는 일기 분석이 아니므로 제외)
     exists = await db.execute(
-        select(DailyAnalysis).where(
+        select(DailyAnalysis.id).where(
             DailyAnalysis.user_id == user_id,
             DailyAnalysis.diary_date == target_date,
-        )
+            DailyAnalysis.reasoning.is_distinct_from(INITIAL_REASONING),
+        ).limit(1)
     )
     if exists.scalar_one_or_none():
         return False
@@ -76,11 +88,15 @@ async def analyze_day(user_id: int, target_date: date, db: AsyncSession) -> bool
         logger.error(f"Groq analysis failed user={user_id} date={target_date}: {e}")
         return False
 
-    m = max(0.0, min(1.0, float(data.get("score_m", 0.5))))
-    v = max(0.0, min(1.0, float(data.get("score_v", 0.5))))
-    p = max(0.0, min(1.0, float(data.get("score_p", 0.5))))
-    a = max(0.0, min(1.0, float(data.get("score_a", 0.5))))
-    confidence = max(0.0, min(1.0, float(data.get("confidence", 0.5))))
+    if not isinstance(data, dict):
+        logger.error(f"Groq analysis returned non-object user={user_id} date={target_date}")
+        return False
+
+    m = _score(data, "score_m")
+    v = _score(data, "score_v")
+    p = _score(data, "score_p")
+    a = _score(data, "score_a")
+    confidence = _score(data, "confidence")
 
     is_reflected = confidence >= 0.3
     composite = round(m * 0.4 + v * 0.2 + p * 0.2 + a * 0.2, 2) if is_reflected else None
@@ -106,7 +122,7 @@ async def analyze_day(user_id: int, target_date: date, db: AsyncSession) -> bool
     # Handle failure log and points
     raw = data.get("failure_detected", False)
     failure_detected = raw is True or str(raw).lower() == "true"
-    failure_summary = data.get("failure_summary", "") or ""
+    failure_summary = str(data.get("failure_summary", "") or "")
 
     if failure_detected and failure_summary.strip():
         db.add(FailureLog(user_id=user_id, diary_date=target_date, failure_summary=failure_summary))

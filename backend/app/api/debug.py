@@ -1,5 +1,6 @@
 from datetime import date
 from fastapi import APIRouter, Depends
+from app.core.timeutil import today_kst
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete
 from app.db.session import get_db
@@ -16,7 +17,7 @@ async def debug_analyze_today(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await analyze_day(current_user.id, date.today(), db)
+    result = await analyze_day(current_user.id, today_kst(), db)
     return {"analyzed": result}
 
 

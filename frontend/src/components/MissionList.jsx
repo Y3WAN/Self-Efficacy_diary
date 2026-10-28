@@ -9,13 +9,24 @@ const CELEBRATIONS = [
   { emoji: "🏆", message: "해냈어요! 오늘의 나, 정말 잘했어요." },
 ];
 
-function CelebrationModal({ onClose }) {
-  const c = CELEBRATIONS[Math.floor(Math.random() * CELEBRATIONS.length)];
+const SKIP_MESSAGE = { emoji: "🌱", message: "괜찮아요! 다음 미션은 조금 더 가볍게 준비할게요." };
+
+function ResultModal({ result, onClose }) {
+  const [c] = useState(() =>
+    result.skipped ? SKIP_MESSAGE : CELEBRATIONS[Math.floor(Math.random() * CELEBRATIONS.length)]
+  );
+  const delta = result.elo_after - result.elo_before;
   return (
     <div className="celebration-overlay" onClick={onClose}>
       <div className="celebration-card" onClick={(e) => e.stopPropagation()}>
         <span className="celebration-emoji">{c.emoji}</span>
         <p className="celebration-message">{c.message}</p>
+        <p className="celebration-elo">
+          성장 지수 {result.elo_after}
+          <span className={delta >= 0 ? "elo-up" : "elo-down"}>
+            {delta >= 0 ? ` ▲${delta}` : ` ▼${-delta}`}
+          </span>
+        </p>
         <button className="celebration-btn" onClick={onClose}>확인</button>
       </div>
     </div>
@@ -32,15 +43,23 @@ function useMissions() {
 export default function MissionList() {
   const { data: missions = [] } = useMissions();
   const qc = useQueryClient();
-  const [showCelebration, setShowCelebration] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const onDone = (skipped) => (res) => {
+    qc.invalidateQueries({ queryKey: ["missions"] });
+    qc.invalidateQueries({ queryKey: ["me"] });
+    qc.invalidateQueries({ queryKey: ["dashboard", "elo"] });
+    setResult({ ...res.data, skipped });
+  };
 
   const complete = useMutation({
     mutationFn: (id) => client.post(`/api/missions/${id}/complete`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["missions"] });
-      qc.invalidateQueries({ queryKey: ["me"] });
-      setShowCelebration(true);
-    },
+    onSuccess: onDone(false),
+  });
+
+  const skip = useMutation({
+    mutationFn: (id) => client.post(`/api/missions/${id}/skip`),
+    onSuccess: onDone(true),
   });
 
   if (missions.length === 0) {
@@ -54,14 +73,20 @@ export default function MissionList() {
 
   return (
     <>
-      {showCelebration && <CelebrationModal onClose={() => setShowCelebration(false)} />}
+      {result && <ResultModal result={result} onClose={() => setResult(null)} />}
       <div className="mission-list">
         <h3 className="mission-title">오늘의 미션</h3>
         {missions.map((m) => (
           <div key={m.id} className="mission-item">
             <span className="mission-target">{m.target_var}</span>
-            <p className="mission-content">{m.content}</p>
-            <button className="mission-done-btn" onClick={() => complete.mutate(m.id)}>완료</button>
+            <p className="mission-content">
+              {m.content}
+              {m.level && <span className="mission-level">Lv{m.level}</span>}
+            </p>
+            <div className="mission-actions">
+              <button className="mission-done-btn" onClick={() => complete.mutate(m.id)}>완료</button>
+              <button className="mission-skip-btn" onClick={() => skip.mutate(m.id)}>어려워요</button>
+            </div>
           </div>
         ))}
       </div>

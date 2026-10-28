@@ -7,8 +7,9 @@ from app.db.session import engine
 from app.db.models import Base
 from app.api import auth, diary, mission, dashboard, debug, failure_log, user_prompt
 from app.core.config import settings
+from app.core.timeutil import KST
 
-scheduler = AsyncIOScheduler(timezone="UTC")
+scheduler = AsyncIOScheduler(timezone=KST)
 
 
 @asynccontextmanager
@@ -32,6 +33,8 @@ async def lifespan(app: FastAPI):
             "ON failure_logs(user_id, diary_date)"
         ))
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_prompt TEXT"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS elo INTEGER NOT NULL DEFAULT 1000"))
+        await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS difficulty INTEGER"))
 
     from app.jobs.midnight_analysis import run_midnight_analysis
     from app.jobs.morning_mission import run_morning_mission
@@ -59,7 +62,8 @@ app.include_router(auth.router)
 app.include_router(diary.router)
 app.include_router(mission.router)
 app.include_router(dashboard.router)
-app.include_router(debug.router)
+if settings.ENABLE_DEBUG_API:
+    app.include_router(debug.router)
 app.include_router(failure_log.router)
 app.include_router(user_prompt.router)
 

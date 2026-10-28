@@ -13,6 +13,7 @@ export default function ProfilePage() {
   });
 
   if (isLoading) return <div className="page-loading">불러오는 중…</div>;
+  if (!user) return <div className="page-loading">정보를 불러오지 못했어요.</div>;
 
   const joinDate = new Date(user.created_at).toLocaleDateString("ko-KR", {
     year: "numeric",

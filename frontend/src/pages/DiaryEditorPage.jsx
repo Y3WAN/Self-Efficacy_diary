@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import client from "../api/client";
+import { todayKST } from "../utils/date";
 
 function KebabMenu({ onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
@@ -32,7 +33,7 @@ export default function DiaryEditorPage() {
   const { date } = useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayKST();
   const isToday = date === today;
 
   const { data: diaries = [], isLoading } = useQuery({

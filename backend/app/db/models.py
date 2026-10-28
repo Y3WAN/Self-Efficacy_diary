@@ -23,6 +23,7 @@ class User(Base):
     initial_grade = Column(String(4), nullable=False)
     diary_count = Column(Integer, nullable=False, default=0)
     points = Column(Integer, nullable=False, default=0)
+    elo = Column(Integer, nullable=False, default=1000)
     created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc)
 
@@ -84,7 +85,8 @@ class Mission(Base):
     user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     content = Column(Text, nullable=False)
     target_var = Column(String(1), nullable=False)
-    status = Column(String(10), nullable=False, default="active")
+    status = Column(String(10), nullable=False, default="active")  # active / done / skipped / expired
+    difficulty = Column(Integer, nullable=True)  # ELO 척도 난이도 (레거시 미션은 NULL)
     created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -107,6 +109,22 @@ class Respect(Base):
     __table_args__ = (
         UniqueConstraint("from_user_id", "mission_id", name="uq_respect_user_mission"),
     )
+
+
+class EloHistory(Base):
+    __tablename__ = "elo_history"
+
+    id = Column(BigInteger, primary_key=True)
+    user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    mission_id = Column(BigInteger, ForeignKey("missions.id", ondelete="SET NULL"), nullable=True)
+    result = Column(Integer, nullable=False)  # 1 = 완료, 0 = 포기·만료
+    expected = Column(Numeric(4, 3), nullable=False)  # 갱신 전 예상 성공 확률
+    difficulty = Column(Integer, nullable=False)
+    rating_before = Column(Integer, nullable=False)
+    rating_after = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
+
+    __table_args__ = (Index("idx_elo_history_user_created", "user_id", "created_at"),)
 
 
 class FailureLog(Base):

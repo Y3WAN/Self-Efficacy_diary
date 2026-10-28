@@ -31,9 +31,12 @@ export default function SignupPage() {
       setUser(me);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.detail === "Username already exists"
-        ? "이미 사용 중인 아이디예요."
-        : "회원가입에 실패했어요.");
+      const status = err.response?.status;
+      setError(
+        status === 409 ? "이미 사용 중인 아이디예요."
+        : status === 422 ? "아이디는 공백 없이 3~50자, 비밀번호는 4~72자로 입력해 주세요."
+        : "회원가입에 실패했어요."
+      );
     }
   };
 
@@ -47,6 +50,8 @@ export default function SignupPage() {
             className="auth-input"
             placeholder="아이디"
             autoComplete="username"
+            minLength={3}
+            maxLength={50}
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
             required
@@ -56,6 +61,8 @@ export default function SignupPage() {
             type="password"
             placeholder="비밀번호"
             autoComplete="new-password"
+            minLength={4}
+            maxLength={72}
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required

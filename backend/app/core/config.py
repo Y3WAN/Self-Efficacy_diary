@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     JWT_EXPIRE_HOURS: int = 24
     GROQ_API_KEY: str = ""
     FRONTEND_URL: str = "http://localhost:5173"
+    # 운영 환경에서는 반드시 False (포인트 어뷰징 가능)
+    ENABLE_DEBUG_API: bool = False
 
     @classmethod
     def settings_customise_sources(
