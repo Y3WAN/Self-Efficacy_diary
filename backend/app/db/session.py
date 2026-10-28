@@ -4,6 +4,11 @@ from app.core.config import settings
 
 # URL에서 sslmode/ssl 파라미터 제거 후 connect_args로 SSL 처리
 _db_url = settings.DATABASE_URL.split("?")[0]
+# Railway 등이 주는 postgres:// · postgresql:// 주소를 asyncpg 드라이버용으로 변환
+for _prefix in ("postgresql://", "postgres://"):
+    if _db_url.startswith(_prefix):
+        _db_url = "postgresql+asyncpg://" + _db_url[len(_prefix):]
+        break
 _ssl = "neon.tech" in _db_url
 
 engine = create_async_engine(
