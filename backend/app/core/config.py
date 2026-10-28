@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_HOURS: int = 24
     GROQ_API_KEY: str = ""
+    # Groq에서 쓸 모델 (서비스 종료 시 환경변수로 교체)
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
     FRONTEND_URL: str = "http://localhost:5173"
     # 운영 환경에서는 반드시 False (포인트 어뷰징 가능)
     ENABLE_DEBUG_API: bool = False

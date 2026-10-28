@@ -16,7 +16,7 @@ def get_groq() -> AsyncGroq:
 
 async def chat_json(messages: list[dict]) -> dict:
     resp = await get_groq().chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=settings.GROQ_MODEL,
         messages=messages,
         response_format={"type": "json_object"},
         temperature=0.3,
