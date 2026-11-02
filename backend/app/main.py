@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
     scheduler.shutdown()
 
 
-app = FastAPI(title="성장 기록 플랫폼", lifespan=lifespan)
+app = FastAPI(title="codemyworld", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

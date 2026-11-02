@@ -23,7 +23,7 @@ const CustomTooltip = ({ active, payload }) => {
       borderRadius: 10, padding: "8px 12px", fontSize: 13,
     }}>
       <p style={{ color: "#8C7B70", marginBottom: 2 }}>
-        {p.result ? "완료" : "포기·만료"} · 예상 성공률 {pct(p.expected)}
+        {p.start ? "시작 점수" : `${p.result ? "완료" : "포기·만료"} · 예상 성공률 ${pct(p.expected)}`}
       </p>
       <p style={{ color: "#F4A261", fontWeight: 700 }}>{p.rating}</p>
     </div>
@@ -36,7 +36,11 @@ export default function EloChart() {
   if (isLoading) return <div className="chart-empty">불러오는 중...</div>;
   if (!data) return null;
 
-  const points = [{ idx: 0, rating: 1000, result: 1, expected: 0.5 }, ...data.history.map((h, i) => ({ ...h, idx: i + 1 }))];
+  // 첫 점은 첫 미션 결과가 반영되기 전 점수 (툴팁에는 표시하지 않음)
+  const points = [
+    { idx: 0, rating: data.start_rating ?? data.history[0]?.rating ?? data.rating, start: true },
+    ...data.history.map((h, i) => ({ ...h, idx: i + 1 })),
+  ];
 
   return (
     <>

@@ -6,6 +6,7 @@ from app.db.models import DailyAnalysis, EloHistory
 from app.core.deps import get_current_user
 from app.db.models import User
 from app.services.elo_service import BASE_RATING, LEVEL_RATINGS, expected_success, target_level
+from app.services.analysis_service import INITIAL_REASONING
 from pydantic import BaseModel
 from typing import Optional
 from datetime import date, datetime
@@ -90,6 +91,7 @@ class EloPoint(BaseModel):
 
 class EloSummary(BaseModel):
     rating: int
+    start_rating: int
     next_level: int
     next_expected: float
     games: int
@@ -115,6 +117,8 @@ async def elo(
     games = len(rows)
     return EloSummary(
         rating=rating,
+        # 그래프 첫 점: 첫 미션 결과 반영 전 점수
+        start_rating=rows[0].rating_before if rows else rating,
         next_level=next_level,
         next_expected=round(expected_success(rating, LEVEL_RATINGS[next_level]), 3),
         games=games,
@@ -132,3 +136,100 @@ async def elo(
             for r in rows
         ],
     )
+
+
+# EMA 평활 계수: 클수록 최근 하루의 영향이 커진다 (0.3 ≈ 최근 약 6일 가중)
+EMA_ALPHA = 0.3
+
+
+class DailyScore(BaseModel):
+    date: str
+    score: float
+    ema: float
+    confidence: float
+
+
+@router.get("/daily", response_model=list[DailyScore])
+async def daily(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """일별 종합 점수와 EMA 추세선. 하루 하나의 분석(가장 최근 것)만 사용한다."""
+    result = await db.execute(
+        select(DailyAnalysis)
+        .where(
+            DailyAnalysis.user_id == current_user.id,
+            DailyAnalysis.is_reflected == True,
+            DailyAnalysis.composite_score.is_not(None),
+        )
+        .order_by(DailyAnalysis.diary_date, DailyAnalysis.created_at)
+    )
+    by_date: dict[date, DailyAnalysis] = {}
+    for a in result.scalars().all():
+        by_date[a.diary_date] = a  # 같은 날짜면 나중 것이 덮어씀
+
+    out: list[DailyScore] = []
+    ema: Optional[float] = None
+    for d in sorted(by_date):
+        a = by_date[d]
+        score = float(a.composite_score)
+        ema = score if ema is None else EMA_ALPHA * score + (1 - EMA_ALPHA) * ema
+        out.append(DailyScore(
+            date=d.isoformat(),
+            score=round(score, 3),
+            ema=round(ema, 3),
+            confidence=float(a.confidence),
+        ))
+    return out
+
+
+class AnalysisDetail(BaseModel):
+    date: str
+    score_m: float
+    score_v: float
+    score_p: float
+    score_a: float
+    composite_score: Optional[float]
+    confidence: float
+    is_reflected: bool
+    is_initial: bool
+    evidence_m: Optional[str]
+    evidence_v: Optional[str]
+    evidence_p: Optional[str]
+    evidence_a: Optional[str]
+    reasoning: Optional[str]
+
+
+@router.get("/analyses", response_model=list[AnalysisDetail])
+async def analyses(
+    limit: int = 30,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """AI가 매긴 점수의 근거와 확신도를 날짜별로 보여 주기 위한 목록 (최신순)."""
+    limit = max(1, min(limit, 100))
+    result = await db.execute(
+        select(DailyAnalysis)
+        .where(DailyAnalysis.user_id == current_user.id)
+        .order_by(DailyAnalysis.diary_date.desc(), DailyAnalysis.created_at.desc())
+        .limit(limit)
+    )
+    return [
+        AnalysisDetail(
+            date=a.diary_date.isoformat(),
+            score_m=float(a.score_m),
+            score_v=float(a.score_v),
+            score_p=float(a.score_p),
+            score_a=float(a.score_a),
+            composite_score=float(a.composite_score) if a.composite_score is not None else None,
+            confidence=float(a.confidence),
+            is_reflected=a.is_reflected,
+            is_initial=a.reasoning == INITIAL_REASONING,
+            evidence_m=a.evidence_m,
+            evidence_v=a.evidence_v,
+            evidence_p=a.evidence_p,
+            evidence_a=a.evidence_a,
+            reasoning=a.reasoning,
+        )
+        for a in result.scalars().all()
+    ]

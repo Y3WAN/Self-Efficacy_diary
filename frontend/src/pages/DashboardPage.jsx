@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import AppBar from "../components/AppBar";
 import GrowthChart from "../components/GrowthChart";
 import RadarChartComponent from "../components/RadarChartComponent";
@@ -10,7 +11,7 @@ export default function DashboardPage() {
       <div className="main-content">
         <div className="chart-card">
           <h3 className="chart-title">자기효능감 성장 그래프</h3>
-          <p className="chart-sub">주간 평균 점수</p>
+          <p className="chart-sub">일별 점수와 지수이동평균(EMA, α=0.3) 추세선</p>
           <GrowthChart />
         </div>
         <div className="chart-card">
@@ -22,7 +23,11 @@ export default function DashboardPage() {
           <h3 className="chart-title">4원천 분석</h3>
           <p className="chart-sub">최근 분석 기준</p>
           <RadarChartComponent />
+          <Link to="/analysis" className="chart-link">AI가 왜 이렇게 판단했는지 보기 →</Link>
         </div>
+        <p className="notice-text">
+          점수는 AI의 추정이며 심리 진단이 아니에요. <Link to="/about">안내·출처</Link>
+        </p>
       </div>
     </div>
   );

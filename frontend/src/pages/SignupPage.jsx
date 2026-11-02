@@ -87,6 +87,10 @@ export default function SignupPage() {
             </div>
           ))}
           {error && <p className="auth-error">{error}</p>}
+          <p className="notice-text">
+            codemyworld는 학습용 자기 성찰 도구이며 심리 진단·상담 도구가 아니에요.
+            실명·연락처 같은 개인정보는 일기에 쓰지 마세요. <Link to="/about">자세히</Link>
+          </p>
           <button className="auth-btn" type="submit">시작하기</button>
         </form>
         <p className="auth-link">
