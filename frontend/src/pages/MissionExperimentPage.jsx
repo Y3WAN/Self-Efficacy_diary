@@ -25,7 +25,6 @@ function ExperimentResult({ name, result, requestedMission }) {
           <dd>Lv.{result.level}</dd>
         </div>
       </dl>
-      <p className="experiment-guide">{result.level_guide}</p>
       {requestedMission && (
         <div className="experiment-mission">
           <strong>AI 생성 결과</strong>

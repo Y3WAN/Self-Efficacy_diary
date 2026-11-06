@@ -24,7 +24,6 @@
 
 .experiment-intro p,
 .experiment-intro blockquote,
-.experiment-guide,
 .experiment-help {
   font-size: 13px;
   line-height: 1.55;
@@ -155,7 +154,6 @@
 .experiment-result dl { display: grid; gap: 5px; }
 .experiment-result dt { font-size: 11px; }
 .experiment-result dd { font-size: 15px; font-weight: 700; }
-.experiment-guide { margin-top: 8px; }
 
 .experiment-mission {
   margin-top: 9px;
