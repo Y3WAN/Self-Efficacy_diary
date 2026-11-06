@@ -22,6 +22,7 @@ export default function SideBar({ open, onClose }) {
         <ul className="sidebar-menu">
           <li className={isActive("/") ? "active" : ""} onClick={() => go("/")}>🏠 메인화면</li>
           <li className={isActive("/dashboard") ? "active" : ""} onClick={() => go("/dashboard")}>📊 대시보드</li>
+          <li className={isActive("/mission-experiment") ? "active" : ""} onClick={() => go("/mission-experiment")}>🧪 미션 비교 실험</li>
           <li className={isActive("/analysis") ? "active" : ""} onClick={() => go("/analysis")}>🔍 AI 분석 근거</li>
           <li className={isActive("/profile") ? "active" : ""} onClick={() => go("/profile")}>👤 내 정보</li>
           <li className={isActive("/failure-logs") ? "active" : ""} onClick={() => go("/failure-logs")}>📋 실패 로그</li>
