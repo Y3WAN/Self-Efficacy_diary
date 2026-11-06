@@ -25,6 +25,10 @@ export default function DashboardPage() {
           <RadarChartComponent />
           <Link to="/analysis" className="chart-link">AI가 왜 이렇게 판단했는지 보기 →</Link>
         </div>
+        <div className="chart-card">
+          <h3 className="chart-title">미션 비교 실험</h3>
+          <Link to="/mission-experiment" className="chart-link">Elo나 4원천 점수를 바꿔 비교하기 →</Link>
+        </div>
         <p className="notice-text">
           점수는 AI의 추정이며 심리 진단이 아니에요. <Link to="/about">안내·출처</Link>
         </p>

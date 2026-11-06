@@ -1,4 +1,7 @@
+import asyncio
+import logging
 from datetime import datetime, timezone
+from typing import Annotated, Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -6,9 +9,11 @@ from sqlalchemy.exc import IntegrityError
 from app.db.session import get_db
 from app.db.models import Mission, User, Respect
 from app.core.deps import get_current_user
-from app.services.elo_service import apply_result, level_for_rating
-from pydantic import BaseModel
-from typing import Optional
+from app.services.elo_service import LEVEL_GUIDES, apply_result, level_for_rating, target_level
+from app.services.mission_service import generate_mission_content, rank_mission_sources
+from pydantic import BaseModel, Field, StringConstraints
+
+logger = logging.getLogger(__name__)
 
 
 class MissionResponse(BaseModel):
@@ -35,6 +40,37 @@ class MissionResultResponse(MissionResponse):
     elo_after: int
 
 
+SourceScore = Annotated[int, Field(ge=0, le=100)]
+
+
+class ExperimentScores(BaseModel):
+    m: SourceScore
+    v: SourceScore
+    p: SourceScore
+    a: SourceScore
+
+
+class MissionExperimentRequest(BaseModel):
+    diary: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1500)]
+    elo: int = Field(ge=0, le=2500)
+    scores: ExperimentScores
+    variable: Literal["elo", "m", "v", "p", "a"]
+    comparison_value: int = Field(ge=0, le=2500)
+    generate: bool = False
+
+
+class ExperimentCase(BaseModel):
+    target_var: str
+    level: int
+    level_guide: str
+    content: str | None = None
+
+
+class MissionExperimentResponse(BaseModel):
+    baseline: ExperimentCase
+    comparison: ExperimentCase
+
+
 class CommunityFeedItem(BaseModel):
     id: int
     username: str
@@ -47,6 +83,49 @@ class CommunityFeedItem(BaseModel):
 
 
 router = APIRouter(prefix="/api/missions", tags=["missions"])
+
+
+def _experiment_case(elo: int, scores: dict[str, int]) -> ExperimentCase:
+    level = target_level(elo)
+    target_var = rank_mission_sources({name.upper(): score / 100 for name, score in scores.items()})[0]
+    return ExperimentCase(target_var=target_var, level=level, level_guide=LEVEL_GUIDES[level])
+
+
+async def _generate_experiment_case(case: ExperimentCase, diary: str) -> None:
+    try:
+        case.content = await generate_mission_content(case.target_var, case.level, diary, []) or None
+    except Exception as exc:
+        logger.warning("Mission experiment generation failed (%s)", type(exc).__name__)
+
+
+@router.post(
+    "/experiment",
+    response_model=MissionExperimentResponse,
+    dependencies=[Depends(get_current_user)],
+)
+async def compare_missions(request: MissionExperimentRequest):
+    scores = request.scores.model_dump()
+    comparison_scores = scores.copy()
+    comparison_elo = request.elo
+    if request.variable == "elo":
+        original_value = request.elo
+        comparison_elo = request.comparison_value
+    else:
+        if request.comparison_value > 100:
+            raise HTTPException(status_code=422, detail="4원천 점수는 0~100 사이여야 해요.")
+        original_value = scores[request.variable]
+        comparison_scores[request.variable] = request.comparison_value
+    if request.comparison_value == original_value:
+        raise HTTPException(status_code=422, detail="A와 B에 서로 다른 값을 입력해 주세요.")
+
+    baseline = _experiment_case(request.elo, scores)
+    comparison = _experiment_case(comparison_elo, comparison_scores)
+    if request.generate:
+        await asyncio.gather(
+            _generate_experiment_case(baseline, request.diary),
+            _generate_experiment_case(comparison, request.diary),
+        )
+    return MissionExperimentResponse(baseline=baseline, comparison=comparison)
 
 
 @router.get("", response_model=list[MissionResponse])

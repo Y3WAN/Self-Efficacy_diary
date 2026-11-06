@@ -59,6 +59,34 @@ def _fix_tone(content: str) -> str:
     return content
 
 
+def rank_mission_sources(scores: dict[str, float]) -> list[str]:
+    weak_vars = sorted((source for source, score in scores.items() if score < 0.5), key=scores.get)
+    return weak_vars or [min(scores, key=scores.get)]
+
+
+async def generate_mission_content(
+    target_var: str,
+    level: int,
+    diary_text: str,
+    existing_contents: list[str],
+    custom_prompt: str = "",
+) -> str:
+    current_block = "\n".join(f"- {content}" for content in existing_contents) or "없음"
+    user_prompt = (
+        f"타겟 원천: {target_var}\n"
+        f"[목표 난이도] Lv{level}/5 — {LEVEL_GUIDES[level]}\n"
+        f"일기:\n{diary_text}\n\n"
+    )
+    if custom_prompt:
+        user_prompt += f"[사용자 추가 컨텍스트]\n{custom_prompt}\n\n"
+    user_prompt += f"[기존 미션 목록]\n{current_block}"
+    data = await chat_json([
+        {"role": "system", "content": MISSION_SYSTEM},
+        {"role": "user", "content": user_prompt},
+    ])
+    return _fix_tone(data.get("content", "").strip())
+
+
 async def _get_recent_diary_text(user_id: int, db: AsyncSession) -> str:
     """어제 일기가 없으면 가장 최근 일기로 fallback."""
     yesterday = today_kst() - timedelta(days=1)
@@ -136,11 +164,7 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
             "P": float(analysis.score_p),
             "A": float(analysis.score_a),
         }
-        # 0.5 미만인 부족한 원천만, 낮은 순으로 정렬
-        weak_vars = sorted([v for v, s in scores.items() if s < 0.5], key=lambda v: scores[v])
-        # 부족한 원천이 없으면 가장 낮은 원천 하나로 미션 생성
-        if not weak_vars:
-            weak_vars = [min(scores, key=scores.get)]
+        weak_vars = rank_mission_sources(scores)
     else:
         # 분석 없으면 M 하나만 기본 생성
         weak_vars = ["M"]
@@ -157,21 +181,10 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
     slots_left = 3 - len(existing_rows)
     for i in range(min(slots_left, len(available_vars))):
         target_var = available_vars[i]
-        current_block = "\n".join(f"- {c}" for c in generated_contents) if generated_contents else "없음"
-        user_prompt = (
-            f"타겟 원천: {target_var}\n"
-            f"[목표 난이도] Lv{level}/5 — {LEVEL_GUIDES[level]}\n"
-            f"일기:\n{diary_text}\n\n"
-        )
-        if custom_prompt:
-            user_prompt += f"[사용자 추가 컨텍스트]\n{custom_prompt}\n\n"
-        user_prompt += f"[기존 미션 목록]\n{current_block}"
         try:
-            data = await chat_json([
-                {"role": "system", "content": MISSION_SYSTEM},
-                {"role": "user", "content": user_prompt},
-            ])
-            content = _fix_tone(data.get("content", "").strip())
+            content = await generate_mission_content(
+                target_var, level, diary_text, generated_contents, custom_prompt
+            )
             if not content:
                 continue
             mission = Mission(
