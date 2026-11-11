@@ -1,36 +1,36 @@
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuthStore } from "../store/auth";
+import { NavLink } from "react-router-dom";
+import { useConfirmLogout } from "../utils/useConfirmLogout";
+
+const MENU_ITEMS = [
+  ["/", "🏠 메인화면"],
+  ["/dashboard", "📊 대시보드"],
+  ["/community", "🌍 커뮤니티"],
+  ["/prompt", "✏️ 미션 맞춤 설정"],
+  ["/mallang", "🤖 사이버 말랑이"],
+  ["/failure-logs", "📋 실패 기록"],
+  ["/profile", "👤 내 정보"],
+  ["/about", "ℹ️ 안내·출처"],
+];
 
 export default function SideBar({ open, onClose }) {
-  const { logout } = useAuthStore();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const go = (path) => { onClose(); navigate(path); };
-
-  const isActive = (path) => location.pathname === path;
+  const confirmLogout = useConfirmLogout();
 
   return (
     <>
       {open && <div className="sidebar-overlay" onClick={onClose} />}
-      <nav className={`sidebar ${open ? "open" : ""}`}>
+      <nav id="app-sidebar" className={`sidebar ${open ? "open" : ""}`} aria-label="주 메뉴" inert={!open}>
         <div className="sidebar-brand">
           <span className="sidebar-brand-icon">🌱</span>
           <span className="sidebar-brand-name">codemyworld</span>
         </div>
         <button className="sidebar-close" onClick={onClose}>✕ 닫기</button>
         <ul className="sidebar-menu">
-          <li className={isActive("/") ? "active" : ""} onClick={() => go("/")}>🏠 메인화면</li>
-          <li className={isActive("/dashboard") ? "active" : ""} onClick={() => go("/dashboard")}>📊 대시보드</li>
-          <li className={isActive("/mission-experiment") ? "active" : ""} onClick={() => go("/mission-experiment")}>🧪 미션 비교 실험</li>
-          <li className={isActive("/analysis") ? "active" : ""} onClick={() => go("/analysis")}>🔍 AI 분석 근거</li>
-          <li className={isActive("/profile") ? "active" : ""} onClick={() => go("/profile")}>👤 내 정보</li>
-          <li className={isActive("/failure-logs") ? "active" : ""} onClick={() => go("/failure-logs")}>📋 실패 로그</li>
-          <li className={isActive("/community") ? "active" : ""} onClick={() => go("/community")}>🌍 커뮤니티</li>
-          <li className={isActive("/prompt") ? "active" : ""} onClick={() => go("/prompt")}>✏️ 미션 프롬프트</li>
-          <li className={isActive("/mallang") ? "active" : ""} onClick={() => go("/mallang")}>🤖 사이버 말랑이</li>
-          <li className={isActive("/about") ? "active" : ""} onClick={() => go("/about")}>ℹ️ 안내·출처</li>
-          <li className="sidebar-logout" onClick={() => { logout(); go("/login"); }}>🚪 로그아웃</li>
+          {MENU_ITEMS.map(([path, label]) => (
+            <li key={path}>
+              <NavLink to={path} end onClick={onClose}>{label}</NavLink>
+            </li>
+          ))}
+          <li><button className="sidebar-logout" onClick={confirmLogout}>🚪 로그아웃</button></li>
         </ul>
       </nav>
     </>

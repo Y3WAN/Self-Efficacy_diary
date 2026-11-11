@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import client from "../api/client";
 
 const CELEBRATIONS = [
@@ -33,63 +34,64 @@ function ResultModal({ result, onClose }) {
   );
 }
 
-function useMissions() {
-  return useQuery({
-    queryKey: ["missions"],
-    queryFn: () => client.get("/api/missions").then((r) => r.data),
-  });
-}
 
-export default function MissionList() {
-  const { data: missions = [] } = useMissions();
+export default function MissionList({ missions, isPending, isError, onRetry }) {
   const qc = useQueryClient();
   const [result, setResult] = useState(null);
 
-  const onDone = (skipped) => (res) => {
-    qc.invalidateQueries({ queryKey: ["missions"] });
-    qc.invalidateQueries({ queryKey: ["me"] });
-    qc.invalidateQueries({ queryKey: ["dashboard", "elo"] });
-    setResult({ ...res.data, skipped });
-  };
-
-  const complete = useMutation({
-    mutationFn: (id) => client.post(`/api/missions/${id}/complete`),
-    onSuccess: onDone(false),
+  const updateMission = useMutation({
+    mutationFn: ({ id, action }) => client.post(`/api/missions/${id}/${action}`),
+    onSuccess: async (response, { action }) => {
+      setResult({ ...response.data, skipped: action === "skip" });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["missions"] }),
+        qc.invalidateQueries({ queryKey: ["me"] }),
+        qc.invalidateQueries({ queryKey: ["dashboard", "elo"] }),
+        qc.invalidateQueries({ queryKey: ["community-feed"] }),
+      ]);
+    },
+    onError: async (error) => {
+      if (error.response?.status === 409) {
+        toast.error("이미 처리된 미션이에요.");
+        await qc.invalidateQueries({ queryKey: ["missions"] });
+      } else {
+        toast.error("미션 상태를 저장하지 못했어요.");
+      }
+    },
   });
-
-  const skip = useMutation({
-    mutationFn: (id) => client.post(`/api/missions/${id}/skip`),
-    onSuccess: onDone(true),
-  });
-
-  if (missions.length === 0) {
-    return (
-      <div className="mission-list">
-        <h3 className="mission-title">오늘의 미션</h3>
-        <p className="mission-empty">미션이 아직 없어요. 일기를 쓰면 내일 아침 미션이 생겨요! ✨</p>
-      </div>
-    );
-  }
 
   return (
     <>
       {result && <ResultModal result={result} onClose={() => setResult(null)} />}
-      <div className="mission-list">
-        <h3 className="mission-title">오늘의 미션</h3>
-        {missions.map((m) => (
-          <div key={m.id} className="mission-item">
-            <span className="mission-target">{m.target_var}</span>
-            <p className="mission-content">
-              {m.content}
-              {m.level && <span className="mission-level">Lv{m.level}</span>}
-            </p>
-            <div className="mission-actions">
-              <button className="mission-done-btn" onClick={() => complete.mutate(m.id)}>완료</button>
-              <button className="mission-skip-btn" onClick={() => skip.mutate(m.id)}>어려워요</button>
-            </div>
-          </div>
-        ))}
-      </div>
+      <section className="mission-list" aria-labelledby="active-missions-title">
+        <h2 id="active-missions-title" className="mission-title">오늘의 미션</h2>
+        {isPending && <p className="mission-empty">미션을 불러오는 중이에요.</p>}
+        {isError && <button className="mission-done-btn" onClick={onRetry}>미션 다시 불러오기</button>}
+        {!isPending && !isError && missions.length === 0 && (
+          <p className="mission-empty">진행 중인 미션이 없어요. 오늘 일기를 쓰면 다음 미션이 준비돼요.</p>
+        )}
+        {missions.length > 0 && (
+          <ul className="main-scroll-list mission-items">
+            {missions.map((mission) => (
+              <li key={mission.id} className="mission-item">
+                <p className="mission-content">{mission.content}</p>
+                <div className="mission-actions">
+                  <button
+                    className="mission-done-btn"
+                    disabled={updateMission.isPending}
+                    onClick={() => updateMission.mutate({ id: mission.id, action: "complete" })}
+                  >완료</button>
+                  <button
+                    className="mission-skip-btn"
+                    disabled={updateMission.isPending}
+                    onClick={() => updateMission.mutate({ id: mission.id, action: "skip" })}
+                  >어려워요</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </>
   );
 }

@@ -3,38 +3,32 @@ import api from "../api/client";
 import AppBar from "../components/AppBar";
 import toast from "react-hot-toast";
 
-const VAR_LABEL = { M: "성취경험", V: "대리경험", P: "사회적 설득", A: "정서·신체" };
-const VAR_COLOR = { M: "#E76F51", V: "#7A9E7E", P: "#6C8BAA", A: "#A68A64" };
-
 function timeAgo(dateStr) {
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 60) return "방금 전";
-  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
-  return `${Math.floor(diff / 86400)}일 전`;
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (seconds < 60) return "방금 전";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}분 전`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}시간 전`;
+  return `${Math.floor(seconds / 86400)}일 전`;
 }
 
 export default function CommunityPage() {
   const queryClient = useQueryClient();
-
-  const { data: feed = [], isLoading } = useQuery({
+  const { data: feed = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["community-feed"],
-    queryFn: () => api.get("/api/missions/community/feed").then((r) => r.data),
+    queryFn: ({ signal }) => api.get("/api/missions/community/feed", { signal }).then((r) => r.data),
     refetchInterval: 30000,
   });
+  const refreshFeed = () => queryClient.invalidateQueries({ queryKey: ["community-feed"] });
 
   const respectMutation = useMutation({
-    mutationFn: (missionId) =>
-      api.post(`/api/missions/community/${missionId}/respect`).then((r) => r.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["community-feed"] });
-    },
-    onError: (err) => {
-      if (err.response?.status === 409) {
-        toast.error("이미 리스펙한 미션입니다.");
-      } else {
-        toast.error("오류가 발생했습니다.");
+    mutationFn: (missionId) => api.post(`/api/missions/community/${missionId}/respect`),
+    onSuccess: refreshFeed,
+    onError: (error) => {
+      if (error.response?.status === 409) {
+        toast.error("이미 응원한 미션이에요.");
+        return refreshFeed();
       }
+      toast.error("응원을 보내지 못했어요.");
     },
   });
 
@@ -42,40 +36,34 @@ export default function CommunityPage() {
     <div className="community-page">
       <AppBar />
       <main className="community-container">
-        <h2 className="community-title">🌍 커뮤니티 미션 피드</h2>
-        <p className="community-subtitle">다른 유저들의 미션 완료 기록을 확인하세요</p>
+        <h2 className="community-title">함께 해낸 미션</h2>
+        <p className="community-subtitle">서로의 실천을 보고 응원을 보내요.</p>
 
-        {isLoading && <p className="community-empty">불러오는 중...</p>}
-
-        {!isLoading && feed.length === 0 && (
-          <p className="community-empty">아직 완료된 미션이 없습니다.</p>
+        {isLoading && <p className="community-empty">불러오는 중이에요.</p>}
+        {isError && <button className="respect-btn" onClick={() => refetch()}>다시 불러오기</button>}
+        {!isLoading && !isError && feed.length === 0 && (
+          <p className="community-empty">아직 완료된 미션이 없어요.</p>
         )}
 
         <ul className="community-feed">
           {feed.map((item) => (
             <li key={item.id} className="community-card">
               <div className="community-card-header">
-                <span className="community-time">{timeAgo(item.completed_at)}</span>
+                <strong className="community-author">{item.is_own ? "나" : item.display_name ?? "다른 사용자"}</strong>
+                <time className="community-time" dateTime={item.completed_at}>{timeAgo(item.completed_at)}</time>
               </div>
-              <p className="community-content">✅ {item.content}</p>
+              <p className="community-content">{item.content}</p>
               <div className="community-card-footer">
-                <span
-                  className="community-badge"
-                  style={{ backgroundColor: VAR_COLOR[item.target_var] }}
-                >
-                  {VAR_LABEL[item.target_var] ?? item.target_var}
-                </span>
-                {!item.is_own && (
+                {item.is_own ? (
+                  <span className="community-time">받은 응원 {item.respect_count}개</span>
+                ) : (
                   <button
                     className={`respect-btn${item.has_respected ? " respect-btn--done" : ""}`}
-                    onClick={() => {
-                      if (!item.has_respected) respectMutation.mutate(item.id);
-                    }}
+                    onClick={() => respectMutation.mutate(item.id)}
                     disabled={item.has_respected || respectMutation.isPending}
-                    title={item.has_respected ? "이미 리스펙했습니다" : "리스펙하기 (+5 포인트)"}
                   >
-                    👊 {item.respect_count > 0 ? item.respect_count : ""}
-                    {item.has_respected ? " 리스펙됨" : " 리스펙"}
+                    {item.has_respected ? "응원했어요" : "응원하기"}
+                    {item.respect_count > 0 && ` · ${item.respect_count}`}
                   </button>
                 )}
               </div>

@@ -73,9 +73,8 @@ class MissionExperimentResponse(BaseModel):
 
 class CommunityFeedItem(BaseModel):
     id: int
-    username: str
+    display_name: str
     content: str
-    target_var: str
     completed_at: datetime
     respect_count: int
     has_respected: bool
@@ -130,6 +129,7 @@ async def compare_missions(request: MissionExperimentRequest):
 
 @router.get("", response_model=list[MissionResponse])
 async def list_missions(
+    include_history: bool = False,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -138,7 +138,23 @@ async def list_missions(
         .where(Mission.user_id == current_user.id, Mission.status == "active")
         .order_by(Mission.created_at)
     )
-    return [MissionResponse.of(m) for m in result.scalars().all()]
+    missions = list(result.scalars().all())
+    if include_history:
+        history = await db.execute(
+            select(Mission)
+            .where(Mission.user_id == current_user.id, Mission.status != "active")
+            .order_by(Mission.created_at.desc(), Mission.id.desc())
+            .limit(20)
+        )
+        missions.extend(history.scalars().all())
+    return [MissionResponse.of(m) for m in missions]
+
+
+def _mask_username(username: str) -> str:
+    if len(username) <= 2:
+        return "□" * len(username)
+    prefix_length = 2 if len(username) >= 4 else 1
+    return f"{username[:prefix_length]}{'□' * (len(username) - prefix_length - 1)}{username[-1]}"
 
 
 @router.get("/community/feed", response_model=list[CommunityFeedItem])
@@ -151,7 +167,6 @@ async def community_feed(
             Mission.id,
             User.username,
             Mission.content,
-            Mission.target_var,
             Mission.completed_at,
             func.count(Respect.id).label("respect_count"),
             func.bool_or(Respect.from_user_id == current_user.id).label("has_respected"),
@@ -160,7 +175,7 @@ async def community_feed(
         .join(User, Mission.user_id == User.id)
         .outerjoin(Respect, Respect.mission_id == Mission.id)
         .where(Mission.status == "done", Mission.completed_at.isnot(None))
-        .group_by(Mission.id, User.username, Mission.content, Mission.target_var, Mission.completed_at)
+        .group_by(Mission.id, User.username, Mission.content, Mission.completed_at)
         .order_by(Mission.completed_at.desc())
         .limit(50)
     )
@@ -168,9 +183,8 @@ async def community_feed(
     return [
         CommunityFeedItem(
             id=row.id,
-            username=row.username,
+            display_name=_mask_username(row.username),
             content=row.content,
-            target_var=row.target_var,
             completed_at=row.completed_at,
             respect_count=row.respect_count or 0,
             has_respected=bool(row.has_respected),

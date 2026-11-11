@@ -1,79 +1,82 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import client from "../api/client";
 
+const EXAMPLE = "요즘 코딩 공부를 하고 있어요. 10분 안에 해볼 수 있는 연습 미션을 받고 싶어요.";
+
 export default function PromptPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [text, setText] = useState(null);
+  const [draft, setDraft] = useState(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["user-prompt"],
-    queryFn: () => client.get("/api/user/prompt").then((r) => r.data),
+    queryFn: ({ signal }) => client.get("/api/user/prompt", { signal }).then((r) => r.data),
   });
-
-  useEffect(() => {
-    if (data && text === null) setText(data.custom_prompt ?? "");
-  }, [data]);
+  const saved = data?.custom_prompt ?? "";
+  const text = draft ?? saved;
 
   const mutation = useMutation({
-    mutationFn: (val) => client.put("/api/user/prompt", { custom_prompt: val }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["user-prompt"] });
-      toast.success("저장했어요!");
+    mutationFn: (value) => client.put("/api/user/prompt", { custom_prompt: value }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["user-prompt"] });
+      toast.success("미션 요청을 저장했어요.");
     },
     onError: () => toast.error("저장에 실패했어요."),
   });
 
-  const handleSave = () => mutation.mutate(text);
-
   return (
     <div className="profile-page">
-      <div className="diary-header">
+      <header className="diary-header">
         <button onClick={() => navigate(-1)}>← 뒤로</button>
-        <h2>미션 프롬프트</h2>
-      </div>
+        <h2>미션 맞춤 설정</h2>
+      </header>
 
-      <div className="profile-content">
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <p style={{ fontSize: "14px", color: "var(--text-soft)", lineHeight: 1.6, margin: 0 }}>
-            여기에 쓴 내용은 매일 아침 미션을 만들 때 AI가 참고해요.<br />
-            요즘 상황, 집중하고 싶은 영역, 원하는 미션 방향 등 자유롭게 적어보세요.
+      <main className="profile-content">
+        <form className="mission-preferences" onSubmit={(event) => {
+          event.preventDefault();
+          if (data && !mutation.isPending && text !== saved) mutation.mutate(text);
+        }}>
+          <label htmlFor="mission-preferences-text">어떤 미션을 받고 싶나요?</label>
+          <p id="mission-preferences-help">
+            다음 미션을 만들 때 AI가 참고해요. 요즘 하는 일, 관심사, 쓸 수 있는 시간을 적어 보세요.
+            비워 두면 기본 추천을 받아요.
           </p>
+          <div className="mission-preferences-example">
+            <p><strong>작성 예시</strong> {EXAMPLE}</p>
+            {data && !text.trim() && (
+              <button
+                type="button"
+                className="mission-done-btn"
+                onClick={() => setDraft(EXAMPLE)}
+                disabled={mutation.isPending}
+              >예시 넣기</button>
+            )}
+          </div>
 
-          {isLoading || text === null ? (
-            <div className="page-loading">불러오는 중…</div>
-          ) : (
-            <textarea
-              className="diary-textarea"
-              style={{ minHeight: "200px", resize: "vertical" }}
-              placeholder="예) 요즘 취업 준비 중이에요. 자기소개서 쓰는 게 힘들어요. 관련 미션을 내줘요."
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
+          {isPending && <p className="mission-empty">저장한 요청을 불러오는 중이에요.</p>}
+          {isError && !data && (
+            <button type="button" className="mission-done-btn" onClick={() => refetch()}>다시 불러오기</button>
           )}
-
-          <button
-            onClick={handleSave}
-            disabled={mutation.isPending || text === null}
-            style={{
-              background: "var(--orange)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "12px",
-              padding: "14px",
-              fontSize: "15px",
-              fontWeight: 700,
-              cursor: "pointer",
-              opacity: mutation.isPending ? 0.6 : 1,
-            }}
-          >
-            {mutation.isPending ? "저장 중…" : "저장하기"}
-          </button>
-        </div>
-      </div>
+          {data && (
+            <>
+              <textarea
+                id="mission-preferences-text"
+                aria-describedby="mission-preferences-help"
+                className="diary-textarea"
+                placeholder="요즘 관심 있는 일과 원하는 미션을 적어 보세요."
+                value={text}
+                onChange={(event) => setDraft(event.target.value)}
+              />
+              <button type="submit" className="diary-save-btn" disabled={mutation.isPending || text === saved}>
+                {mutation.isPending ? "저장 중…" : "미션 요청 저장"}
+              </button>
+            </>
+          )}
+        </form>
+      </main>
     </div>
   );
 }

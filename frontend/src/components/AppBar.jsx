@@ -7,7 +7,13 @@ export default function AppBar() {
   return (
     <>
       <header className="appbar">
-        <button className="hamburger" onClick={() => setSidebarOpen(true)}>☰</button>
+        <button
+          className="hamburger"
+          aria-label="메뉴 열기"
+          aria-expanded={sidebarOpen}
+          aria-controls="app-sidebar"
+          onClick={() => setSidebarOpen(true)}
+        >☰</button>
         <span className="appbar-title">🌱 codemyworld</span>
       </header>
       <SideBar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />

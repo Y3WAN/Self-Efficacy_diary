@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import client from "../api/client";
-import { useAuthStore } from "../store/auth";
+import { useConfirmLogout } from "../utils/useConfirmLogout";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
+  const confirmLogout = useConfirmLogout();
 
   const { data: user, isLoading } = useQuery({
     queryKey: ["me"],
@@ -56,7 +56,7 @@ export default function ProfilePage() {
 
         <button
           className="profile-logout-btn"
-          onClick={() => { logout(); navigate("/login"); }}
+          onClick={confirmLogout}
         >
           🚪 로그아웃
         </button>

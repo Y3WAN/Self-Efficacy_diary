@@ -1,5 +1,5 @@
 from datetime import date, datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.db.session import get_db
@@ -33,6 +33,21 @@ async def list_month_diaries(
     )
     dates = [str(row) for row in result.scalars().all()]
     return MonthDiariesResponse(dates=dates)
+
+
+@router.get("/recent", response_model=list[DiaryResponse])
+async def list_recent_diaries(
+    limit: int = Query(default=20, ge=1, le=50),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Diary)
+        .where(Diary.user_id == current_user.id)
+        .order_by(Diary.diary_date.desc(), Diary.created_at.desc(), Diary.id.desc())
+        .limit(limit)
+    )
+    return result.scalars().all()
 
 
 @router.get("/{diary_date}", response_model=list[DiaryResponse])

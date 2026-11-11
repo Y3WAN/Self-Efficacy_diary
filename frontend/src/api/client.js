@@ -16,7 +16,9 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const token = useAuthStore.getState().token;
+    if (err.response?.status === 401 && token &&
+        err.config?.headers?.get?.("Authorization") === `Bearer ${token}`) {
       useAuthStore.getState().logout();
     }
     return Promise.reject(err);

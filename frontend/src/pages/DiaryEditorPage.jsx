@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import client from "../api/client";
 import { todayKST } from "../utils/date";
@@ -32,6 +32,7 @@ function KebabMenu({ onEdit, onDelete }) {
 export default function DiaryEditorPage() {
   const { date } = useParams();
   const navigate = useNavigate();
+  const { hash, state } = useLocation();
   const qc = useQueryClient();
   const today = todayKST();
   const isToday = date === today;
@@ -46,9 +47,16 @@ export default function DiaryEditorPage() {
   const [editingId, setEditingId] = useState(null);
   const [editContent, setEditContent] = useState("");
 
+  useEffect(() => {
+    if (!isLoading && hash.startsWith("#entry-")) {
+      document.getElementById(hash.slice(1))?.scrollIntoView({ block: "nearest" });
+    }
+  }, [hash, isLoading]);
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["diaries", date] });
     qc.invalidateQueries({ queryKey: ["diaries", "month"] });
+    qc.invalidateQueries({ queryKey: ["diaries", "recent"] });
   };
 
   const createMutation = useMutation({
@@ -77,7 +85,10 @@ export default function DiaryEditorPage() {
   return (
     <div className="diary-editor-page">
       <header className="diary-header">
-        <button onClick={() => navigate(-1)}>← 뒤로</button>
+        <button onClick={() => {
+          if (state?.fromMain) navigate(-1);
+          else navigate(`/?month=${date.slice(0, 7)}`, { replace: true });
+        }}>← 뒤로</button>
         <h2>{date}</h2>
       </header>
 
@@ -86,7 +97,11 @@ export default function DiaryEditorPage() {
           <p className="diary-empty">이 날의 일기가 없어요.</p>
         )}
         {diaries.map((d) => (
-          <div key={d.id} className="diary-entry">
+          <div
+            key={d.id}
+            id={`entry-${d.id}`}
+            className={`diary-entry${hash === `#entry-${d.id}` ? " diary-entry-selected" : ""}`}
+          >
             {!d.is_locked && isToday && (
               <KebabMenu
                 onEdit={() => { setEditingId(d.id); setEditContent(d.content); }}
