@@ -1,8 +1,9 @@
 import logging
-from datetime import date
+from datetime import date, datetime, time, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.models import Diary, DailyAnalysis, FailureLog, User
+from app.db.models import Diary, DailyAnalysis, FailureLog, Mission, User
+from app.core.timeutil import KST
 from app.services.groq_client import chat_json
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,25 @@ async def analyze_day(user_id: int, target_date: date, db: AsyncSession) -> bool
         return False
 
     combined = "\n---\n".join(contents)
+
+    # 그날 미션을 하고 남긴 한 줄 회고도 함께 분석한다 (일기 + 실천 기록)
+    day_start = datetime.combine(target_date, time.min, tzinfo=KST)
+    reflections = await db.execute(
+        select(Mission.content, Mission.status, Mission.reflection)
+        .where(
+            Mission.user_id == user_id,
+            Mission.reflection.isnot(None),
+            Mission.completed_at >= day_start,
+            Mission.completed_at < day_start + timedelta(days=1),
+        )
+        .order_by(Mission.completed_at)
+    )
+    reflection_lines = [
+        f"- 미션 \"{row.content}\" ({'완료' if row.status == 'done' else '어려웠음'}): {row.reflection}"
+        for row in reflections.all()
+    ]
+    if reflection_lines:
+        combined += "\n\n[이날 미션을 하고 남긴 회고]\n" + "\n".join(reflection_lines)
 
     try:
         data = await chat_json([

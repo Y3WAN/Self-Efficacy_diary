@@ -4,10 +4,7 @@ import { useConfirmLogout } from "../utils/useConfirmLogout";
 const MENU_ITEMS = [
   ["/", "🏠 메인화면"],
   ["/dashboard", "📊 대시보드"],
-  ["/community", "🌍 커뮤니티"],
-  ["/prompt", "✏️ 미션 맞춤 설정"],
   ["/mallang", "🤖 사이버 말랑이"],
-  ["/failure-logs", "📋 실패 기록"],
   ["/profile", "👤 내 정보"],
   ["/about", "ℹ️ 안내·출처"],
 ];

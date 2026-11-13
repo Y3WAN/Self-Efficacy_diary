@@ -17,9 +17,16 @@ MISSION_SYSTEM = """당신은 ZPD(근접발달영역) 기반 자기계발 미션
 
 원천:
 - M (성취경험): 직접 도전하고 완수하는 경험 → 작게 시작해서 실제로 해내는 것
-- V (대리경험): 롤모델 탐색, 성공 사례 학습, 자극받기 → 수동적 관찰이 아닌 능동적 탐색
+- V (대리경험): 비슷한 처지의 사람이 해낸 사례를 능동적으로 찾아보기
 - P (사회적 설득): 주변 사람에게 조언·피드백 구하기, 실제 연락하기
 - A (정서·신체): 지금 당장 기분이나 몸 상태를 바꾸는 행동
+
+가장 중요한 규칙 — 일기와 연결:
+- 일기에 나온 구체적인 상황·과목·사람·감정을 미션에 그대로 이어받으세요.
+  (일기: "수학 첫 문제에서 막혀서 덮었다" → 미션: "막혔던 수학 첫 문제의 풀이 첫 줄만 써 보세요.")
+- 일기 내용과 무관한 일반적인 미션(아무에게나 줄 수 있는 미션)은 만들지 마세요.
+- 일기에 구체적인 상황이 없을 때만 일반적인 미션을 만드세요.
+- [최근 미션 회고]가 있으면 참고하세요. 어려웠다는 미션과 비슷한 건 더 작게, 좋았다는 방식은 이어가세요.
 
 미션 조건:
 - 오늘 30분 안에 실행 가능한 구체적 행동
@@ -29,23 +36,25 @@ MISSION_SYSTEM = """당신은 ZPD(근접발달영역) 기반 자기계발 미션
 - 아래 [기존 미션 목록]과 내용·맥락이 겹치지 않는 새로운 미션
 - 말투: 반드시 '~해 보세요' 또는 '~받아 보세요'로 끝내세요
 
+reason (왜 이 미션인지):
+- 사용자가 읽을 한 문장, 60자 이하, 존댓말
+- 일기의 어떤 내용 때문에 이 미션을 골랐는지 짚어 주세요
+- 예: "수학을 포기했다고 해서, 아주 작게 다시 시작해 보는 미션이에요."
+- 원천 기호(M·V·P·A)나 점수, 난이도 숫자는 쓰지 마세요
+
 올바른 예시:
-- M: "오늘 미뤄둔 과제 딱 한 단락만 완성해 보세요."
-- M: "어제 틀린 문제 유형을 찾아 같은 유형 2개 더 풀어 보세요."
-- V: "본인 분야에서 성공한 사람의 인터뷰를 하나 찾아서 읽어 보세요."
-- V: "유튜브에서 자신과 비슷한 처지에서 성공한 사람 영상 하나를 찾아 보세요."
-- P: "요즘 고민되는 걸 친한 친구나 선배에게 솔직하게 털어놓아 보세요."
-- P: "존경하는 사람에게 짧게라도 조언을 구하는 메시지를 보내 보세요."
-- A: "지금 하던 걸 멈추고 밖에 나가 10분만 걸어 보세요."
-- A: "오늘 하루 중 가장 무거웠던 감정을 노트에 세 줄로 써 보세요."
+- 일기 "영어 단어 시험 망쳤다" → M: "오늘 틀린 영어 단어 중 3개만 골라 예문을 써 보세요."
+- 일기 "발표 때 목소리가 떨렸다" → V: "발표 긴장을 극복한 사람의 경험담을 하나 찾아 읽어 보세요."
+- 일기 "진로 때문에 머리가 복잡하다" → P: "진로 고민 하나를 담임 선생님께 짧게 여쭤 보세요."
+- 일기 "하루 종일 기운이 없었다" → A: "지금 하던 걸 멈추고 밖에 나가 10분만 걸어 보세요."
 
 잘못된 예시 (절대 사용 금지):
 - "수학 문제 푸는 영상 10분 보기" → 수동적이고 효과 불분명
 - "문제 1개만 풀어보기" → 명사형 종결
 - "친구한테 물어보자" → 반말
-- "스트레칭하기" → 명사형 종결, 너무 막연함
+- "성공한 사람의 인터뷰를 읽어 보세요" → 일기와 무관한 일반 미션
 
-JSON만 반환: {"content": "미션 내용"}"""
+JSON만 반환: {"content": "미션 내용", "reason": "왜 이 미션인지"}"""
 
 
 def _fix_tone(content: str) -> str:
@@ -64,19 +73,23 @@ def rank_mission_sources(scores: dict[str, float]) -> list[str]:
     return weak_vars or [min(scores, key=scores.get)]
 
 
-async def generate_mission_content(
+async def generate_mission_draft(
     target_var: str,
     level: int,
     diary_text: str,
     existing_contents: list[str],
     custom_prompt: str = "",
-) -> str:
+    recent_reflections: str = "",
+) -> tuple[str, str]:
+    """미션 내용과 '왜 이 미션인지'를 함께 만든다. 실패하면 ("", "")."""
     current_block = "\n".join(f"- {content}" for content in existing_contents) or "없음"
     user_prompt = (
         f"타겟 원천: {target_var}\n"
         f"[목표 난이도] Lv{level}/5 — {LEVEL_GUIDES[level]}\n"
         f"일기:\n{diary_text}\n\n"
     )
+    if recent_reflections:
+        user_prompt += f"[최근 미션 회고]\n{recent_reflections}\n\n"
     if custom_prompt:
         user_prompt += f"[사용자 추가 컨텍스트]\n{custom_prompt}\n\n"
     user_prompt += f"[기존 미션 목록]\n{current_block}"
@@ -84,7 +97,44 @@ async def generate_mission_content(
         {"role": "system", "content": MISSION_SYSTEM},
         {"role": "user", "content": user_prompt},
     ])
-    return _fix_tone(data.get("content", "").strip())
+    if not isinstance(data, dict):
+        return "", ""
+    content = _fix_tone(str(data.get("content", "") or "").strip())
+    reason = str(data.get("reason", "") or "").strip()[:120]
+    return content, reason
+
+
+async def generate_mission_content(
+    target_var: str,
+    level: int,
+    diary_text: str,
+    existing_contents: list[str],
+    custom_prompt: str = "",
+) -> str:
+    content, _ = await generate_mission_draft(target_var, level, diary_text, existing_contents, custom_prompt)
+    return content
+
+
+REFLECTION_STATUS = {"done": "완료", "skipped": "어려웠음", "expired": "못 함"}
+
+
+async def get_recent_reflections(user_id: int, db: AsyncSession, limit: int = 3) -> str:
+    """최근 미션 회고를 프롬프트용 문자열로. 없으면 ""."""
+    result = await db.execute(
+        select(Mission.content, Mission.status, Mission.reflection)
+        .where(
+            Mission.user_id == user_id,
+            Mission.reflection.isnot(None),
+            Mission.reflection != "",
+        )
+        .order_by(Mission.completed_at.desc().nullslast(), Mission.id.desc())
+        .limit(limit)
+    )
+    lines = [
+        f"- 미션 \"{row.content}\" ({REFLECTION_STATUS.get(row.status, row.status)}) → 회고: {row.reflection}"
+        for row in result.all()
+    ]
+    return "\n".join(lines)
 
 
 async def _get_recent_diary_text(user_id: int, db: AsyncSession) -> str:
@@ -175,6 +225,7 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
         return 0
 
     diary_text = await _get_recent_diary_text(user_id, db)
+    recent_reflections = await get_recent_reflections(user_id, db)
     generated = 0
     generated_contents = list(existing_contents)
 
@@ -182,14 +233,15 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
     for i in range(min(slots_left, len(available_vars))):
         target_var = available_vars[i]
         try:
-            content = await generate_mission_content(
-                target_var, level, diary_text, generated_contents, custom_prompt
+            content, reason = await generate_mission_draft(
+                target_var, level, diary_text, generated_contents, custom_prompt, recent_reflections
             )
             if not content:
                 continue
             mission = Mission(
                 user_id=user_id,
                 content=content,
+                reason=reason or None,
                 target_var=target_var,
                 status="active",
                 difficulty=LEVEL_RATINGS[level],

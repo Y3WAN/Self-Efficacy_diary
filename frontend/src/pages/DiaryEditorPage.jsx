@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import client from "../api/client";
 import { todayKST } from "../utils/date";
+import ReflectionCard from "../components/ReflectionCard";
 
 function KebabMenu({ onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
@@ -59,14 +60,39 @@ export default function DiaryEditorPage() {
     qc.invalidateQueries({ queryKey: ["diaries", "recent"] });
   };
 
+  // 일기별 AI 반응 요청 상태: { [diaryId]: { status: "pending" | "error" | "done", mission } }
+  const [reactions, setReactions] = useState({});
+  const setReaction = (id, value) => setReactions((prev) => ({ ...prev, [id]: value }));
+
+  const reflectMutation = useMutation({
+    mutationFn: (id) => client.post(`/api/diaries/${id}/reflect`).then((r) => r.data),
+    onMutate: (id) => setReaction(id, { status: "pending" }),
+    onSuccess: async (data, id) => {
+      setReaction(id, { status: "done", mission: data.mission });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["diaries"] }),
+        qc.invalidateQueries({ queryKey: ["missions"] }),
+      ]);
+    },
+    onError: (_error, id) => setReaction(id, { status: "error" }),
+  });
+
   const createMutation = useMutation({
     mutationFn: () => client.post("/api/diaries", { content: newContent, diary_date: date }),
-    onSuccess: () => { setNewContent(""); invalidate(); },
+    onSuccess: (res) => {
+      setNewContent("");
+      invalidate();
+      reflectMutation.mutate(res.data.id);
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, content }) => client.patch(`/api/diaries/${id}`, { content }),
-    onSuccess: () => { setEditingId(null); invalidate(); },
+    onSuccess: (res) => {
+      setEditingId(null);
+      invalidate();
+      if (!res.data.reflection) reflectMutation.mutate(res.data.id);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -128,6 +154,13 @@ export default function DiaryEditorPage() {
                 <div className="diary-meta">
                   <span>{new Date(d.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
+                <ReflectionCard
+                  reflection={reactions[d.id]?.status === "pending" ? null : d.reflection}
+                  mission={reactions[d.id]?.mission}
+                  isPending={reactions[d.id]?.status === "pending"}
+                  isError={reactions[d.id]?.status === "error"}
+                  onRequest={isToday ? () => reflectMutation.mutate(d.id) : undefined}
+                />
               </>
             )}
           </div>
@@ -147,7 +180,7 @@ export default function DiaryEditorPage() {
             <button
               className="diary-save-btn"
               onClick={() => createMutation.mutate()}
-              disabled={!newContent.trim()}
+              disabled={!newContent.trim() || createMutation.isPending}
             >
               저장
             </button>

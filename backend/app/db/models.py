@@ -47,8 +47,26 @@ class Diary(Base):
     updated_at = Column(DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc)
 
     user = relationship("User", back_populates="diaries")
+    reflection = relationship(
+        "DiaryReflection", back_populates="diary", uselist=False,
+        cascade="all, delete-orphan", lazy="selectin",
+    )
 
     __table_args__ = (Index("idx_diaries_user_date", "user_id", "diary_date"),)
+
+
+class DiaryReflection(Base):
+    """일기 저장 직후 AI가 찾아 준 '오늘 해낸 것'과 한마디."""
+    __tablename__ = "diary_reflections"
+
+    id = Column(BigInteger, primary_key=True)
+    diary_id = Column(BigInteger, ForeignKey("diaries.id", ondelete="CASCADE"), nullable=False, unique=True)
+    user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    achievements = Column(Text, nullable=False)  # JSON 문자열 배열
+    message = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
+
+    diary = relationship("Diary", back_populates="reflection")
 
 
 class DailyAnalysis(Base):
@@ -87,6 +105,9 @@ class Mission(Base):
     target_var = Column(String(1), nullable=False)
     status = Column(String(10), nullable=False, default="active")  # active / done / skipped / expired
     difficulty = Column(Integer, nullable=True)  # ELO 척도 난이도 (레거시 미션은 NULL)
+    reason = Column(Text, nullable=True)  # 왜 이 미션인지 (사용자에게 보여 줌)
+    diary_id = Column(BigInteger, ForeignKey("diaries.id", ondelete="SET NULL"), nullable=True)  # 일기 직후 생성된 미션
+    reflection = Column(Text, nullable=True)  # 완료·포기 시 남긴 한 줄 회고
     created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
     completed_at = Column(DateTime(timezone=True), nullable=True)
 

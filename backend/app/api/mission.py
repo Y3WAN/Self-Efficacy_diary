@@ -23,6 +23,9 @@ class MissionResponse(BaseModel):
     status: str
     difficulty: Optional[int] = None
     level: Optional[int] = None
+    reason: Optional[str] = None
+    diary_id: Optional[int] = None
+    reflection: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -33,6 +36,16 @@ class MissionResponse(BaseModel):
         if mission.difficulty is not None:
             res.level = level_for_rating(mission.difficulty)
         return res
+
+
+class MissionFeedback(BaseModel):
+    """완료·포기할 때 남기는 한 줄 회고 (선택). 다음 분석·미션에 반영된다."""
+    reflection: Optional[Annotated[str, StringConstraints(strip_whitespace=True, max_length=300)]] = None
+
+
+def _apply_feedback(mission: Mission, body: "MissionFeedback | None") -> None:
+    if body and body.reflection:
+        mission.reflection = body.reflection
 
 
 class MissionResultResponse(MissionResponse):
@@ -215,6 +228,7 @@ def _result_response(mission: Mission, elo_before: int, elo_after: int) -> Missi
 @router.post("/{mission_id}/complete", response_model=MissionResultResponse)
 async def complete_mission(
     mission_id: int,
+    body: Optional[MissionFeedback] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -222,6 +236,7 @@ async def complete_mission(
 
     mission.status = "done"
     mission.completed_at = datetime.now(timezone.utc)
+    _apply_feedback(mission, body)
     current_user.points = (current_user.points or 0) + 100
     before, after = apply_result(current_user, mission, won=True, db=db)
     await db.commit()
@@ -232,6 +247,7 @@ async def complete_mission(
 @router.post("/{mission_id}/skip", response_model=MissionResultResponse)
 async def skip_mission(
     mission_id: int,
+    body: Optional[MissionFeedback] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -239,6 +255,8 @@ async def skip_mission(
     mission = await _get_active_mission(mission_id, current_user, db)
 
     mission.status = "skipped"
+    mission.completed_at = datetime.now(timezone.utc)
+    _apply_feedback(mission, body)
     before, after = apply_result(current_user, mission, won=False, db=db)
     await db.commit()
     await db.refresh(mission)

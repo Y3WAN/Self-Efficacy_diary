@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import client from "../api/client";
 import { useConfirmLogout } from "../utils/useConfirmLogout";
 
@@ -52,6 +52,15 @@ export default function ProfilePage() {
               {(user.points ?? 0).toLocaleString()} P
             </span>
           </div>
+        </div>
+
+        <div className="profile-links">
+          <Link to="/prompt" className="main-analysis-link">
+            <span>✏️ 미션 맞춤 설정</span><span aria-hidden="true">→</span>
+          </Link>
+          <Link to="/community" className="main-analysis-link">
+            <span>🌍 함께 해낸 미션</span><span aria-hidden="true">→</span>
+          </Link>
         </div>
 
         <button

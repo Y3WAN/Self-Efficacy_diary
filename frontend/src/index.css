@@ -1815,3 +1815,119 @@ body:has(.mallang-page) { overflow-x: clip; }
 }
 .about-sources { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-top: 12px; font-size: 12px; line-height: 1.6; color: var(--text-muted); }
 .about-sources span { display: block; font-weight: 700; color: var(--text); font-size: 13px; }
+
+
+/* ═══════════════════════════════════════════════════════
+   AI 즉시 반응 · 미션 이유 · 한 줄 회고
+═══════════════════════════════════════════════════════ */
+.mission-item { flex-wrap: wrap; }
+.mission-body { flex: 1; min-width: 0; }
+.mission-reason {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.mission-feedback {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-warm);
+}
+.mission-feedback label { font-size: 13px; font-weight: 700; color: var(--text); }
+.mission-feedback-optional { font-weight: 400; color: var(--text-soft); font-size: 12px; }
+.mission-feedback-input {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--card);
+  box-sizing: border-box;
+}
+.mission-feedback .mission-actions { flex-direction: row; align-items: center; gap: 12px; }
+
+.reflection-card {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-sky);
+  border: 1px solid var(--border);
+}
+.reflection-card--pending {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.reflection-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: reflection-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes reflection-spin { to { transform: rotate(360deg); } }
+.reflection-card--empty { background: none; border-style: dashed; text-align: center; }
+.reflection-request-btn {
+  background: none;
+  border: none;
+  color: var(--blue);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.reflection-error { font-size: 13px; color: var(--coral); margin-bottom: 6px; }
+.reflection-label { font-size: 13px; font-weight: 700; color: var(--blue); margin-bottom: 6px; }
+.reflection-achievements { list-style: none; display: flex; flex-direction: column; gap: 4px; padding: 0; margin: 0; }
+.reflection-achievements li {
+  position: relative;
+  padding-left: 20px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.reflection-achievements li::before { content: "✓"; position: absolute; left: 2px; color: var(--green); font-weight: 700; }
+.reflection-message { margin-top: 10px; font-size: 14px; line-height: 1.6; color: var(--text-muted); }
+.reflection-mission { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.reflection-mission .reflection-label { color: var(--coral); }
+.reflection-mission-content { font-size: 15px; font-weight: 600; line-height: 1.5; color: var(--text); }
+.reflection-mission-reason { margin-top: 4px; font-size: 13px; color: var(--text-muted); }
+.reflection-mission-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue);
+  text-decoration: none;
+}
+
+.today-card {
+  display: block;
+  padding: 18px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  text-decoration: none;
+}
+.today-card--empty { background: var(--bg-sky); border-style: dashed; }
+.today-card-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.today-card-sub { font-size: 14px; line-height: 1.6; color: var(--text-muted); }
+
+.activity-reflection { flex-basis: 100%; font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.activity-diary-achievement { font-size: 12px; color: var(--green); margin-top: 4px; }
+.profile-links { display: flex; flex-direction: column; gap: 10px; }
+.activity-mission { flex-wrap: wrap; }

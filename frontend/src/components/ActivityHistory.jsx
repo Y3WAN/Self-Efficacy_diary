@@ -55,6 +55,7 @@ export default function ActivityHistory({ diaries, missions, isPending, onRetry 
                   <span className={`activity-status activity-status--${mission.status}`}>
                     {MISSION_STATUS[mission.status]}
                   </span>
+                  {mission.reflection && <p className="activity-reflection">“{mission.reflection}”</p>}
                 </div>
               ))}
               {day.diaries.map((diary) => (
@@ -66,6 +67,9 @@ export default function ActivityHistory({ diaries, missions, isPending, onRetry 
                 >
                   <span className="activity-diary-meta">일기 · {DIARY_TIME.format(new Date(diary.created_at))}</span>
                   <p className="activity-diary-preview">{diary.content}</p>
+                  {diary.reflection?.achievements?.length > 0 && (
+                    <p className="activity-diary-achievement">✨ {diary.reflection.achievements.join(" · ")}</p>
+                  )}
                 </Link>
               ))}
             </li>

@@ -38,10 +38,18 @@ function ResultModal({ result, onClose }) {
 export default function MissionList({ missions, isPending, isError, onRetry }) {
   const qc = useQueryClient();
   const [result, setResult] = useState(null);
+  // 회고 입력창이 열린 미션: { id, action: "complete" | "skip" }
+  const [pending, setPending] = useState(null);
+  const [note, setNote] = useState("");
+
+  const openFeedback = (id, action) => { setPending({ id, action }); setNote(""); };
 
   const updateMission = useMutation({
-    mutationFn: ({ id, action }) => client.post(`/api/missions/${id}/${action}`),
+    mutationFn: ({ id, action, reflection }) =>
+      client.post(`/api/missions/${id}/${action}`, reflection ? { reflection } : undefined),
     onSuccess: async (response, { action }) => {
+      setPending(null);
+      setNote("");
       setResult({ ...response.data, skipped: action === "skip" });
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["missions"] }),
@@ -74,19 +82,58 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
           <ul className="main-scroll-list mission-items">
             {missions.map((mission) => (
               <li key={mission.id} className="mission-item">
-                <p className="mission-content">{mission.content}</p>
-                <div className="mission-actions">
-                  <button
-                    className="mission-done-btn"
-                    disabled={updateMission.isPending}
-                    onClick={() => updateMission.mutate({ id: mission.id, action: "complete" })}
-                  >완료</button>
-                  <button
-                    className="mission-skip-btn"
-                    disabled={updateMission.isPending}
-                    onClick={() => updateMission.mutate({ id: mission.id, action: "skip" })}
-                  >어려워요</button>
+                <div className="mission-body">
+                  <p className="mission-content">{mission.content}</p>
+                  {mission.reason && <p className="mission-reason">💡 {mission.reason}</p>}
                 </div>
+                {pending?.id === mission.id ? (
+                  <form
+                    className="mission-feedback"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      updateMission.mutate({ ...pending, reflection: note.trim() });
+                    }}
+                  >
+                    <label htmlFor={`mission-note-${mission.id}`}>
+                      {pending.action === "complete" ? "해 보니 어땠어요?" : "어떤 점이 어려웠어요?"}
+                      <span className="mission-feedback-optional"> (선택 · 다음 미션에 반영돼요)</span>
+                    </label>
+                    <textarea
+                      id={`mission-note-${mission.id}`}
+                      className="mission-feedback-input"
+                      maxLength={300}
+                      value={note}
+                      onChange={(event) => setNote(event.target.value)}
+                      placeholder={pending.action === "complete"
+                        ? "예) 생각보다 금방 끝나서 하나 더 했어요"
+                        : "예) 시간이 부족했어요, 너무 막막했어요"}
+                    />
+                    <div className="mission-actions">
+                      <button type="submit" className="mission-done-btn" disabled={updateMission.isPending}>
+                        {pending.action === "complete" ? "완료 기록" : "어려워요 기록"}
+                      </button>
+                      <button
+                        type="button"
+                        className="mission-skip-btn"
+                        disabled={updateMission.isPending}
+                        onClick={() => setPending(null)}
+                      >취소</button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="mission-actions">
+                    <button
+                      className="mission-done-btn"
+                      disabled={updateMission.isPending}
+                      onClick={() => openFeedback(mission.id, "complete")}
+                    >완료</button>
+                    <button
+                      className="mission-skip-btn"
+                      disabled={updateMission.isPending}
+                      onClick={() => openFeedback(mission.id, "skip")}
+                    >어려워요</button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

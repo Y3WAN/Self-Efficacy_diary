@@ -4,11 +4,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.db.session import get_db
 from app.db.models import Diary, User
-from app.schemas.diary import DiaryCreate, DiaryUpdate, DiaryResponse, MonthDiariesResponse
+from app.schemas.diary import DiaryCreate, DiaryUpdate, DiaryResponse, MonthDiariesResponse, ReflectionOut
 from app.core.deps import get_current_user
 from app.core.timeutil import today_kst
+from app.api.mission import MissionResponse
+from app.services.reflection_service import reflect_diary
+from pydantic import BaseModel
+from typing import Optional
 
 router = APIRouter(prefix="/api/diaries", tags=["diaries"])
+
+
+class ReflectResponse(BaseModel):
+    reflection: ReflectionOut
+    mission: Optional[MissionResponse] = None
 
 
 @router.get("", response_model=MonthDiariesResponse)
@@ -79,6 +88,7 @@ async def create_diary(
         content=body.content,
         is_locked=False,
     )
+    diary.reflection = None  # 새 일기는 반응 없음 (관계를 '로드됨'으로 표시)
     db.add(diary)
     current_user.diary_count += 1
     await db.commit()
@@ -104,6 +114,8 @@ async def update_diary(
     if diary.is_locked:
         raise HTTPException(status_code=409, detail="Diary is locked")
 
+    if diary.content != body.content:
+        diary.reflection = None  # 내용이 바뀌면 이전 반응은 지우고 다시 받는다
     diary.content = body.content
     diary.updated_at = datetime.now(timezone.utc)
     await db.commit()
@@ -131,3 +143,28 @@ async def delete_diary(
     await db.delete(diary)
     current_user.diary_count = max(0, current_user.diary_count - 1)
     await db.commit()
+
+
+@router.post("/{diary_id}/reflect", response_model=ReflectResponse)
+async def reflect(
+    diary_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """일기 저장 직후 호출: AI가 '오늘 해낸 것'을 찾고, 오늘 첫 반응이면 이어지는 미션 1개를 만든다."""
+    result = await db.execute(
+        select(Diary).where(Diary.id == diary_id, Diary.user_id == current_user.id)
+    )
+    diary = result.scalar_one_or_none()
+    if not diary:
+        raise HTTPException(status_code=404, detail="Diary not found")
+    if diary.diary_date != today_kst():
+        raise HTTPException(status_code=403, detail="Can only reflect today's diary")
+    try:
+        reflection, mission = await reflect_diary(diary, current_user, db)
+    except Exception:
+        raise HTTPException(status_code=502, detail="AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.")
+    return ReflectResponse(
+        reflection=reflection,
+        mission=MissionResponse.of(mission) if mission else None,
+    )
