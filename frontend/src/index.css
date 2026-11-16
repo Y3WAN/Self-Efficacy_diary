@@ -2029,3 +2029,10 @@ body:has(.mallang-page) { overflow-x: clip; }
 }
 .trial-footer { margin-top: auto; padding-top: 28px; font-size: 12px; color: var(--text-soft); text-align: center; }
 .trial-footer a { color: var(--text-muted); }
+.trial-why {
+  margin: 0; padding: 10px 14px; font-size: 13px; line-height: 1.55;
+  color: var(--text-muted); background: var(--brown-bg); border-radius: var(--radius-sm);
+}
+.trial-why b { color: var(--text); }
+.trial-mission-question { margin: 14px 0 0; font-size: 14px; font-weight: 700; color: var(--text); }
+.trial-mission-question + .trial-mission-actions { margin-top: 8px; }

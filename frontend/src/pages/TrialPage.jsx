@@ -19,7 +19,7 @@ export default function TrialPage() {
   const [submitted, setSubmitted] = useState("");
   const [token, setToken] = useState(null);
   const [result, setResult] = useState(null); // { reflection, mission }
-  const [missionResult, setMissionResult] = useState(null); // { won, before, after }
+  const [missionResult, setMissionResult] = useState(null); // { won }
   const [missionBusy, setMissionBusy] = useState(false);
 
   const auth = (t) => ({ headers: { Authorization: `Bearer ${t}` } });
@@ -49,11 +49,11 @@ export default function TrialPage() {
     setMissionBusy(true);
     try {
       const path = won ? "complete" : "skip";
-      const { data } = await api.post(`/api/missions/${result.mission.id}/${path}`, null, auth(token));
-      setMissionResult({ won, before: data.elo_before, after: data.elo_after });
+      await api.post(`/api/missions/${result.mission.id}/${path}`, null, auth(token));
     } catch {
-      setMissionResult({ won, failed: true });
+      // 체험 화면에서는 반영 실패해도 안내 문구는 그대로 보여 준다
     } finally {
+      setMissionResult({ won });
       setMissionBusy(false);
     }
   };
@@ -132,6 +132,10 @@ export default function TrialPage() {
                 </ul>
                 {result.reflection.message && <p className="reflection-message">{result.reflection.message}</p>}
               </div>
+              <p className="trial-why">
+                💡 왜 해낸 것을 찾아 줄까요? 직접 해낸 경험은 자기효능감을 키우는
+                <b> 가장 강한 원천</b>이에요 (반두라, 1977)
+              </p>
 
               {result.mission && (
                 <div className="trial-mission">
@@ -140,22 +144,23 @@ export default function TrialPage() {
                   {result.mission.reason && <p className="reflection-mission-reason">{result.mission.reason}</p>}
 
                   {!missionResult ? (
-                    <div className="trial-mission-actions">
-                      <button type="button" className="trial-btn-ok" disabled={missionBusy} onClick={() => answerMission(true)}>
-                        해볼 만해요 👍
-                      </button>
-                      <button type="button" className="trial-btn-hard" disabled={missionBusy} onClick={() => answerMission(false)}>
-                        어려워요 😅
-                      </button>
-                    </div>
+                    <>
+                      <p className="trial-mission-question">이 미션, 할 수 있을 것 같나요?</p>
+                      <div className="trial-mission-actions">
+                        <button type="button" className="trial-btn-ok" disabled={missionBusy} onClick={() => answerMission(true)}>
+                          할 수 있을 것 같아요 👍
+                        </button>
+                        <button type="button" className="trial-btn-hard" disabled={missionBusy} onClick={() => answerMission(false)}>
+                          어려울 것 같아요 😅
+                        </button>
+                      </div>
+                    </>
                   ) : (
                     <p className="trial-mission-result">
                       {missionResult.won
-                        ? "좋아요! 다음 미션은 조금 더 도전적으로 나와요."
-                        : "괜찮아요! 다음 미션은 더 쉽게 나와요."}
-                      {!missionResult.failed && (
-                        <span className="trial-elo"> 난이도 점수 {missionResult.before} → {missionResult.after}</span>
-                      )}
+                        ? "좋아요! 다음엔 조금 더 도전적인 미션을 드릴게요."
+                        : "괜찮아요! 다음엔 더 작고 쉬운 미션을 드릴게요."}
+                      <span className="trial-elo">답할 때마다 성공할 만한 수준으로 미션 난이도를 맞춰요</span>
                     </p>
                   )}
                 </div>
