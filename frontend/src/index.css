@@ -1931,3 +1931,4 @@ body:has(.mallang-page) { overflow-x: clip; }
 .activity-diary-achievement { font-size: 12px; color: var(--green); margin-top: 4px; }
 .profile-links { display: flex; flex-direction: column; gap: 10px; }
 .activity-mission { flex-wrap: wrap; }
+.analysis-row--none .analysis-val { color: var(--text-soft); font-size: 12px; font-weight: 500; }

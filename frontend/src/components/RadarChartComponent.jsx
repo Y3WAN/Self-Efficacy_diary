@@ -16,6 +16,7 @@ function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const subject = payload[0]?.payload?.subject;
   const score = payload[0]?.value;
+  const days = payload[0]?.payload?.days;
   const info = SOURCE_DESC[subject];
   if (!info) return null;
 
@@ -29,6 +30,9 @@ function CustomTooltip({ active, payload }) {
         {info.label} — {(score * 100).toFixed(0)}점
       </div>
       <div style={{ color: "#8C7B70", fontSize: 12 }}>{info.desc}</div>
+      <div style={{ color: "#B4A89E", fontSize: 11, marginTop: 4 }}>
+        {days ? `최근 7일 중 근거 있는 날 ${days}일` : "최근 7일 근거 없음 · 이전 기록 기준"}
+      </div>
     </div>
   );
 }
@@ -47,10 +51,10 @@ export default function RadarChartComponent() {
   if (!radar) return <div className="chart-empty">최근 분석 데이터가 없어요.</div>;
 
   const chartData = [
-    { subject: "성취(M)", score: radar.score_m },
-    { subject: "대리(V)", score: radar.score_v },
-    { subject: "지지(P)", score: radar.score_p },
-    { subject: "정서(A)", score: radar.score_a },
+    { subject: "성취(M)", score: radar.score_m, days: radar.days_m },
+    { subject: "대리(V)", score: radar.score_v, days: radar.days_v },
+    { subject: "지지(P)", score: radar.score_p, days: radar.days_p },
+    { subject: "정서(A)", score: radar.score_a, days: radar.days_a },
   ];
 
   return (

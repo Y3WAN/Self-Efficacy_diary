@@ -9,15 +9,16 @@ from datetime import datetime, time
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.timeutil import KST, today_kst
-from app.db.models import DailyAnalysis, Diary, DiaryReflection, Mission, User
+from app.db.models import Diary, DiaryReflection, Mission, User
 from app.services.elo_service import BASE_RATING, LEVEL_RATINGS, target_level
 from app.services.groq_client import chat_json
 from app.services.mission_service import (
     expire_stale_missions,
     generate_mission_draft,
     get_recent_reflections,
-    rank_mission_sources,
+    load_source_profile,
 )
+from app.services.scoring import rank_sources_from_profile
 
 logger = logging.getLogger(__name__)
 
@@ -111,20 +112,7 @@ async def _create_instant_mission(diary: Diary, user: User, db: AsyncSession) ->
     if len(active_rows) >= MAX_ACTIVE_MISSIONS:
         return None
 
-    latest = await db.execute(
-        select(DailyAnalysis)
-        .where(DailyAnalysis.user_id == user.id, DailyAnalysis.is_reflected == True)  # noqa: E712
-        .order_by(DailyAnalysis.diary_date.desc(), DailyAnalysis.created_at.desc())
-        .limit(1)
-    )
-    analysis = latest.scalar_one_or_none()
-    if analysis:
-        ranked = rank_mission_sources({
-            "M": float(analysis.score_m), "V": float(analysis.score_v),
-            "P": float(analysis.score_p), "A": float(analysis.score_a),
-        })
-    else:
-        ranked = ["M"]
+    ranked = rank_sources_from_profile(await load_source_profile(user.id, db))
     used = {row.target_var for row in active_rows}
     target_var = next((v for v in ranked if v not in used), ranked[0])
 

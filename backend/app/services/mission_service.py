@@ -6,7 +6,8 @@ from sqlalchemy import select
 from app.db.models import Diary, DailyAnalysis, Mission, User
 from app.core.timeutil import today_kst
 from app.services.groq_client import chat_json
-from app.services.elo_service import BASE_RATING, LEVEL_GUIDES, LEVEL_RATINGS, apply_result, target_level
+from app.services.elo_service import BASE_RATING, LEVEL_GUIDES, LEVEL_RATINGS, target_level
+from app.services.scoring import PROFILE_DAYS, rank_sources_from_profile, source_profile
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +162,11 @@ async def _get_recent_diary_text(user_id: int, db: AsyncSession) -> str:
 
 
 async def expire_stale_missions(user: User, db: AsyncSession) -> int:
-    """기한이 지난 active 미션을 만료 처리하고 ELO 패배로 반영. 커밋은 호출자가 한다."""
+    """기한이 지난 active 미션을 만료 처리한다. 커밋은 호출자가 한다.
+
+    만료는 ELO에 반영하지 않는다. 접속하지 않은 것(바빠서)과 해내지 못한 것(어려워서)은
+    다르기 때문에, 실패는 사용자가 직접 '어려워요'를 누른 경우만 센다.
+    """
     cutoff = datetime.now(timezone.utc) - timedelta(days=MISSION_EXPIRE_DAYS)
     result = await db.execute(
         select(Mission)
@@ -171,8 +176,26 @@ async def expire_stale_missions(user: User, db: AsyncSession) -> int:
     stale = result.scalars().all()
     for mission in stale:
         mission.status = "expired"
-        apply_result(user, mission, won=False, db=db)
     return len(stale)
+
+
+async def load_source_profile(user_id: int, db: AsyncSession) -> dict[str, dict]:
+    """최근 PROFILE_DAYS일 원천별 확신도 가중 EMA. 그 이전 마지막 분석(가입 설문 포함)은 출발점으로 쓴다."""
+    since = today_kst() - timedelta(days=PROFILE_DAYS)
+    base = select(DailyAnalysis).where(
+        DailyAnalysis.user_id == user_id, DailyAnalysis.is_reflected == True  # noqa: E712
+    )
+    prior = await db.execute(
+        base.where(DailyAnalysis.diary_date < since)
+        .order_by(DailyAnalysis.diary_date.desc(), DailyAnalysis.created_at.desc())
+        .limit(1)
+    )
+    recent = await db.execute(
+        base.where(DailyAnalysis.diary_date >= since)
+        .order_by(DailyAnalysis.diary_date, DailyAnalysis.created_at)
+    )
+    rows = list(prior.scalars().all()) + list(recent.scalars().all())
+    return source_profile(rows, since=since)
 
 
 async def generate_missions(user_id: int, db: AsyncSession) -> int:
@@ -198,26 +221,8 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
     if len(existing_rows) >= 3:
         return 0
 
-    # 분석 결과로 원천별 점수 산출 (없으면 기본 순서)
-    analysis_result = await db.execute(
-        select(DailyAnalysis)
-        .where(DailyAnalysis.user_id == user_id, DailyAnalysis.is_reflected == True)
-        .order_by(DailyAnalysis.diary_date.desc(), DailyAnalysis.created_at.desc())
-        .limit(1)
-    )
-    analysis = analysis_result.scalar_one_or_none()
-
-    if analysis:
-        scores = {
-            "M": float(analysis.score_m),
-            "V": float(analysis.score_v),
-            "P": float(analysis.score_p),
-            "A": float(analysis.score_a),
-        }
-        weak_vars = rank_mission_sources(scores)
-    else:
-        # 분석 없으면 M 하나만 기본 생성
-        weak_vars = ["M"]
+    # 최근 7일 원천별 추세(근거 있는 날만)로 약한 원천을 고른다
+    weak_vars = rank_sources_from_profile(await load_source_profile(user_id, db))
 
     available_vars = [v for v in weak_vars if v not in used_vars]
 

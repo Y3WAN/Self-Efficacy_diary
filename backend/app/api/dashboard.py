@@ -7,6 +7,8 @@ from app.core.deps import get_current_user
 from app.db.models import User
 from app.services.elo_service import BASE_RATING, LEVEL_RATINGS, expected_success, target_level
 from app.services.analysis_service import INITIAL_REASONING
+from app.services.mission_service import load_source_profile
+from app.services.scoring import composite_score, ema_step, known_scores
 from pydantic import BaseModel
 from typing import Optional
 from datetime import date, datetime
@@ -56,29 +58,28 @@ async def growth(
     ]
 
 
-@router.get("/radar", response_model=Optional[RadarScore])
+class RadarResponse(RadarScore):
+    # 최근 7일 동안 근거가 있었던 날 수 (0이면 그 원천은 출발점 값 그대로)
+    days_m: int = 0
+    days_v: int = 0
+    days_p: int = 0
+    days_a: int = 0
+
+
+@router.get("/radar", response_model=Optional[RadarResponse])
 async def radar(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(DailyAnalysis)
-        .where(
-            DailyAnalysis.user_id == current_user.id,
-            DailyAnalysis.is_reflected == True,
-        )
-        .order_by(DailyAnalysis.diary_date.desc(), DailyAnalysis.created_at.desc())
-        .limit(1)
-    )
-    a = result.scalar_one_or_none()
-    if not a:
+    """원천별 최근 7일 추세 (근거 있는 날만, 확신도 가중 EMA). 미션 대상 선택과 같은 값."""
+    prof = await load_source_profile(current_user.id, db)
+    if all(p["score"] is None for p in prof.values()):
         return None
-    return RadarScore(
-        score_m=float(a.score_m),
-        score_v=float(a.score_v),
-        score_p=float(a.score_p),
-        score_a=float(a.score_a),
-    )
+    out = {}
+    for s, p in prof.items():
+        out[f"score_{s.lower()}"] = p["score"] if p["score"] is not None else 0.5
+        out[f"days_{s.lower()}"] = p["days"]
+    return RadarResponse(**out)
 
 
 class EloPoint(BaseModel):
@@ -138,10 +139,6 @@ async def elo(
     )
 
 
-# EMA 평활 계수: 클수록 최근 하루의 영향이 커진다 (0.3 ≈ 최근 약 6일 가중)
-EMA_ALPHA = 0.3
-
-
 class DailyScore(BaseModel):
     date: str
     score: float
@@ -154,7 +151,10 @@ async def daily(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """일별 종합 점수와 EMA 추세선. 하루 하나의 분석(가장 최근 것)만 사용한다."""
+    """일별 종합 점수와 확신도 가중 EMA 추세선. 하루 하나의 분석(가장 최근 것)만 사용한다.
+
+    EMA_t = EMA_(t-1) + (α × 확신도) × (점수_t − EMA_(t-1)),  α = scoring.EMA_ALPHA (0.5)
+    """
     result = await db.execute(
         select(DailyAnalysis)
         .where(
@@ -172,8 +172,12 @@ async def daily(
     ema: Optional[float] = None
     for d in sorted(by_date):
         a = by_date[d]
-        score = float(a.composite_score)
-        ema = score if ema is None else EMA_ALPHA * score + (1 - EMA_ALPHA) * ema
+        # 예전 데이터도 같은 규칙(근거 있는 원천만)으로 다시 계산
+        recomputed = composite_score(known_scores(a))
+        if recomputed is None:
+            continue
+        score = recomputed
+        ema = ema_step(ema, score, float(a.confidence))
         out.append(DailyScore(
             date=d.isoformat(),
             score=round(score, 3),
@@ -198,6 +202,7 @@ class AnalysisDetail(BaseModel):
     evidence_p: Optional[str]
     evidence_a: Optional[str]
     reasoning: Optional[str]
+    evidence_sources: str  # 근거가 있었던 원천 ("MPA" 등)
 
 
 @router.get("/analyses", response_model=list[AnalysisDetail])
@@ -230,6 +235,7 @@ async def analyses(
             evidence_p=a.evidence_p,
             evidence_a=a.evidence_a,
             reasoning=a.reasoning,
+            evidence_sources="".join(k for k, v in known_scores(a).items() if v is not None),
         )
         for a in result.scalars().all()
     ]

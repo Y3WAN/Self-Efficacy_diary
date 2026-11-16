@@ -49,6 +49,7 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
         score_p=round(p, 2),
         score_a=round(a, 2),
         composite_score=composite,
+        evidence_sources="MVPA",  # 설문은 네 원천 모두 직접 응답
         confidence=0.8,
         is_reflected=True,
         reasoning=INITIAL_REASONING,

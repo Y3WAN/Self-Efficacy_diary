@@ -23,7 +23,7 @@ const CustomTooltip = ({ active, payload }) => {
       borderRadius: 10, padding: "8px 12px", fontSize: 13,
     }}>
       <p style={{ color: "#8C7B70", marginBottom: 2 }}>
-        {p.start ? "시작 점수" : `${p.result ? "완료" : "포기·만료"} · 예상 성공률 ${pct(p.expected)}`}
+        {p.start ? "시작 점수" : `${p.result ? "완료" : "어려워요"} · 예상 성공률 ${pct(p.expected)}`}
       </p>
       <p style={{ color: "#F4A261", fontWeight: 700 }}>{p.rating}</p>
     </div>

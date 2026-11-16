@@ -11,7 +11,7 @@ export default function DashboardPage() {
       <div className="main-content">
         <div className="chart-card">
           <h3 className="chart-title">자기효능감 성장 그래프</h3>
-          <p className="chart-sub">일별 점수와 지수이동평균(EMA, α=0.3) 추세선</p>
+          <p className="chart-sub">일별 점수와 확신도 가중 EMA 추세선 (AI가 확실한 날일수록 추세를 더 움직여요)</p>
           <GrowthChart />
         </div>
         <div className="chart-card">
@@ -21,7 +21,7 @@ export default function DashboardPage() {
         </div>
         <div className="chart-card">
           <h3 className="chart-title">4원천 분석</h3>
-          <p className="chart-sub">최근 분석 기준</p>
+          <p className="chart-sub">최근 7일 추세 · 일기에 근거가 있었던 날만 반영 · 미션 대상 선택에 쓰여요</p>
           <RadarChartComponent />
           <Link to="/analysis" className="chart-link">AI가 왜 이렇게 판단했는지 보기 →</Link>
         </div>

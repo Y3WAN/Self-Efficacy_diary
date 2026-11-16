@@ -36,7 +36,9 @@ function AnalysisCard({ a, defaultOpen }) {
       {a.is_initial && <p className="analysis-note">가입 설문으로 정한 시작 점수예요.</p>}
       {!a.is_reflected && (
         <p className="analysis-note analysis-note--warn">
-          확신도가 30% 미만이라 성장 그래프에 반영하지 않았어요. (일기가 짧으면 판단 근거가 부족해요)
+          {a.evidence_sources
+            ? "확신도가 30% 미만이라 성장 그래프에 반영하지 않았어요. (일기가 짧으면 판단 근거가 부족해요)"
+            : "일기에서 4원천의 근거를 찾지 못해 성장 그래프에 반영하지 않았어요."}
         </p>
       )}
 
@@ -45,14 +47,15 @@ function AnalysisCard({ a, defaultOpen }) {
           {SOURCES.map((s) => {
             const score = a[`score_${s.key}`];
             const ev = a[`evidence_${s.key}`];
+            const hasEvidence = (a.evidence_sources ?? "").includes(s.code);
             return (
-              <div key={s.key} className="analysis-row">
+              <div key={s.key} className={`analysis-row${hasEvidence ? "" : " analysis-row--none"}`}>
                 <div className="analysis-row-top">
                   <span className="analysis-label">{s.label}({s.code}) <em>×{s.weight}</em></span>
-                  <span className="analysis-val">{pct(score)}</span>
+                  <span className="analysis-val">{hasEvidence ? pct(score) : "근거 없음"}</span>
                 </div>
-                <div className="analysis-bar"><div style={{ width: `${pct(score)}%` }} /></div>
-                {ev && <p className="analysis-evidence">{ev}</p>}
+                <div className="analysis-bar"><div style={{ width: hasEvidence ? `${pct(score)}%` : 0 }} /></div>
+                {hasEvidence && ev && <p className="analysis-evidence">{ev}</p>}
               </div>
             );
           })}
@@ -84,7 +87,8 @@ export default function AnalysisPage() {
             AI가 일기에서 반두라의 자기효능감 4원천을 0~100점으로 평가한 근거예요.
           </p>
           <p className="analysis-formula">
-            종합 점수 = 성취 0.4 + 대리 0.2 + 설득 0.2 + 정서 0.2 · 확신도 30% 미만은 그래프에서 제외
+            종합 점수 = 근거가 있는 원천만 가중 평균 (성취 0.4 · 대리 0.2 · 설득 0.2 · 정서 0.2, 합이 1이 되게 조정)
+            · 근거 없는 원천은 "보통(50점)"이 아니라 계산에서 빼요 · 확신도 30% 미만은 그래프에서 제외
           </p>
         </div>
         {isLoading && <div className="chart-empty">불러오는 중...</div>}

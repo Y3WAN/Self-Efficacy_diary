@@ -22,6 +22,7 @@ from app.db.models import (
 from app.db.session import AsyncSessionLocal, engine
 from app.services.analysis_service import INITIAL_REASONING
 from app.services.elo_service import LEVEL_RATINGS, apply_result, target_level
+from app.services.scoring import composite_score, evidence_string
 
 # (일기, M, V, P, A, 확신도, 근거 M/V/P/A, 종합, 실패 요약)
 DAYS = [
@@ -176,20 +177,24 @@ async def main(username: str, password: str, reset: bool):
         db.add(DailyAnalysis(
             user_id=user.id, diary_date=start - timedelta(days=1),
             score_m=0.30, score_v=0.40, score_p=0.40, score_a=0.40,
-            composite_score=0.36, confidence=1.0, reasoning=INITIAL_REASONING, is_reflected=True,
+            composite_score=0.36, evidence_sources="MVPA", confidence=1.0, reasoning=INITIAL_REASONING, is_reflected=True,
             created_at=at(start - timedelta(days=1), 20),
         ))
 
         for i, row in enumerate(DAYS):
             text, m, v, p, a, conf, em, ev, ep, ea, reason, fail = row
             day = start + timedelta(days=i)
-            reflected = conf >= 0.3
+            # 데모 데이터의 0.5는 '근거 없음'으로 본다 (서비스와 같은 규칙)
+            known = {"M": m, "V": v, "P": p, "A": a}
+            known = {k: (None if val == 0.5 else val) for k, val in known.items()}
+            reflected = conf >= 0.3 and any(val is not None for val in known.values())
             db.add(Diary(user_id=user.id, diary_date=day, content=text, is_locked=True,
                          created_at=at(day, 22), updated_at=at(day, 22)))
             db.add(DailyAnalysis(
                 user_id=user.id, diary_date=day,
                 score_m=m, score_v=v, score_p=p, score_a=a,
-                composite_score=round(m * 0.4 + v * 0.2 + p * 0.2 + a * 0.2, 2) if reflected else None,
+                composite_score=composite_score(known) if reflected else None,
+                evidence_sources=evidence_string(known),
                 confidence=conf, evidence_m=em, evidence_v=ev, evidence_p=ep, evidence_a=ea,
                 reasoning=reason, is_reflected=reflected, created_at=at(day + timedelta(days=1), 0, 5),
             ))
@@ -205,7 +210,7 @@ async def main(username: str, password: str, reset: bool):
             mission = Mission(
                 user_id=user.id, content=content, target_var=var,
                 status="done" if won else "skipped", difficulty=LEVEL_RATINGS[level],
-                created_at=at(day, 7), completed_at=at(day, 18) if won else None,
+                created_at=at(day, 7), completed_at=at(day, 18),
             )
             db.add(mission)
             await db.flush()

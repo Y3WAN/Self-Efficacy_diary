@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.db.models import Diary, DailyAnalysis, FailureLog, Mission, User
 from app.core.timeutil import KST
 from app.services.groq_client import chat_json
+from app.services.scoring import NEUTRAL, composite_score, evidence_string, parse_source_scores
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ ANALYSIS_SYSTEM = """당신은 Bandura의 자기효능감 이론 전문가입니
 - A (정서·신체 상태): 감정 상태, 스트레스 수준, 신체적 에너지
 
 평가 규칙:
-- 일기에 근거가 없는 원천은 중립값 0.5 사용
+- 일기에 근거가 없는 원천은 점수를 null로, evidence를 빈 문자열로 (근거 없음 ≠ 보통. 절대 0.5로 채우지 말 것)
 - 슬픔이나 힘듦 자체는 낮은 효능감이 아님 (대처 의지·노력이 핵심)
 - confidence: 일기 내용이 충분할수록 높게 (짧은 일기 = 낮은 confidence)
 - 모든 evidence와 reasoning은 반드시 한국어로 작성
@@ -42,10 +43,10 @@ ANALYSIS_USER = """일기:
 
 아래 JSON 형식으로만 반환:
 {{
-  "score_m": 0.0~1.0,
-  "score_v": 0.0~1.0,
-  "score_p": 0.0~1.0,
-  "score_a": 0.0~1.0,
+  "score_m": 0.0~1.0 또는 null,
+  "score_v": 0.0~1.0 또는 null,
+  "score_p": 0.0~1.0 또는 null,
+  "score_a": 0.0~1.0 또는 null,
   "confidence": 0.0~1.0,
   "evidence_m": "M 점수 근거 (한국어)",
   "evidence_v": "V 점수 근거 (한국어)",
@@ -112,28 +113,28 @@ async def analyze_day(user_id: int, target_date: date, db: AsyncSession) -> bool
         logger.error(f"Groq analysis returned non-object user={user_id} date={target_date}")
         return False
 
-    m = _score(data, "score_m")
-    v = _score(data, "score_v")
-    p = _score(data, "score_p")
-    a = _score(data, "score_a")
+    scores = parse_source_scores(data)
     confidence = _score(data, "confidence")
+    evidence = evidence_string(scores)
 
-    is_reflected = confidence >= 0.3
-    composite = round(m * 0.4 + v * 0.2 + p * 0.2 + a * 0.2, 2) if is_reflected else None
+    # 근거가 하나도 없으면(예: "피곤했다" 한 줄) 그래프에 넣지 않는다
+    is_reflected = confidence >= 0.3 and bool(evidence)
+    composite = composite_score(scores) if is_reflected else None
 
     analysis = DailyAnalysis(
         user_id=user_id,
         diary_date=target_date,
-        score_m=round(m, 2),
-        score_v=round(v, 2),
-        score_p=round(p, 2),
-        score_a=round(a, 2),
+        score_m=round(scores["M"] if scores["M"] is not None else NEUTRAL, 2),
+        score_v=round(scores["V"] if scores["V"] is not None else NEUTRAL, 2),
+        score_p=round(scores["P"] if scores["P"] is not None else NEUTRAL, 2),
+        score_a=round(scores["A"] if scores["A"] is not None else NEUTRAL, 2),
+        evidence_sources=evidence,
         composite_score=composite,
         confidence=round(confidence, 2),
-        evidence_m=data.get("evidence_m"),
-        evidence_v=data.get("evidence_v"),
-        evidence_p=data.get("evidence_p"),
-        evidence_a=data.get("evidence_a"),
+        evidence_m=data.get("evidence_m") or None,
+        evidence_v=data.get("evidence_v") or None,
+        evidence_p=data.get("evidence_p") or None,
+        evidence_a=data.get("evidence_a") or None,
         reasoning=data.get("reasoning"),
         is_reflected=is_reflected,
     )

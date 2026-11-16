@@ -80,6 +80,8 @@ class DailyAnalysis(Base):
     score_p = Column(Numeric(3, 2), nullable=False)
     score_a = Column(Numeric(3, 2), nullable=False)
     composite_score = Column(Numeric(3, 2), nullable=True)
+    # 일기에 근거가 있었던 원천 ("MPA" 등). NULL = 예전 데이터(0.5를 근거 없음으로 추정)
+    evidence_sources = Column(String(4), nullable=True)
     confidence = Column(Numeric(3, 2), nullable=False)
     evidence_m = Column(Text, nullable=True)
     evidence_v = Column(Text, nullable=True)
