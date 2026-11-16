@@ -148,7 +148,7 @@ export default function TrialPage() {
                       <p className="trial-mission-question">이 미션, 할 수 있을 것 같나요?</p>
                       <div className="trial-mission-actions">
                         <button type="button" className="trial-btn-ok" disabled={missionBusy} onClick={() => answerMission(true)}>
-                          할 수 있을 것 같아요 👍
+                          할 수 있겠어요 👍
                         </button>
                         <button type="button" className="trial-btn-hard" disabled={missionBusy} onClick={() => answerMission(false)}>
                           어려울 것 같아요 😅
