@@ -16,6 +16,7 @@ import MallangPage from "./pages/MallangPage";
 import AnalysisPage from "./pages/AnalysisPage";
 import MissionExperimentPage from "./pages/MissionExperimentPage";
 import AboutPage from "./pages/AboutPage";
+import TrialPage from "./pages/TrialPage";
 
 const qc = new QueryClient();
 
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/prompt" element={<RequireAuth><PromptPage /></RequireAuth>} />
           <Route path="/analysis" element={<RequireAuth><AnalysisPage /></RequireAuth>} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/try" element={<TrialPage />} />
           <Route path="/mallang" element={<RequireAuth><MallangPage /></RequireAuth>} />
         </Routes>
         <Toaster position="bottom-center" toastOptions={{ style: { fontFamily: 'Pretendard, sans-serif', borderRadius: '12px' } }} />
