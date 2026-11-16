@@ -178,6 +178,31 @@ body { background: var(--bg); min-height: 100vh; }
   box-shadow: 0 6px 24px rgba(244,162,97,0.30);
 }
 .auth-btn:active { transform: translateY(0); }
+.auth-btn--trial {
+  width: 100%;
+  margin-top: 12px;
+  background: var(--card);
+  color: var(--orange);
+  border: 2px solid var(--orange);
+}
+.auth-btn:disabled { opacity: 0.6; cursor: wait; transform: none; }
+.auth-trial-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 8px;
+}
+.appbar-next {
+  padding: 7px 12px;
+  border: 1.5px solid var(--orange);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--orange);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
 
 /* 에러 — 빨강 대신 앰버 */
 .auth-error {
