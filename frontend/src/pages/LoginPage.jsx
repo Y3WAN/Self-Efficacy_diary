@@ -49,6 +49,8 @@ export default function LoginPage() {
           {error && <p className="auth-error">{error}</p>}
           <button className="auth-btn" type="submit">로그인</button>
         </form>
+        <Link to="/try" className="auth-btn auth-btn--trial">✨ 가입 없이 1분 체험하기</Link>
+        <p className="auth-trial-note">체험 기록은 행사 후 모두 삭제돼요</p>
         <p className="auth-link">
           처음이신가요? <Link to="/signup">회원가입</Link>
         </p>
