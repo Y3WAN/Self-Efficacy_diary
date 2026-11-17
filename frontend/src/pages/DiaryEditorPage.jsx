@@ -141,6 +141,7 @@ export default function DiaryEditorPage() {
               <>
                 <textarea
                   className="diary-textarea"
+                  aria-label="일기 수정"
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
                 />
@@ -172,6 +173,7 @@ export default function DiaryEditorPage() {
         <div className="diary-write-area">
           <textarea
             className="diary-textarea"
+            aria-label="오늘 일기"
             placeholder="오늘 있었던 일을 자유롭게 써봐요..."
             value={newContent}
             onChange={(e) => setNewContent(e.target.value)}

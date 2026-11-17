@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/auth";
 import client from "../api/client";
+import BrandMark from "../components/BrandMark";
 
 export default function LoginPage() {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -26,27 +27,31 @@ export default function LoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1 className="auth-title brand-title">codemyworld</h1>
+        <h1 className="auth-title"><BrandMark /></h1>
         <p className="auth-sub">오늘의 나를 기록해요</p>
         <form onSubmit={handleSubmit} className="auth-form">
-          <input
-            className="auth-input"
-            placeholder="아이디"
-            autoComplete="username"
-            value={form.username}
-            onChange={(e) => setForm({ ...form, username: e.target.value })}
-            required
-          />
-          <input
-            className="auth-input"
-            type="password"
-            placeholder="비밀번호"
-            autoComplete="current-password"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required
-          />
-          {error && <p className="auth-error">{error}</p>}
+          <label className="auth-field">
+            <span>아이디</span>
+            <input
+              className="auth-input"
+              autoComplete="username"
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              required
+            />
+          </label>
+          <label className="auth-field">
+            <span>비밀번호</span>
+            <input
+              className="auth-input"
+              type="password"
+              autoComplete="current-password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+            />
+          </label>
+          {error && <p className="auth-error" role="alert">{error}</p>}
           <button className="auth-btn" type="submit">로그인</button>
         </form>
         <Link to="/try" className="auth-btn auth-btn--trial">✨ 가입 없이 1분 체험하기</Link>

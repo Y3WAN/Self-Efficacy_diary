@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import BrandMark from "../components/BrandMark";
 import { todayKST } from "../utils/date";
 
 // 부스 체험 전용 화면: 예시 카드 한 번 탭 또는 한 줄 입력 → 오늘 해낸 것 + 미션.
@@ -71,7 +72,7 @@ export default function TrialPage() {
   return (
     <div className="trial-page">
       <header className="trial-header">
-        <span className="trial-brand">🌱 codemyworld</span>
+        <BrandMark />
         <span className="trial-badge">1분 체험</span>
       </header>
 
@@ -90,9 +91,10 @@ export default function TrialPage() {
             ))}
           </div>
 
-          <p className="trial-label">또는 직접 한 줄</p>
+          <label className="trial-label" htmlFor="trial-line">또는 직접 한 줄</label>
           <form className="trial-form" onSubmit={(e) => { e.preventDefault(); submit(line); }}>
             <input
+              id="trial-line"
               className="trial-input"
               placeholder="예: 운동 가려다 결국 안 갔다"
               maxLength={200}

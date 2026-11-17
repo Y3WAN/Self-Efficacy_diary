@@ -21,18 +21,14 @@ function CustomTooltip({ active, payload }) {
   if (!info) return null;
 
   return (
-    <div style={{
-      background: "#fff", border: "1px solid #E5DDD4", borderRadius: 12,
-      padding: "10px 14px", fontSize: 13, lineHeight: 1.6,
-      boxShadow: "0 2px 14px rgba(61,53,48,0.08)", maxWidth: 220,
-    }}>
-      <div style={{ fontWeight: 700, color: "#3D3530", marginBottom: 3 }}>
+    <div className="chart-tooltip">
+      <strong>
         {info.label} — {(score * 100).toFixed(0)}점
-      </div>
-      <div style={{ color: "#8C7B70", fontSize: 12 }}>{info.desc}</div>
-      <div style={{ color: "#B4A89E", fontSize: 11, marginTop: 4 }}>
+      </strong>
+      <p>{info.desc}</p>
+      <p>
         {days ? `최근 7일 중 근거 있는 날 ${days}일` : "최근 7일 근거 없음 · 이전 기록 기준"}
-      </div>
+      </p>
     </div>
   );
 }
@@ -60,11 +56,11 @@ export default function RadarChartComponent() {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <RadarChart data={chartData}>
-        <PolarGrid stroke="#E5DDD4" />
-        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: "#8C7B70" }} />
+        <PolarGrid stroke="var(--divider)" />
+        <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--text-muted)" }} />
         <PolarRadiusAxis domain={[0, 1]} tick={false} axisLine={false} />
         <Radar
-          dataKey="score" stroke="#F4A261" fill="#F4A261"
+          dataKey="score" stroke="var(--accent)" fill="var(--accent)"
           fillOpacity={0.22} strokeWidth={2}
         />
         <Tooltip content={<CustomTooltip />} />

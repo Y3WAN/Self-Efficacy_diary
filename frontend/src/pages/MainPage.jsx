@@ -20,7 +20,11 @@ function TodayCard({ diaries, today, isPending }) {
       data-ripple-navigation
       className={hasDiaries ? "today-card" : "today-card today-card--empty"}
     >
-      <p className="today-card-title">{hasDiaries ? <><Icon name="sparkle" /> 오늘 해낸 것</> : "오늘 있었던 일을 한 줄만 써 보세요"}</p>
+      {hasDiaries ? (
+        <p className="today-card-title"><Icon name="sparkle" /> 오늘 해낸 것</p>
+      ) : (
+        <p className="today-card-sub today-card-prompt">오늘 있었던 일을 한 줄만 써 보세요</p>
+      )}
       {achievements.length > 0 ? (
         <ul className="reflection-achievements">
           {achievements.map((item) => <li key={item}><Icon name="check" /> {item}</li>)}
@@ -53,7 +57,10 @@ export default function MainPage() {
   return (
     <div className="main-page">
       <AppBar />
-      <main className="main-content">
+      <main className="main-content main-content--home">
+        <header className="page-heading">
+          <h1>오늘의 기록</h1>
+        </header>
         <TodayCard diaries={diaryQuery.data ?? []} today={today} isPending={diaryQuery.isPending} />
         <MissionList
           missions={missions}

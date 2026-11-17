@@ -18,14 +18,11 @@ const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const p = payload[0].payload;
   return (
-    <div style={{
-      background: "#fff", border: "1px solid #E5DDD4",
-      borderRadius: 10, padding: "8px 12px", fontSize: 13,
-    }}>
-      <p style={{ color: "#8C7B70", marginBottom: 2 }}>
+    <div className="chart-tooltip">
+      <p>
         {p.start ? "시작 점수" : `${p.result ? "완료" : "어려워요"} · 예상 성공률 ${pct(p.expected)}`}
       </p>
-      <p style={{ color: "#F4A261", fontWeight: 700 }}>{p.rating}</p>
+      <strong>{p.rating}</strong>
     </div>
   );
 };
@@ -64,13 +61,13 @@ export default function EloChart() {
         <>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={points} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5DDD4" />
-              <XAxis dataKey="idx" tick={{ fontSize: 11, fill: "#8C7B70" }} />
-              <YAxis domain={["dataMin - 30", "dataMax + 30"]} tick={{ fontSize: 11, fill: "#8C7B70" }} allowDecimals={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--divider)" />
+              <XAxis dataKey="idx" tick={{ fill: "var(--text-muted)" }} />
+              <YAxis domain={["dataMin - 30", "dataMax + 30"]} tick={{ fill: "var(--text-muted)" }} allowDecimals={false} />
               <Tooltip content={<CustomTooltip />} />
               <Line
-                type="monotone" dataKey="rating" stroke="#F4A261"
-                strokeWidth={2.5} dot={{ r: 3, fill: "#F4A261" }}
+                type="monotone" dataKey="rating" stroke="var(--accent)"
+                strokeWidth={2.5} dot={{ r: 3, fill: "var(--accent)" }}
                 activeDot={{ r: 6 }}
               />
             </LineChart>

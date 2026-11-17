@@ -1,25 +1,11 @@
+import { FULL_PRESS_MS, PRESS_FLATTENING, PRESS_TILT, TAP_DEPTH, pressDepth, pressRadiusRatio, pressRecoveryDuration, smoothStep } from "./surfacePress.js";
+import { createPressTrail } from "./pressTrail.js";
+
 const SURFACE_SIZE = 160;
 const REFERENCE_RADII_PER_SECOND = 2;
+const RIPPLE_SPEED_RATIO = 0.4;
 const RING_WIDTH_RATIO = 0.19;
-const RIM_FADE_START = 0.93;
 const MAX_RINGS = 16;
-const FULL_PRESS_MS = 760;
-const TAP_DEPTH = 0.22;
-const CONTACT_TILT = -0.23;
-const CONTACT_FLATTENING = 0.87;
-const PRESS_FADE_IN_MS = 65;
-
-function ease(progress) {
-  return progress ** 2 * (3 - 2 * progress);
-}
-
-function pressDepth(elapsed) {
-  const progress = Math.min(1, elapsed / FULL_PRESS_MS);
-  const depth = TAP_DEPTH + (1 - TAP_DEPTH) * (1 - (1 - progress) ** 1.65);
-  return depth * ease(Math.min(1, elapsed / PRESS_FADE_IN_MS));
-}
-
-export const RIPPLE_SPEED_PERCENT = Object.freeze({ min: 40, max: 150, step: 5, initial: 45 });
 
 const FLAT_STOPS = [
   [0, "rgba(208, 104, 148, 0)"],
@@ -36,27 +22,24 @@ const SLIME_STOPS = [
   [1, "rgba(222, 144, 177, 0)"],
 ];
 
-export function createMallangSurface(canvas, bodyRadius, drawRim) {
+export function createMallangSurface(canvas, bodyRadius, drawRim, drawDent) {
   const context = canvas.getContext("2d");
   if (!context) return null;
 
-  canvas.width = SURFACE_SIZE;
-  canvas.height = SURFACE_SIZE;
+  canvas.width = SURFACE_SIZE * 3;
+  canvas.height = SURFACE_SIZE * 3;
+  context.translate(SURFACE_SIZE, SURFACE_SIZE);
   const center = SURFACE_SIZE / 2;
   const radius = bodyRadius * SURFACE_SIZE;
   const ringWidth = radius * RING_WIDTH_RATIO;
   const returnDistance = radius * 0.66;
-  const rimMask = context.createRadialGradient(center, center, radius * RIM_FADE_START, center, center, radius);
-  rimMask.addColorStop(0, "#000");
-  rimMask.addColorStop(1, "transparent");
-
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const rings = [];
-  const referenceSpeed = radius * REFERENCE_RADII_PER_SECOND;
-  let speed = referenceSpeed * RIPPLE_SPEED_PERCENT.initial / 100;
+  const speed = radius * REFERENCE_RADII_PER_SECOND * RIPPLE_SPEED_RATIO;
   let colorStops = SLIME_STOPS;
   let indentation = null;
   let recovery = null;
+  const trail = createPressTrail();
   let frame = null;
   let lastTime = 0;
 
@@ -75,11 +58,11 @@ export function createMallangSurface(canvas, bodyRadius, drawRim) {
     }
   }
 
-  function pointOnSurface(x, y) {
+  function pointOnSurface(x, y, clampToRim = true) {
     const dx = x * SURFACE_SIZE - center;
     const dy = y * SURFACE_SIZE - center;
     const distance = Math.hypot(dx, dy);
-    const insetDistance = Math.min(distance, radius - ringWidth * 0.36);
+    const insetDistance = clampToRim ? Math.min(distance, radius - ringWidth * 0.36) : distance;
     const scale = distance ? insetDistance / distance : 1;
     const hasDirection = distance > ringWidth * 0.25;
     return {
@@ -98,7 +81,7 @@ export function createMallangSurface(canvas, bodyRadius, drawRim) {
     const outer = distance + ringWidth * 0.28;
     context.save();
     context.translate(x, y);
-    context.rotate(CONTACT_TILT);
+    context.rotate(PRESS_TILT);
     context.scale(1, flattening);
     const gradient = context.createRadialGradient(0, 0, inner, 0, 0, outer);
     for (const [offset, color] of colorStops) gradient.addColorStop(offset, color);
@@ -108,26 +91,12 @@ export function createMallangSurface(canvas, bodyRadius, drawRim) {
     context.restore();
   }
 
-  function paintIndentation({ x, y }, depth, progress = 0) {
-    const extent = radius * (0.19 + depth * 0.29);
-    context.save();
-    context.translate(x, y);
-    context.rotate(CONTACT_TILT);
-    context.scale(1, CONTACT_FLATTENING);
-    context.globalAlpha = depth;
-    const spread = 1 - 0.44 * ease(progress);
-    context.scale(spread, spread);
-
-    // The depression narrows as the gel rises toward the middle.
-    const shade = context.createRadialGradient(-extent * 0.23, -extent * 0.28, extent * 0.07, 0, 0, extent);
-    shade.addColorStop(0, "rgba(112, 44, 81, 0.51)");
-    shade.addColorStop(0.32, "rgba(129, 52, 89, 0.33)");
-    shade.addColorStop(0.68, "rgba(151, 68, 108, 0.15)");
-    shade.addColorStop(1, "rgba(151, 68, 108, 0)");
-    context.fillStyle = shade;
-    context.fillRect(-extent, -extent, extent * 2, extent * 2);
-
-    context.restore();
+  function visibleTrail(timestamp, depth) {
+    return trail.samples(timestamp, depth).map((sample) => ({
+      x: sample.x / SURFACE_SIZE,
+      y: sample.y / SURFACE_SIZE,
+      depth: sample.depth,
+    }));
   }
 
   function paintRecovery(timestamp) {
@@ -138,22 +107,22 @@ export function createMallangSurface(canvas, bodyRadius, drawRim) {
       recovery = null;
       return;
     }
-    const remainingDepth = depth * (1 - ease(progress));
-    paintIndentation(point, remainingDepth, progress);
+    const remainingDepth = depth * (1 - smoothStep(progress));
     const sheen = Math.sin(Math.PI * progress) * depth;
-    const outer = radius * (0.4 - 0.27 * ease(progress));
+    const outer = radius * (0.4 - 0.27 * smoothStep(progress));
     const highlight = context.createRadialGradient(point.x, point.y, 0, point.x, point.y, outer);
-    highlight.addColorStop(0, "rgba(255, 245, 251, 0.63)");
-    highlight.addColorStop(0.5, "rgba(255, 228, 244, 0.29)");
+    highlight.addColorStop(0, "rgba(255, 245, 251, 0.19)");
+    highlight.addColorStop(0.5, "rgba(255, 228, 244, 0.08)");
     highlight.addColorStop(1, "rgba(255, 228, 244, 0)");
     context.fillStyle = highlight;
     context.globalAlpha = sheen;
     context.fillRect(point.x - outer, point.y - outer, outer * 2, outer * 2);
 
+    return { point, depth: remainingDepth, progress };
   }
 
   function draw(timestamp) {
-    context.clearRect(0, 0, SURFACE_SIZE, SURFACE_SIZE);
+    context.clearRect(-SURFACE_SIZE, -SURFACE_SIZE, SURFACE_SIZE * 3, SURFACE_SIZE * 3);
     context.save();
     let rimAmount = 0;
     let rimAngle = null;
@@ -163,8 +132,8 @@ export function createMallangSurface(canvas, bodyRadius, drawRim) {
       const front = ring.launchRadius + ring.travel;
       if (front < ring.limit) {
         const fade = 1 - front / ring.limit;
-        const forming = ease(Math.min(1, ring.travel / (ringWidth * 0.95)));
-        const flattening = CONTACT_FLATTENING + (1 - CONTACT_FLATTENING) * forming;
+        const forming = smoothStep(Math.min(1, ring.travel / (ringWidth * 0.95)));
+        const flattening = PRESS_FLATTENING + (1 - PRESS_FLATTENING) * forming;
         paintRing(ring.x, ring.y, front, ring.strength * fade ** 0.85 * forming, flattening);
       }
 
@@ -183,17 +152,25 @@ export function createMallangSurface(canvas, bodyRadius, drawRim) {
         rimAngle = ring.angle;
       }
     }
-    paintRecovery(timestamp);
+    let contact = paintRecovery(timestamp);
     if (indentation) {
       const elapsed = Math.max(0, timestamp - indentation.start);
-      paintIndentation(indentation.point, pressDepth(elapsed));
+      const depth = pressDepth(elapsed);
+      contact = { point: indentation.point, depth, progress: 0 };
     }
+    const contacts = contact ? visibleTrail(timestamp, contact.depth) : [];
+    drawDent(contact && {
+      x: contact.point.x / SURFACE_SIZE,
+      y: contact.point.y / SURFACE_SIZE,
+      depth: contact.depth,
+      diameter: bodyRadius * 2 * pressRadiusRatio(contact.depth) * (1 - 0.44 * smoothStep(contact.progress)),
+      dragX: contact.point.dragX ?? 0,
+      dragY: contact.point.dragY ?? 0,
+      trail: contacts,
+    });
     context.globalAlpha = 1;
-    context.globalCompositeOperation = "destination-in";
-    context.fillStyle = rimMask;
-    context.fillRect(0, 0, SURFACE_SIZE, SURFACE_SIZE);
     context.restore();
-    drawRim(rimAngle, rimAmount);
+    drawRim(rimAngle, rimAmount, contacts);
   }
 
   function stop() {
@@ -202,9 +179,16 @@ export function createMallangSurface(canvas, bodyRadius, drawRim) {
     rings.length = 0;
     indentation = null;
     recovery = null;
-    context.clearRect(0, 0, SURFACE_SIZE, SURFACE_SIZE);
+    trail.clear();
+    context.clearRect(-SURFACE_SIZE, -SURFACE_SIZE, SURFACE_SIZE * 3, SURFACE_SIZE * 3);
     drawRim(null, 0);
+    drawDent();
   }
+
+  function handleMotionPreferenceChange() {
+    stop();
+  }
+  reducedMotion.addEventListener("change", handleMotionPreferenceChange);
 
   function animate(timestamp) {
     frame = null;
@@ -215,7 +199,8 @@ export function createMallangSurface(canvas, bodyRadius, drawRim) {
 
     advance(timestamp);
     draw(timestamp);
-    if (rings.length || recovery || (indentation && timestamp - indentation.start < FULL_PRESS_MS)) {
+    if (rings.length || recovery || (indentation &&
+        (timestamp - indentation.start < FULL_PRESS_MS || trail.hasTail(timestamp)))) {
       frame = requestAnimationFrame(animate);
     }
   }
@@ -228,7 +213,7 @@ export function createMallangSurface(canvas, bodyRadius, drawRim) {
 
   function releaseIndentation(now, point, depth) {
     indentation = null;
-    recovery = { point, depth, start: now, duration: 140 + 270 * depth };
+    recovery = { point, depth, start: now, duration: pressRecoveryDuration(depth) };
     requestFrame(now);
   }
 
@@ -244,6 +229,10 @@ export function createMallangSurface(canvas, bodyRadius, drawRim) {
 
     if (frame !== null) advance(now);
     const origin = indentation?.point ?? pointOnSurface(x, y);
+    if (!indentation) {
+      trail.clear();
+      trail.move(origin.x, origin.y, depth, now);
+    }
     releaseIndentation(now, origin, depth);
     if (rings.length === MAX_RINGS) rings.shift();
     rings.push({
@@ -258,9 +247,30 @@ export function createMallangSurface(canvas, bodyRadius, drawRim) {
 
   function setIndentation(x, y) {
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    if (reducedMotion.matches) {
+      stop();
+      return;
+    }
     const now = performance.now();
-    indentation = { point: pointOnSurface(x, y), start: now };
+    trail.clear();
+    recovery = null;
+    const point = pointOnSurface(x, y);
+    trail.move(point.x, point.y, 0, now);
+    indentation = { point, start: now, startX: x, startY: y };
     if (!reducedMotion.matches) requestFrame(now);
+  }
+
+  function moveIndentation(x, y) {
+    if (!indentation || !Number.isFinite(x) || !Number.isFinite(y) || reducedMotion.matches) return;
+    const now = performance.now();
+    const next = pointOnSurface(x, y, false);
+    trail.move(next.x, next.y, pressDepth(now - indentation.start), now);
+    indentation.point = {
+      ...pointOnSurface(x, y, false),
+      dragX: x - indentation.startX,
+      dragY: y - indentation.startY,
+    };
+    requestFrame(performance.now());
   }
 
   function clearIndentation() {
@@ -280,12 +290,10 @@ export function createMallangSurface(canvas, bodyRadius, drawRim) {
     colorStops = next;
   }
 
-  function setSpeedPercent(percent) {
-    if (!Number.isFinite(percent)) return;
-    if (frame !== null) advance(performance.now());
-    const { min, max } = RIPPLE_SPEED_PERCENT;
-    speed = referenceSpeed * Math.max(min, Math.min(max, percent)) / 100;
+  function dispose() {
+    stop();
+    reducedMotion.removeEventListener("change", handleMotionPreferenceChange);
   }
 
-  return { addDrop, stop, setFlatStyle, setSpeedPercent, setIndentation, clearIndentation };
+  return { addDrop, stop, dispose, setFlatStyle, setIndentation, moveIndentation, clearIndentation };
 }

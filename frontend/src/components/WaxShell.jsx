@@ -1,16 +1,19 @@
 import { useId } from "react";
+import { PRESS_TILT } from "../utils/surfacePress";
 
-export default function WaxShell({ shell, center, radius, bodyStyle, onChipEnd }) {
+export default function WaxShell({ shell, center, radius, contactRef, onChipEnd }) {
   const id = useId();
-  const intact = shell.pieces[0]?.depth === 0;
+  if (!shell.pieces.length && !shell.chips.length) return null;
+
+  const intact = shell.fractures === 0;
   const glossPoint = { x: center - radius * 0.33, y: center - radius * 0.49 };
   const waxEdge = "#ce6c98";
-  if (!shell.pieces.length && !shell.chips.length) return null;
+  const waxFill = `url(#${id}-wax)`;
+  const tilt = PRESS_TILT * 180 / Math.PI;
 
   return (
     <svg
       className="mallang-wax-shell"
-      style={bodyStyle}
       viewBox={`0 0 ${center * 2} ${center * 2}`}
       aria-hidden="true"
     >
@@ -27,43 +30,44 @@ export default function WaxShell({ shell, center, radius, bodyStyle, onChipEnd }
           <stop offset=".5" stopColor="#fff4fa" stopOpacity=".52" />
           <stop offset="1" stopColor="#fff4fa" stopOpacity="0" />
         </radialGradient>
-        <linearGradient id={`${id}-bevel`} x1="0%" y1="0%" x2="62%" y2="100%">
-          <stop offset="0" stopColor="#fff6fa" />
-          <stop offset=".46" stopColor="#ffdaea" />
-          <stop offset="1" stopColor="#e78db5" />
-        </linearGradient>
+        <radialGradient id={`${id}-dent`} cx="42%" cy="40%">
+          <stop offset="0" stopColor="#64264c" stopOpacity=".69" />
+          <stop offset=".57" stopColor="#8f3f70" stopOpacity=".22" />
+          <stop offset=".91" stopColor="#fff0f7" stopOpacity=".45" />
+          <stop offset="1" stopColor="#fff0f7" stopOpacity="0" />
+        </radialGradient>
         <clipPath id={`${id}-surface`}>
-          {intact
-            ? <circle cx={center} cy={center} r={radius} />
-            : shell.pieces.map((piece) => <polygon key={piece.id} points={piece.svgPoints} />)}
+          {shell.pieces.map((piece) => <path key={piece.id} d={piece.path} transform={piece.transform} />)}
+        </clipPath>
+        <clipPath id={`${id}-body`}>
+          <circle cx={center} cy={center} r={radius} />
         </clipPath>
       </defs>
-      {shell.chips.map((chip) => (
-        <g className="mallang-wax-chip" key={chip.id} onAnimationEnd={() => onChipEnd(chip.id)}>
-          <polygon points={chip.svgPoints} transform="translate(0 2.6)" fill={waxEdge} />
-          <polygon points={chip.svgPoints} fill={`url(#${id}-wax)`}
-            stroke={`url(#${id}-bevel)`} strokeWidth="1.8" strokeLinejoin="round" />
+      <g clipPath={`url(#${id}-body)`}>
+        {intact ? (
+          <circle className="mallang-wax-intact" cx={center} cy={center} r={radius} fill={waxFill} />
+        ) : shell.pieces.map((piece) => (
+          <g key={piece.id} className="mallang-wax-piece" transform={piece.transform}>
+            <path d={piece.path} transform="translate(0 1.8)" fill={waxEdge} />
+            <path d={piece.path} fill={waxFill} />
+          </g>
+        ))}
+        <g clipPath={`url(#${id}-surface)`} fill={`url(#${id}-gloss)`}>
+          <ellipse cx={glossPoint.x} cy={glossPoint.y} rx={radius * 0.48} ry={radius * 0.16}
+            transform={`rotate(-33 ${glossPoint.x} ${glossPoint.y})`} />
+          <ellipse cx={center + radius * 0.52} cy={center + radius * 0.2}
+            rx={radius * 0.17} ry={radius * 0.26} opacity=".45" />
         </g>
-      ))}
-      {intact ? (
-        <circle className="mallang-wax-intact" cx={center} cy={center} r={radius} fill={`url(#${id}-wax)`} />
-      ) : (
-        <>
-          <g transform="translate(0 2.6)" fill={waxEdge} stroke={waxEdge} strokeWidth="2.2" strokeLinejoin="round">
-            {shell.pieces.map((piece) => <polygon key={piece.id} points={piece.svgPoints} />)}
+        {shell.chips.map((chip) => (
+          <g className="mallang-wax-chip" key={chip.id} style={{ "--wax-fade": chip.fadeMs + "ms" }}
+            onAnimationEnd={() => onChipEnd(chip.id)}>
+            <path d={chip.path} transform="translate(0 2.6)" fill={waxEdge} />
+            <path d={chip.path} fill={waxFill} stroke="#ffdaea" strokeWidth="1.5" strokeLinejoin="round" />
           </g>
-          <g fill={`url(#${id}-wax)`} stroke={`url(#${id}-bevel)`} strokeWidth="2.2" strokeLinejoin="round">
-            {shell.pieces.map((piece) => (
-              <polygon key={piece.id} className="mallang-wax-piece" points={piece.svgPoints} />
-            ))}
-          </g>
-        </>
-      )}
-      <g clipPath={`url(#${id}-surface)`} fill={`url(#${id}-gloss)`}>
-        <ellipse cx={glossPoint.x} cy={glossPoint.y} rx={radius * 0.48} ry={radius * 0.16}
-          transform={`rotate(-33 ${glossPoint.x} ${glossPoint.y})`} />
-        <ellipse cx={center + radius * 0.52} cy={center + radius * 0.2}
-          rx={radius * 0.17} ry={radius * 0.26} opacity=".45" />
+        ))}
+        <g ref={contactRef} visibility="hidden">
+          <ellipse rx="1" ry="1" transform={`rotate(${tilt})`} fill={`url(#${id}-dent)`} />
+        </g>
       </g>
     </svg>
   );

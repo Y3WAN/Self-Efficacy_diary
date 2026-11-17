@@ -19,14 +19,11 @@ const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const p = payload[0].payload;
   return (
-    <div style={{
-      background: "#fff", border: "1px solid #E5DDD4",
-      borderRadius: 10, padding: "8px 12px", fontSize: 13, lineHeight: 1.6,
-    }}>
-      <p style={{ color: "#8C7B70" }}>{p.date}</p>
-      <p style={{ color: "#B4A89E" }}>그날 점수 {toPct(p.score)}점</p>
-      <p style={{ color: "#F4A261", fontWeight: 700 }}>추세(EMA) {toPct(p.ema)}점</p>
-      <p style={{ color: "#8C7B70", fontSize: 11 }}>AI 확신도 {toPct(p.confidence)}%</p>
+    <div className="chart-tooltip">
+      <strong>{p.date}</strong>
+      <p>그날 점수 {toPct(p.score)}점</p>
+      <p><b>추세(EMA) {toPct(p.ema)}점</b></p>
+      <p>AI 확신도 {toPct(p.confidence)}%</p>
     </div>
   );
 };
@@ -45,14 +42,14 @@ export default function GrowthChart() {
     <>
       <ResponsiveContainer width="100%" height={220}>
         <ComposedChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E5DDD4" />
-          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#8C7B70" }} tickFormatter={(v) => v.slice(5).replace("-", "/")} />
-          <YAxis domain={[0, 1]} tick={{ fontSize: 11, fill: "#8C7B70" }} tickFormatter={(v) => toPct(v)} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--divider)" />
+          <XAxis dataKey="date" tick={{ fill: "var(--text-muted)" }} tickFormatter={(v) => v.slice(5).replace("-", "/")} />
+          <YAxis domain={[0, 1]} tick={{ fill: "var(--text-muted)" }} tickFormatter={(v) => toPct(v)} />
           <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Scatter name="그날 점수" dataKey="score" fill="#B4A89E" />
+          <Legend />
+          <Scatter name="그날 점수" dataKey="score" fill="var(--text-soft)" />
           <Line
-            name="추세선(EMA)" type="monotone" dataKey="ema" stroke="#F4A261"
+            name="추세선(EMA)" type="monotone" dataKey="ema" stroke="var(--accent)"
             strokeWidth={2.5} dot={false} activeDot={{ r: 5 }}
           />
         </ComposedChart>

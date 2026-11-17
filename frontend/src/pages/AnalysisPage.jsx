@@ -25,7 +25,7 @@ function AnalysisCard({ a, defaultOpen }) {
 
   return (
     <div className="chart-card analysis-card">
-      <button className="analysis-head" onClick={() => setOpen(!open)}>
+      <button type="button" className="analysis-head" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className="analysis-date">{a.date.slice(5).replace("-", "/")}</span>
         <span className="analysis-score">
           {a.composite_score != null ? `${pct(a.composite_score)}점` : "미반영"}
@@ -81,12 +81,14 @@ export default function AnalysisPage() {
   return (
     <div className="main-page">
       <AppBar />
-      <div className="main-content">
-        <div className="chart-card">
-          <h3 className="chart-title">AI 분석 근거</h3>
-          <p className="chart-sub" style={{ marginBottom: 8 }}>
+      <main className="main-content">
+        <header className="page-heading">
+          <h1>AI 분석 근거</h1>
+          <p>
             AI가 일기에서 반두라의 자기효능감 4원천을 0~100점으로 평가한 근거예요.
           </p>
+        </header>
+        <div className="chart-card">
           <p className="analysis-formula">
             종합 점수 = 근거가 있는 원천만 가중 평균 (성취 0.4 · 대리 0.2 · 설득 0.2 · 정서 0.2, 합이 1이 되게 조정)
             · 근거 없는 원천은 "보통(50점)"이 아니라 계산에서 빼요 · 확신도 30% 미만은 그래프에서 제외
@@ -100,7 +102,7 @@ export default function AnalysisPage() {
         <p className="notice-text">
           AI 분석은 자기 성찰을 돕기 위한 참고 정보이며 심리 진단이 아니에요.
         </p>
-      </div>
+      </main>
     </div>
   );
 }

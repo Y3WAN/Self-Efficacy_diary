@@ -42,34 +42,38 @@ export default function SignupPage() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
+      <div className="auth-card auth-card--signup">
         <h1 className="auth-title">회원가입</h1>
         <p className="auth-sub">나의 성장 여정을 시작해요</p>
         <form onSubmit={handleSubmit} className="auth-form">
-          <input
-            className="auth-input"
-            placeholder="아이디"
-            autoComplete="username"
-            minLength={3}
-            maxLength={50}
-            value={form.username}
-            onChange={(e) => setForm({ ...form, username: e.target.value })}
-            required
-          />
-          <input
-            className="auth-input"
-            type="password"
-            placeholder="비밀번호"
-            autoComplete="new-password"
-            minLength={4}
-            maxLength={72}
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required
-          />
+          <label className="auth-field">
+            <span>아이디</span>
+            <input
+              className="auth-input"
+              autoComplete="username"
+              minLength={3}
+              maxLength={50}
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              required
+            />
+          </label>
+          <label className="auth-field">
+            <span>비밀번호</span>
+            <input
+              className="auth-input"
+              type="password"
+              autoComplete="new-password"
+              minLength={4}
+              maxLength={72}
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+            />
+          </label>
           {QUESTIONS.map(({ key, label }) => (
-            <div key={key} className="survey-group">
-              <p className="survey-label">{label}</p>
+            <fieldset key={key} className="survey-group">
+              <legend className="survey-label">{label}</legend>
               <div className="survey-options">
                 {OPTIONS.map((opt, i) => (
                   <label key={i} className={`grade-btn ${form[key] === i + 1 ? "active" : ""}`}>
@@ -84,9 +88,9 @@ export default function SignupPage() {
                   </label>
                 ))}
               </div>
-            </div>
+            </fieldset>
           ))}
-          {error && <p className="auth-error">{error}</p>}
+          {error && <p className="auth-error" role="alert">{error}</p>}
           <p className="notice-text">
             codemyworld는 학습용 자기 성찰 도구이며 심리 진단·상담 도구가 아니에요.
             실명·연락처 같은 개인정보는 일기에 쓰지 마세요. <Link to="/about">자세히</Link>
