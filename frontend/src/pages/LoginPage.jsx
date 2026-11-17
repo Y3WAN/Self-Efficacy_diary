@@ -26,7 +26,7 @@ export default function LoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1 className="auth-title">codemyworld</h1>
+        <h1 className="auth-title brand-title">codemyworld</h1>
         <p className="auth-sub">오늘의 나를 기록해요</p>
         <form onSubmit={handleSubmit} className="auth-form">
           <input

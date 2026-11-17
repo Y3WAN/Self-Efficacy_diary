@@ -1,3 +1,4 @@
+import Icon from "../components/Icon";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import client from "../api/client";
@@ -24,7 +25,7 @@ export default function ProfilePage() {
   return (
     <div className="profile-page">
       <div className="diary-header">
-        <button onClick={() => navigate(-1)}>← 뒤로</button>
+        <button onClick={() => navigate(-1)}><Icon name="arrowLeft" /> 뒤로</button>
         <h2>내 정보</h2>
       </div>
 
@@ -56,10 +57,10 @@ export default function ProfilePage() {
 
         <div className="profile-links">
           <Link to="/prompt" className="main-analysis-link">
-            <span>✏️ 미션 맞춤 설정</span><span aria-hidden="true">→</span>
+            <span><Icon name="pencil" /> 미션 맞춤 설정</span><Icon name="arrowRight" />
           </Link>
           <Link to="/community" className="main-analysis-link">
-            <span>🌍 함께 해낸 미션</span><span aria-hidden="true">→</span>
+            <span><Icon name="globe" /> 함께 해낸 미션</span><Icon name="arrowRight" />
           </Link>
         </div>
 
@@ -67,7 +68,7 @@ export default function ProfilePage() {
           className="profile-logout-btn"
           onClick={confirmLogout}
         >
-          🚪 로그아웃
+          <Icon name="logout" /> 로그아웃
         </button>
       </div>
     </div>

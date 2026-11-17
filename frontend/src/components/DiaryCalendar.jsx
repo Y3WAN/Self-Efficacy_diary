@@ -1,71 +1,86 @@
-import { Link, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import client from "../api/client";
-import { todayKST } from "../utils/date";
+import Icon from "./Icon";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 
-function useMonthDiaries(month) {
-  return useQuery({
-    queryKey: ["diaries", "month", month],
-    queryFn: () => client.get("/api/diaries", { params: { month } }).then((r) => r.data.dates),
-  });
-}
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const DAY_OFFSETS = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
 
-export default function DiaryCalendar() {
-  const today = todayKST();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const requestedMonth = searchParams.get("month");
-  const month = /^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(requestedMonth ?? "")
-    ? requestedMonth
-    : today.slice(0, 7);
+export default function DiaryCalendar({
+  month, selectedDate, today, writtenDates, missionDates, locationKey, onToday, onChangeMonth,
+}) {
+  const [focusedDate, setFocusedDate] = useState(null);
   const [year, monthNumber] = month.split("-").map(Number);
-  const { data: writtenDates = [] } = useMonthDiaries(month);
-
   const firstDay = new Date(year, monthNumber - 1, 1).getDay();
   const daysInMonth = new Date(year, monthNumber, 0).getDate();
-  const cells = Array(firstDay).fill(null).concat(
-    Array.from({ length: daysInMonth }, (_, i) => i + 1)
-  );
+  const lastSelectableDay = month === today.slice(0, 7) ? Number(today.slice(-2)) : daysInMonth;
+  const tabDate = focusedDate?.startsWith(month) ? focusedDate : selectedDate;
 
-  const moveMonth = (offset) => {
+  function moveMonth(offset) {
     const next = new Date(year, monthNumber - 1 + offset, 1);
-    const nextYear = next.getFullYear();
-    if (nextYear < 1000 || nextYear > 9999) return;
-    const params = new URLSearchParams(searchParams);
-    params.set("month", `${nextYear}-${String(next.getMonth() + 1).padStart(2, "0")}`);
-    setSearchParams(params, { replace: true });
-  };
+    setFocusedDate(null);
+    onChangeMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`);
+  }
+
+  function moveFocus(event, day) {
+    const offset = DAY_OFFSETS[event.key];
+    if (!offset) return;
+    event.preventDefault();
+    const nextDay = day + offset;
+    if (nextDay < 1 || nextDay > lastSelectableDay) return;
+    event.currentTarget.parentElement.querySelector(`[data-day="${nextDay}"]`)?.focus();
+  }
 
   return (
-    <section className="calendar" aria-label="일기 캘린더">
+    <>
       <div className="calendar-header">
-        <button type="button" aria-label="이전 달" onClick={() => moveMonth(-1)}>‹</button>
-        <span aria-live="polite">{year}년 {monthNumber}월</span>
-        <button type="button" aria-label="다음 달" onClick={() => moveMonth(1)}>›</button>
+        <span className="calendar-month" aria-live="polite">{year}년 {monthNumber}월</span>
+        <div className="calendar-controls">
+          <button type="button" aria-label="이전 달" disabled={month === "1000-01"} onClick={() => moveMonth(-1)}><Icon name="chevronLeft" /></button>
+          <button type="button" className="calendar-today" onClick={() => {
+            setFocusedDate(null);
+            onToday();
+          }}>오늘</button>
+          <button type="button" aria-label="다음 달" disabled={month === today.slice(0, 7)} onClick={() => moveMonth(1)}><Icon name="chevronRight" /></button>
+        </div>
       </div>
-      <div className="calendar-grid">
-        {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
-          <div key={day} className="calendar-weekday">{day}</div>
-        ))}
-        {cells.map((day, index) => {
-          if (!day) return <div key={`empty-${index}`} />;
+      <div className="calendar-grid" role="group" aria-label="날짜별 기록 열기">
+        {WEEKDAYS.map((day) => <span key={day} className="calendar-weekday" aria-hidden="true">{day}</span>)}
+        {Array.from({ length: firstDay }, (_, index) => <span key={index} aria-hidden="true" />)}
+        {Array.from({ length: daysInMonth }, (_, index) => {
+          const day = index + 1;
+          if (day > lastSelectableDay) {
+            return <span key={day} className="calendar-day" aria-disabled="true">{day}</span>;
+          }
           const date = `${month}-${String(day).padStart(2, "0")}`;
-          const hasEntry = writtenDates.includes(date);
-          const isToday = date === today;
+          const hasDiary = writtenDates.has(date);
+          const hasMission = missionDates.has(date);
           return (
             <Link
               key={date}
-              to={`/diary/${date}`}
-              state={{ fromMain: true }}
-              aria-label={`${date}${hasEntry ? " 일기 있음" : ""}`}
-              aria-current={isToday ? "date" : undefined}
-              className={`calendar-day ${hasEntry ? "has-entry" : ""} ${isToday ? "today" : ""}`}
+              to={`/records/${date}`}
+              state={{ calendarKey: locationKey }}
+              data-day={day}
+              data-selected={date === selectedDate}
+              aria-label={`${year}년 ${monthNumber}월 ${day}일 기록${hasDiary ? ", 일기 있음" : ""}${hasMission ? ", 미션 기록 있음" : ""}`}
+              aria-current={date === today ? "date" : undefined}
+              tabIndex={tabDate === date ? 0 : -1}
+              className="calendar-day"
+              onFocus={() => setFocusedDate(date)}
+              onKeyDown={(event) => moveFocus(event, day)}
             >
               {day}
-              {hasEntry && <span className="dot" />}
+              <span className="calendar-marks" aria-hidden="true">
+                {hasDiary && <span className="calendar-mark calendar-mark--diary" />}
+                {hasMission && <span className="calendar-mark calendar-mark--mission" />}
+              </span>
             </Link>
           );
         })}
       </div>
-    </section>
+      <div className="calendar-legend" aria-hidden="true">
+        <span><span className="calendar-mark calendar-mark--diary" /> 일기</span>
+        <span><span className="calendar-mark calendar-mark--mission" /> 미션 기록</span>
+      </div>
+    </>
   );
 }

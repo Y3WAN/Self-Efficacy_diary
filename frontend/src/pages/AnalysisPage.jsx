@@ -1,3 +1,4 @@
+import Icon from "../components/Icon";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import AppBar from "../components/AppBar";
@@ -30,7 +31,7 @@ function AnalysisCard({ a, defaultOpen }) {
           {a.composite_score != null ? `${pct(a.composite_score)}점` : "미반영"}
         </span>
         <span className={`conf-badge ${conf.cls}`}>확신도 {pct(a.confidence)}% · {conf.text}</span>
-        <span className="analysis-toggle">{open ? "▲" : "▼"}</span>
+        <Icon name={open ? "chevronUp" : "chevronDown"} className="analysis-toggle" />
       </button>
 
       {a.is_initial && <p className="analysis-note">가입 설문으로 정한 시작 점수예요.</p>}

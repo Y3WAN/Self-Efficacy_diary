@@ -1,7 +1,9 @@
+import Icon from "../components/Icon";
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import client from "../api/client";
+import { diaryDayQuery } from "../api/records";
 import { todayKST } from "../utils/date";
 import ReflectionCard from "../components/ReflectionCard";
 
@@ -19,7 +21,7 @@ function KebabMenu({ onEdit, onDelete }) {
 
   return (
     <div className="kebab-wrap" ref={ref}>
-      <button className="kebab-btn" onClick={() => setOpen((v) => !v)}>⋮</button>
+      <button type="button" className="kebab-btn" aria-label="일기 메뉴" aria-expanded={open} onClick={() => setOpen((v) => !v)}><Icon name="more" /></button>
       {open && (
         <div className="kebab-dropdown">
           <button onClick={() => { setOpen(false); onEdit(); }}>수정</button>
@@ -39,8 +41,7 @@ export default function DiaryEditorPage() {
   const isToday = date === today;
 
   const { data: diaries = [], isLoading } = useQuery({
-    queryKey: ["diaries", date],
-    queryFn: () => client.get(`/api/diaries/${date}`).then((r) => r.data),
+    ...diaryDayQuery(date),
     enabled: !!date,
   });
 
@@ -113,8 +114,8 @@ export default function DiaryEditorPage() {
       <header className="diary-header">
         <button onClick={() => {
           if (state?.fromMain) navigate(-1);
-          else navigate(`/?month=${date.slice(0, 7)}`, { replace: true });
-        }}>← 뒤로</button>
+          else navigate(`/?month=${date.slice(0, 7)}&date=${date}`, { replace: true });
+        }}><Icon name="arrowLeft" /> 뒤로</button>
         <h2>{date}</h2>
       </header>
 
@@ -134,7 +135,7 @@ export default function DiaryEditorPage() {
                 onDelete={() => handleDelete(d.id)}
               />
             )}
-            {d.is_locked && <span className="locked-badge">🔒</span>}
+            {d.is_locked && <Icon name="lock" className="locked-badge" label="잠긴 일기" />}
 
             {editingId === d.id ? (
               <>

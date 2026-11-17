@@ -1,7 +1,10 @@
 import { useState, useEffect, useId, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import AppBar from "../components/AppBar";
-import { createMallangSurface, RIPPLE_WIDTH_PERCENT } from "../utils/mallangSurface";
+import WaxShell from "../components/WaxShell";
+import { createMallangSurface, RIPPLE_SPEED_PERCENT } from "../utils/mallangSurface";
+import { createWaxShell, fractureWaxShell } from "../utils/waxShell";
+import { createMallangAudio, readMallangVolume, saveMallangVolume } from "../utils/mallangAudio";
 
 const DRAG_THRESHOLD = 6;
 const TETHER_SPRING_TIME_MS = 21;
@@ -13,15 +16,20 @@ const WALL_BOUNCE = 0.5;
 const COAST_FRICTION = 0.0052;
 const STOP_SPEED = 0.03;
 const IMPACT_MS = 155;
+const IMPACT_SOUND_GAP_MS = 85;
 const TAP_REACTION_MS = 360;
 const BLOB_CENTER = 100;
 const BODY_RADIUS = 94;
+const RIM_SPAN = 0.44;
 const PULL_RADIUS = 38;
+const MIN_RETRACT_MS = 175;
+const MAX_RETRACT_MS = 315;
 const TETHER_LENGTH = 104; // SVG units before the small circle starts pulling the body
 const MAX_TETHER_DISTANCE = 128;
 const TETHER_FOLLOW_SPEED = 1.65; // SVG units per millisecond
 const MAX_TETHER_ACCELERATION = 0.027; // CSS pixels per millisecond squared
 const TETHER_FORCE_RISE_MS = 30;
+const WAX_MODE_KEY = "codemyworld.mallang.wax";
 const IDLE_REACTIONS = [
   { expression: "blink", duration: 170 },
   { expression: "happy", duration: 720 },
@@ -80,6 +88,19 @@ function pulledCircle(motion) {
   return {
     x: BLOB_CENTER + offset.x * unitsPerPixel,
     y: BLOB_CENTER + offset.y * unitsPerPixel,
+    radius: PULL_RADIUS,
+  };
+}
+
+function retractCircle({ start, duration, from }, timestamp) {
+  const progress = clamp((timestamp - start) / duration, 0, 1);
+  if (progress === 1) return null;
+  const distance = 1 - progress ** 1.55 * (2.55 - 1.55 * progress);
+  const shrink = clamp((progress - 0.23) / 0.77, 0, 1);
+  return {
+    x: BLOB_CENTER + (from.x - BLOB_CENTER) * distance,
+    y: BLOB_CENTER + (from.y - BLOB_CENTER) * distance,
+    radius: from.radius * (1 - 0.95 * shrink ** 1.35),
   };
 }
 
@@ -162,28 +183,60 @@ function advanceMotion(motion, timestamp) {
   motion.lastFrame = Math.max(motion.lastFrame, timestamp);
   const tetherMoving = motion.mode === "grab" && followTether(motion, elapsed);
   if (!motion.reducedMotion) stepMotion(motion, elapsed, timestamp);
-  return { elapsed, tetherMoving };
+  return { tetherMoving };
 }
 
-function MallangSilhouette({ pull, bodyStyle, surfaceCanvas, appearance }) {
+function circularRim(radius) {
+  const diameter = radius * 2;
+  return `M ${BLOB_CENTER + radius} ${BLOB_CENTER} a ${radius} ${radius} 0 1 0 ${-diameter} 0 a ${radius} ${radius} 0 1 0 ${diameter} 0 Z`;
+}
+
+const RESTING_RIM = circularRim(BODY_RADIUS);
+
+function flexedRim(angle, amount) {
+  if (!amount) return RESTING_RIM;
+  if (angle === null) return circularRim(BODY_RADIUS * (1 + amount * 0.45));
+
+  const start = angle - RIM_SPAN;
+  const end = angle + RIM_SPAN;
+  const handle = BODY_RADIUS * RIM_SPAN / 3;
+  function point(direction, radius, tangent = 0) {
+    const x = BLOB_CENTER + Math.cos(direction) * radius - Math.sin(direction) * tangent;
+    const y = BLOB_CENTER + Math.sin(direction) * radius + Math.cos(direction) * tangent;
+    return `${x.toFixed(2)} ${y.toFixed(2)}`;
+  }
+
+  const crest = BODY_RADIUS * (1 + amount);
+  return [
+    `M ${point(end, BODY_RADIUS)} A ${BODY_RADIUS} ${BODY_RADIUS} 0 1 1 ${point(start, BODY_RADIUS)}`,
+    `C ${point(start, BODY_RADIUS, handle)} ${point(angle, crest, -handle)} ${point(angle, crest)}`,
+    `C ${point(angle, crest, handle)} ${point(end, BODY_RADIUS, -handle)} ${point(end, BODY_RADIUS)} Z`,
+  ].join(" ");
+}
+
+function MallangSilhouette({ pull, bodyStyle, surfaceCanvas, rimRef, appearance }) {
   const isGel = appearance === "3d";
   const id = useId();
   const left = Math.min(-100, (pull?.x ?? BLOB_CENTER) - 90);
   const top = Math.min(-100, (pull?.y ?? BLOB_CENTER) - 90);
   const width = Math.max(300, (pull?.x ?? BLOB_CENTER) + 90) - left;
   const height = Math.max(300, (pull?.y ?? BLOB_CENTER) + 90) - top;
-  const body = <circle className="mallang-main-circle" cx={BLOB_CENTER} cy={BLOB_CENTER} r={BODY_RADIUS} style={bodyStyle} />;
+  const body = <use href={`#${id}-outline`} className="mallang-main-circle" style={bodyStyle} />;
   const visibleShape = pull ? <rect x={left} y={top} width={width} height={height} /> : body;
   const bodyFill = appearance === "2d" ? "#ffcedf" : `url(#${id}-body)`;
+  const pullOpacity = pull
+    ? clamp((Math.hypot(pull.x - BLOB_CENTER, pull.y - BLOB_CENTER) - 48) / 53, 0, 1) * 0.54
+    : 0;
   return (
     <svg className="mallang-silhouette" aria-hidden="true" viewBox="0 0 200 200">
       <defs>
+        <path ref={rimRef} id={`${id}-outline`} d={RESTING_RIM} />
         {appearance === "original" && (
-          <radialGradient id={`${id}-body`} gradientUnits="userSpaceOnUse" cx="86" cy="82" r="123">
-            <stop offset="0" stopColor="#fff6fa" />
-            <stop offset="0.49" stopColor="#ffe7f0" />
-            <stop offset="0.83" stopColor="#f8cedf" />
-            <stop offset="1" stopColor="#efb4ca" />
+          <radialGradient id={`${id}-body`} gradientUnits="userSpaceOnUse" cx="76" cy="64" r="143">
+            <stop offset="0" stopColor="#faddea" />
+            <stop offset=".48" stopColor="#f5cede" />
+            <stop offset=".82" stopColor="#ebb4ce" />
+            <stop offset="1" stopColor="#da97b9" />
           </radialGradient>
         )}
         {isGel && (
@@ -205,6 +258,10 @@ function MallangSilhouette({ pull, bodyStyle, surfaceCanvas, appearance }) {
         )}
         {pull && (
           <>
+            <radialGradient id={`${id}-pull-light`}>
+              <stop offset="0" stopColor="#fff0f8" stopOpacity=".7" />
+              <stop offset="1" stopColor="#fff0f8" stopOpacity="0" />
+            </radialGradient>
             <filter
               id={`${id}-blend`}
               filterUnits="userSpaceOnUse"
@@ -219,11 +276,12 @@ function MallangSilhouette({ pull, bodyStyle, surfaceCanvas, appearance }) {
               x={left} y={top} width={width} height={height}
               style={{ maskType: "alpha" }}
             >
+              {body}
               <g filter={`url(#${id}-blend)`}>
                 {body}
                 <line x1={BLOB_CENTER} y1={BLOB_CENTER} x2={pull.x} y2={pull.y}
-                  stroke="black" strokeWidth="76" strokeLinecap="round" />
-                <circle className="mallang-pull" cx={pull.x} cy={pull.y} r={PULL_RADIUS} />
+                  stroke="black" strokeWidth={pull.radius * 2} strokeLinecap="round" />
+                <circle className="mallang-pull" cx={pull.x} cy={pull.y} r={pull.radius} />
               </g>
             </mask>
           </>
@@ -232,6 +290,11 @@ function MallangSilhouette({ pull, bodyStyle, surfaceCanvas, appearance }) {
       <g mask={pull ? `url(#${id}-shape)` : undefined}>
         <g fill={bodyFill}>{visibleShape}</g>
         {isGel && <g fill={`url(#${id}-shine)`}>{visibleShape}</g>}
+        {pull && (
+          <ellipse cx={pull.x - pull.radius * 0.16} cy={pull.y - pull.radius * 0.2}
+            rx={pull.radius * 0.74} ry={pull.radius * 0.52} opacity={pullOpacity}
+            fill={`url(#${id}-pull-light)`} />
+        )}
         <foreignObject
           className="mallang-main-circle"
           style={bodyStyle}
@@ -249,8 +312,8 @@ function MallangFace({ state, squish, appearance }) {
   const id = useId();
   const isGel = appearance === "3d";
   const isOriginal = appearance === "original";
-  const blushFill = isGel ? `url(#${id}-blush)` : isOriginal ? "#fb7185" : "#ed93ae";
-  const blushOpacity = isOriginal ? (squish ? 0.52 : 0.34) : (squish ? 1 : 0.82);
+  const blushFill = isGel ? `url(#${id}-blush)` : isOriginal ? "#d96789" : "#ed93ae";
+  const blushOpacity = isOriginal ? (squish ? 0.49 : 0.32) : (squish ? 1 : 0.82);
   const eyeFill = isGel ? `url(#${id}-eye)` : isOriginal ? "#3D1A26" : "#582438";
   return (
     <svg aria-hidden="true" viewBox="0 0 200 200" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
@@ -281,7 +344,14 @@ function MallangFace({ state, squish, appearance }) {
           filter={isOriginal ? `url(#${id}-blush-blur)` : undefined} />
       ))}
 
-      {(state === "squished" || state === "blink") && (
+      {state === "squished" && (
+        <>
+          <path d="M 78 96 Q 86 101 94 94 M 106 94 Q 114 101 122 96"
+            stroke="#6B2D40" strokeWidth="3.5" strokeLinecap="round" fill="none" />
+          <ellipse cx="100" cy="117" rx="6" ry="2.7" fill="#8B4058" />
+        </>
+      )}
+      {state === "blink" && (
         <>
           <line x1="80" y1="95" x2="93" y2="95" stroke="#6B2D40" strokeWidth="3.5" strokeLinecap="round" />
           <line x1="107" y1="95" x2="120" y2="95" stroke="#6B2D40" strokeWidth="3.5" strokeLinecap="round" />
@@ -354,9 +424,23 @@ export default function MallangPage() {
   const [phase, setPhase] = useState("idle");
   const [pull, setPull] = useState(null);
   const [impact, setImpact] = useState(null);
-  const [widthPercent, setWidthPercent] = useState(RIPPLE_WIDTH_PERCENT.initial);
-  const widthControlId = useId();
+  const [speedPercent, setSpeedPercent] = useState(RIPPLE_SPEED_PERCENT.initial);
+  const [volumePercent, setVolumePercent] = useState(readMallangVolume);
+  const [audio] = useState(createMallangAudio);
+  const [isWaxMode, setIsWaxMode] = useState(() => {
+    try {
+      return localStorage.getItem(WAX_MODE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [waxShell, setWaxShell] = useState(() => createWaxShell(BLOB_CENTER, BODY_RADIUS));
+  const hasWaxShell = isWaxMode && waxShell.pieces.length > 0;
+  const waxShellRef = useRef(waxShell);
+  const speedControlId = useId();
+  const volumeControlId = useId();
   const surfaceCanvas = useRef(null);
+  const rimRef = useRef(null);
   const surface = useRef(null);
   const bounds = useRef(null);
   const character = useRef(null);
@@ -364,7 +448,11 @@ export default function MallangPage() {
   const reactionTimer = useRef(null);
 
   useEffect(() => {
-    const waveSurface = createMallangSurface(surfaceCanvas.current, BODY_RADIUS / (BLOB_CENTER * 2));
+    const waveSurface = createMallangSurface(surfaceCanvas.current, BODY_RADIUS / (BLOB_CENTER * 2), (angle, amount) => {
+      const rim = rimRef.current;
+      const outline = flexedRim(angle, amount);
+      if (rim && rim.getAttribute("d") !== outline) rim.setAttribute("d", outline);
+    });
     surface.current = waveSurface;
     return () => {
       clearTimeout(reactionTimer.current);
@@ -375,12 +463,24 @@ export default function MallangPage() {
   }, []);
 
   useEffect(() => {
-    surface.current?.setGelStyle(isGel);
-  }, [isGel]);
+    surface.current?.setFlatStyle(appearance === "2d");
+  }, [appearance]);
 
   useEffect(() => {
-    surface.current?.setWidthPercent(widthPercent);
-  }, [widthPercent]);
+    surface.current?.setSpeedPercent(speedPercent);
+  }, [speedPercent]);
+
+  useEffect(() => () => audio.close(), [audio]);
+
+  useEffect(() => {
+    audio.setVolume(volumePercent);
+  }, [audio, volumePercent]);
+
+  function changeVolume(event) {
+    const percent = event.currentTarget.valueAsNumber;
+    setVolumePercent(percent);
+    saveMallangVolume(percent);
+  }
 
   function selectPreviewStyle(style) {
     const nextParams = new URLSearchParams(searchParams);
@@ -396,12 +496,65 @@ export default function MallangPage() {
     }
   }
 
-  function tapAt(clientX, clientY) {
-    const { left, top, width, height } = surfaceCanvas.current.getBoundingClientRect();
-    if (width > 0 && height > 0) {
-      surface.current?.addDrop((clientX - left) / width, (clientY - top) / height);
+  function pointOnCharacter(clientX, clientY) {
+    const { left, top, width, height } = character.current.getBoundingClientRect();
+    if (!width || !height) return null;
+    return { x: (clientX - left) / width, y: (clientY - top) / height };
+  }
+
+  function tapAt(clientX, clientY, pointerTarget) {
+    if (hasWaxShell) {
+      let point = null;
+      if (pointerTarget) {
+        const { left, top, width, height } = pointerTarget.getBoundingClientRect();
+        if (!width || !height) return;
+        point = {
+          x: (clientX - left) / width * BLOB_CENTER * 2,
+          y: (clientY - top) / height * BLOB_CENTER * 2,
+        };
+      }
+      const randomValues = Array.from({ length: 7 }, () => Math.random());
+      const fracture = fractureWaxShell(waxShellRef.current, point, randomValues);
+      if (!fracture) return;
+      updateWaxShell(fracture.shell);
+      audio.play(fracture.sound);
+      settle("tapped", TAP_REACTION_MS);
+      return;
     }
+
+    const point = pointOnCharacter(clientX, clientY);
+    if (!point) return;
+    const strength = surface.current?.addDrop(point.x, point.y);
+    const keyboardTap = !pointerTarget;
+    if (keyboardTap) audio.play("press");
+    audio.play("refill", strength, keyboardTap ? 0.065 : 0);
     settle("tapped", TAP_REACTION_MS);
+  }
+
+  function updateWaxShell(shell) {
+    waxShellRef.current = shell;
+    setWaxShell(shell);
+  }
+
+  function resetWaxShell() {
+    surface.current?.stop();
+    updateWaxShell(createWaxShell(BLOB_CENTER, BODY_RADIUS));
+  }
+
+  function removeWaxChip(id) {
+    const shell = waxShellRef.current;
+    updateWaxShell({ ...shell, chips: shell.chips.filter((chip) => chip.id !== id) });
+  }
+
+  function toggleWaxMode() {
+    const enabled = !isWaxMode;
+    setIsWaxMode(enabled);
+    resetWaxShell();
+    try {
+      localStorage.setItem(WAX_MODE_KEY, String(enabled));
+    } catch {
+      // The switch still works for the current visit if browser storage is unavailable.
+    }
   }
 
   function readGeometry(motion) {
@@ -445,7 +598,7 @@ export default function MallangPage() {
 
   function animate(motion, timestamp) {
     motion.frame = null;
-    const { elapsed, tetherMoving } = advanceMotion(motion, timestamp);
+    const { tetherMoving } = advanceMotion(motion, timestamp);
     const held = motion.mode === "grab";
     const coasting = motion.mode === "coast";
     const { rect, position } = motion;
@@ -459,15 +612,15 @@ export default function MallangPage() {
     }
     if (held) {
       motion.pull = pulledCircle(motion);
-    } else if (motion.pull) {
-      const blend = Math.exp(-elapsed / 34);
-      const x = (motion.pull.x - BLOB_CENTER) * blend;
-      const y = (motion.pull.y - BLOB_CENTER) * blend;
-      motion.pull = Math.hypot(x, y) > BODY_RADIUS - PULL_RADIUS
-        ? { x: BLOB_CENTER + x, y: BLOB_CENTER + y }
-        : null;
+    } else if (motion.retraction) {
+      motion.pull = retractCircle(motion.retraction, timestamp);
+      if (!motion.pull) motion.retraction = null;
     }
     if (motion.impact && timestamp - motion.impact.time >= IMPACT_MS) motion.impact = null;
+    if (motion.impact && motion.impact.time - (motion.lastImpactSound ?? -Infinity) >= IMPACT_SOUND_GAP_MS) {
+      motion.lastImpactSound = motion.impact.time;
+      audio.play("wall", Math.min(1, Math.hypot(motion.impact.x, motion.impact.y)));
+    }
     const squash = motion.impact && (1 - (timestamp - motion.impact.time) / IMPACT_MS) ** 2;
     setPull(motion.pull);
     setImpact(motion.impact && { x: motion.impact.x * squash, y: motion.impact.y * squash });
@@ -498,8 +651,18 @@ export default function MallangPage() {
     motion.startY = event.clientY;
     if (catching) motion.target = motion.position;
     motion.hasMoved = catching;
+    motion.hasWaxShell = hasWaxShell;
     event.currentTarget.setPointerCapture(event.pointerId);
     setPhase(catching ? "dragging" : "pressed");
+    if (hasWaxShell) {
+      audio.unlock();
+    } else if (catching) {
+      audio.play("stretch");
+    } else {
+      audio.play("press");
+      const point = pointOnCharacter(event.clientX, event.clientY);
+      if (point) surface.current?.setIndentation(point.x, point.y);
+    }
     if (catching) {
       followTether(motion, 0);
       motion.pull = pulledCircle(motion);
@@ -520,6 +683,8 @@ export default function MallangPage() {
     if (!motion.hasMoved) {
       if (distance < DRAG_THRESHOLD) return;
       motion.hasMoved = true;
+      surface.current?.clearIndentation();
+      if (!motion.hasWaxShell) audio.play("stretch");
       setPhase("dragging");
     }
     readGeometry(motion);
@@ -535,13 +700,28 @@ export default function MallangPage() {
     const motion = motionRef.current;
     if (!motion || event.pointerId !== motion.pointerId) return;
     const released = event.type === "pointerup";
-    if (released && motion.hasMoved && !motion.reducedMotion) {
-      // Integrate the held force through the release time, then coast with that velocity.
-      if (motion.frame !== null) {
+    if (released && motion.hasMoved) {
+      // Integrate the held force through release before coasting with that velocity.
+      if (motion.frame !== null && !motion.reducedMotion) {
         advanceMotion(motion, event.timeStamp);
         motion.pull = pulledCircle(motion);
       }
+      const pull = motion.pull;
+      if (pull && !motion.hasWaxShell) {
+        const stretch = clamp(Math.hypot(pull.x - BLOB_CENTER, pull.y - BLOB_CENTER) / MAX_TETHER_DISTANCE, 0, 1);
+        audio.play("retract", stretch);
+        if (!motion.reducedMotion) {
+          motion.retraction = {
+            start: event.timeStamp,
+            duration: MIN_RETRACT_MS + (MAX_RETRACT_MS - MIN_RETRACT_MS) * stretch,
+            from: pull,
+          };
+        }
+      }
+    }
+    if (released && motion.hasMoved && !motion.reducedMotion) {
       motion.pointerId = null;
+      if (!motion.retraction) motion.pull = null;
       motion.mode = "coast";
       motion.target = null;
       setPhase("releasing");
@@ -553,14 +733,17 @@ export default function MallangPage() {
     setPull(null);
     setImpact(null);
     if (released && !motion.hasMoved) {
-      tapAt(event.clientX, event.clientY);
+      tapAt(event.clientX, event.clientY, event.currentTarget);
     } else {
+      surface.current?.clearIndentation();
       settle("idle");
     }
   }
 
-  const squished = phase === "pressed" || !!impact;
+  const pressingWax = phase === "pressed" && hasWaxShell;
+  const squished = pressingWax || !!impact;
   const dragging = phase === "dragging";
+  const breathing = phase === "idle" && !hasWaxShell;
   const tapped = phase === "tapped";
   const eyeState = squished ? "squished" : phase === "happy" || tapped ? "happy" :
     phase === "releasing" ? "moving" : "normal";
@@ -571,8 +754,8 @@ export default function MallangPage() {
     transformOrigin: `${impact.x < 0 ? "left" : impact.x > 0 ? "right" : "center"} ${impact.y < 0 ? "top" : impact.y > 0 ? "bottom" : "center"}`,
     transitionDuration: "0ms",
   } : {
-    transform: squished ? "scale(1.06, 0.94)" : undefined,
-    transitionDuration: squished ? "75ms" : undefined,
+    transform: pressingWax ? "scale(1.06, 0.94)" : undefined,
+    transitionDuration: pressingWax ? "62ms" : undefined,
   };
 
   return (
@@ -580,21 +763,47 @@ export default function MallangPage() {
       <AppBar />
       <main className="mallang-content">
         <h1>사이버 말랑이</h1>
-        <p id="mallang-help">말랑이를 여러 번 톡톡 눌러 보세요. 잡아당기거나 빠르게 밀 수도 있어요.</p>
+        <p id="mallang-help" aria-live="polite">{isWaxMode
+          ? (hasWaxShell ? "왁스를 눌러 보세요. 갈라진 조각도 다시 깰 수 있어요." : "껍질 안에 있던 말랑이가 나왔어요.")
+          : "말랑이를 길게 눌러 보세요. 잡아당겼다가 놓을 수도 있어요."}</p>
         <div className="mallang-controls">
-          <div className="mallang-width-control">
-            <label htmlFor={widthControlId}>물결 고리 폭</label>
+          <button type="button" role="switch" aria-checked={isWaxMode} className="mallang-wax-toggle" onClick={toggleWaxMode}>
+            왁뿌볼
+            <span className="mallang-wax-track" aria-hidden="true" />
+          </button>
+          {isWaxMode && (
+            <button type="button" className="mallang-wax-reset"
+              disabled={waxShell.pieces[0]?.depth === 0} onClick={resetWaxShell}>
+              껍질 복원
+            </button>
+          )}
+          <div className="mallang-range-control">
+            <label htmlFor={speedControlId}>확산 속도</label>
             <input
-              id={widthControlId}
+              id={speedControlId}
               type="range"
-              min={RIPPLE_WIDTH_PERCENT.min}
-              max={RIPPLE_WIDTH_PERCENT.max}
-              step={RIPPLE_WIDTH_PERCENT.step}
-              value={widthPercent}
-              aria-valuetext={`${widthPercent}%`}
-              onChange={(event) => setWidthPercent(event.currentTarget.valueAsNumber)}
+              min={RIPPLE_SPEED_PERCENT.min}
+              max={RIPPLE_SPEED_PERCENT.max}
+              step={RIPPLE_SPEED_PERCENT.step}
+              value={speedPercent}
+              aria-valuetext={`${speedPercent}%`}
+              onChange={(event) => setSpeedPercent(event.currentTarget.valueAsNumber)}
             />
-            <output htmlFor={widthControlId}>{widthPercent}%</output>
+            <output htmlFor={speedControlId}>{speedPercent}%</output>
+          </div>
+          <div className="mallang-range-control">
+            <label htmlFor={volumeControlId}>효과음</label>
+            <input
+              id={volumeControlId}
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={volumePercent}
+              aria-valuetext={volumePercent === 0 ? "음소거" : `${volumePercent}%`}
+              onChange={changeVolume}
+            />
+            <output htmlFor={volumeControlId}>{volumePercent}%</output>
           </div>
           {showComparison && (
             <div className="mallang-style-preview" role="group" aria-label="말랑이 그림체 비교">
@@ -607,15 +816,17 @@ export default function MallangPage() {
           <div ref={bounds} className="mallang-bounds">
             <div
               ref={character}
-              className={`mallang-character${dragging ? " mallang-character--dragging" : ""}${phase === "idle" ? " mallang-idle" : ""}`}
+              className={`mallang-character${dragging ? " mallang-character--dragging" : ""}${breathing ? " mallang-idle" : ""}`}
               style={{ left: `${position.x}%`, top: `${position.y}%` }}
             >
-              <MallangSilhouette pull={pull} bodyStyle={bodyStyle} surfaceCanvas={surfaceCanvas} appearance={appearance} />
+              <span className="mallang-ground-shadow" aria-hidden="true" />
+              <MallangSilhouette pull={hasWaxShell ? null : pull} bodyStyle={bodyStyle}
+                surfaceCanvas={surfaceCanvas} rimRef={rimRef} appearance={appearance} />
               <button
                 type="button"
                 draggable={false}
                 className={`mallang-body${dragging ? " mallang-dragging" : ""}`}
-                aria-label="말랑이 누르기"
+                aria-label={hasWaxShell ? "왁스 껍질 깨기" : "말랑이 누르기"}
                 aria-describedby="mallang-help"
                 onPointerDown={press}
                 onPointerMove={movePointer}
@@ -631,6 +842,8 @@ export default function MallangPage() {
               >
                 {phase === "idle" ? <IdleMallangFace appearance={appearance} /> : <MallangFace state={eyeState} squish={squished} appearance={appearance} />}
               </button>
+              {isWaxMode && <WaxShell shell={waxShell} center={BLOB_CENTER} radius={BODY_RADIUS}
+                bodyStyle={bodyStyle} onChipEnd={removeWaxChip} />}
             </div>
           </div>
         </section>

@@ -1,3 +1,4 @@
+import Icon from "../components/Icon";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,7 +31,7 @@ export default function PromptPage() {
   return (
     <div className="profile-page">
       <header className="diary-header">
-        <button onClick={() => navigate(-1)}>← 뒤로</button>
+        <button onClick={() => navigate(-1)}><Icon name="arrowLeft" /> 뒤로</button>
         <h2>미션 맞춤 설정</h2>
       </header>
 

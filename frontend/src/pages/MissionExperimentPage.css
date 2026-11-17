@@ -19,7 +19,6 @@
 
 .experiment-intro h1 {
   margin: 8px 0 4px;
-  font-size: 25px;
 }
 
 .experiment-intro p,
@@ -132,8 +131,9 @@
 }
 
 .experiment-actions button:last-child {
-  background: var(--orange);
-  border-color: var(--orange);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--card);
 }
 
 .experiment-actions button:disabled {
@@ -149,7 +149,7 @@
 }
 
 .experiment-status { padding: 0 6px; }
-.experiment-output h2 { font-size: 16px; margin-bottom: 10px; }
+.experiment-output h2 { margin-bottom: 10px; }
 .experiment-result h3 { font-size: 13px; margin-bottom: 8px; }
 .experiment-result dl { display: grid; gap: 5px; }
 .experiment-result dt { font-size: 11px; }

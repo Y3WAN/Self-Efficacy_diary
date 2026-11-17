@@ -1,3 +1,4 @@
+import Icon from "./Icon";
 import {
   ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
@@ -58,8 +59,8 @@ export default function GrowthChart() {
       </ResponsiveContainer>
       {data.length > 1 && (
         <p className="elo-calibration">
-          {data.length}일 동안 추세 {toPct(first.ema)} → {toPct(last.ema)}점
-          {" "}<span className={diff >= 0 ? "elo-up" : "elo-down"}>{diff >= 0 ? `▲${diff}` : `▼${-diff}`}</span>
+          {data.length}일 동안 추세 {toPct(first.ema)} <Icon name="arrowRight" /> {toPct(last.ema)}점
+          {" "}<span className={diff >= 0 ? "elo-up" : "elo-down"}><Icon name={diff >= 0 ? "arrowUp" : "arrowDown"} label={diff >= 0 ? "상승" : "하락"} /> {Math.abs(diff)}</span>
         </p>
       )}
     </>

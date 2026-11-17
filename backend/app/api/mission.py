@@ -1,14 +1,16 @@
 import asyncio
 import logging
-from datetime import datetime, timezone
+from calendar import monthrange
+from datetime import date, datetime, time, timezone
 from typing import Annotated, Literal, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from app.db.session import get_db
 from app.db.models import Mission, User, Respect
 from app.core.deps import get_current_user
+from app.core.timeutil import KST
 from app.services.elo_service import LEVEL_GUIDES, apply_result, level_for_rating, target_level
 from app.services.mission_service import generate_mission_content, rank_mission_sources
 from pydantic import BaseModel, Field, StringConstraints
@@ -161,6 +163,29 @@ async def list_missions(
         )
         missions.extend(history.scalars().all())
     return [MissionResponse.of(m) for m in missions]
+
+
+@router.get("/history", response_model=list[MissionResponse])
+async def list_mission_history(
+    month: Annotated[str, Query(pattern=r"^[1-9][0-9]{3}-(0[1-9]|1[0-2])$")],
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    first_day = date.fromisoformat(f"{month}-01")
+    last_day = first_day.replace(day=monthrange(first_day.year, first_day.month)[1])
+    result = await db.execute(
+        select(Mission)
+        .where(
+            Mission.user_id == current_user.id,
+            Mission.status != "active",
+            Mission.created_at.between(
+                datetime.combine(first_day, time.min, KST),
+                datetime.combine(last_day, time.max, KST),
+            ),
+        )
+        .order_by(Mission.created_at.desc(), Mission.id.desc())
+    )
+    return [MissionResponse.of(mission) for mission in result.scalars()]
 
 
 def _mask_username(username: str) -> str:

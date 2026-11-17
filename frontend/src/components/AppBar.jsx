@@ -1,3 +1,5 @@
+import Icon from "./Icon";
+import BrandMark from "./BrandMark";
 import { useState } from "react";
 import SideBar from "./SideBar";
 
@@ -13,8 +15,8 @@ export default function AppBar() {
           aria-expanded={sidebarOpen}
           aria-controls="app-sidebar"
           onClick={() => setSidebarOpen(true)}
-        >☰</button>
-        <span className="appbar-title">🌱 codemyworld</span>
+        ><Icon name="menu" /></button>
+        <BrandMark className="appbar-title" />
       </header>
       <SideBar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
     </>

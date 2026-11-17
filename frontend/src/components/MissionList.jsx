@@ -1,16 +1,17 @@
+import Icon from "./Icon";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import client from "../api/client";
 
 const CELEBRATIONS = [
-  { emoji: "🎉", message: "미션 완료! 오늘도 한 걸음 성장했어요." },
-  { emoji: "🔥", message: "대단해요! 작은 실천이 큰 변화를 만들어요." },
-  { emoji: "⭐", message: "완벽해요! 이 기세로 계속 나아가요." },
-  { emoji: "🏆", message: "해냈어요! 오늘의 나, 정말 잘했어요." },
+  { icon: "sparkle", message: "미션 완료! 오늘도 한 걸음 성장했어요." },
+  { icon: "flame", message: "대단해요! 작은 실천이 큰 변화를 만들어요." },
+  { icon: "star", message: "완벽해요! 이 기세로 계속 나아가요." },
+  { icon: "trophy", message: "해냈어요! 오늘의 나, 정말 잘했어요." },
 ];
 
-const SKIP_MESSAGE = { emoji: "🌱", message: "괜찮아요! 다음 미션은 조금 더 가볍게 준비할게요." };
+const SKIP_MESSAGE = { icon: "sprout", message: "괜찮아요! 다음 미션은 조금 더 가볍게 준비할게요." };
 
 function ResultModal({ result, onClose }) {
   const [c] = useState(() =>
@@ -20,12 +21,12 @@ function ResultModal({ result, onClose }) {
   return (
     <div className="celebration-overlay" onClick={onClose}>
       <div className="celebration-card" onClick={(e) => e.stopPropagation()}>
-        <span className="celebration-emoji">{c.emoji}</span>
+        <Icon name={c.icon} className="celebration-icon" />
         <p className="celebration-message">{c.message}</p>
         <p className="celebration-elo">
           성장 지수 {result.elo_after}
           <span className={delta >= 0 ? "elo-up" : "elo-down"}>
-            {delta >= 0 ? ` ▲${delta}` : ` ▼${-delta}`}
+            {" "}<Icon name={delta >= 0 ? "arrowUp" : "arrowDown"} label={delta >= 0 ? "상승" : "하락"} /> {Math.abs(delta)}
           </span>
         </p>
         <button className="celebration-btn" onClick={onClose}>확인</button>
@@ -84,7 +85,7 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
               <li key={mission.id} className="mission-item">
                 <div className="mission-body">
                   <p className="mission-content">{mission.content}</p>
-                  {mission.reason && <p className="mission-reason">💡 {mission.reason}</p>}
+                  {mission.reason && <p className="mission-reason"><Icon name="bulb" /> {mission.reason}</p>}
                 </div>
                 {pending?.id === mission.id ? (
                   <form
