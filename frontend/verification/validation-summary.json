@@ -1,0 +1,189 @@
+{
+  "date": "2026-11-21",
+  "react": "19.2.6",
+  "vite": "8.0.14",
+  "nodeTests": {
+    "passed": 42,
+    "failed": 0
+  },
+  "eslintExitCode": 0,
+  "productionBuildExitCode": 0,
+  "productionDiagnostics": false,
+  "browserCases": [
+    {
+      "file": "final-browser-regression.json",
+      "name": "low-frame",
+      "status": "pass",
+      "checks": {
+        "finite": true,
+        "balanced": true,
+        "settled": true
+      }
+    },
+    {
+      "file": "final-browser-regression.json",
+      "name": "pull",
+      "status": "pass",
+      "checks": {
+        "tip": true,
+        "body": true,
+        "absorbed": true,
+        "settled": true
+      }
+    },
+    {
+      "file": "final-browser-regression.json",
+      "name": "hold",
+      "status": "pass",
+      "checks": {
+        "deep": true,
+        "balanced": true,
+        "restored": true,
+        "finite": true
+      }
+    },
+    {
+      "file": "final-rim-browser-results.json",
+      "name": "edge",
+      "status": "pass",
+      "checks": {
+        "deep": true,
+        "balanced": true,
+        "restored": true,
+        "finite": true
+      }
+    },
+    {
+      "file": "final-rim-browser-results.json",
+      "name": "pull",
+      "status": "pass",
+      "checks": {
+        "tip": true,
+        "body": true,
+        "absorbed": true,
+        "settled": true
+      }
+    },
+    {
+      "file": "final-wax-browser-results.json",
+      "name": "wax",
+      "status": "pass",
+      "checks": {
+        "shortPress": true,
+        "firstFragments": true,
+        "cleared": true,
+        "noAnimation": true,
+        "presses": 53
+      }
+    },
+    {
+      "file": "desktop-mode-final.json",
+      "name": "switch",
+      "status": "pass",
+      "checks": {
+        "modeClean": true,
+        "noContact": true,
+        "progressPreserved": true,
+        "seedPreserved": true
+      }
+    },
+    {
+      "file": "reduced-motion-browser-results.json",
+      "name": "hold",
+      "status": "pass",
+      "checks": {
+        "deep": true,
+        "balanced": true,
+        "restored": true,
+        "finite": true
+      }
+    },
+    {
+      "file": "reduced-motion-browser-results.json",
+      "name": "edge",
+      "status": "pass",
+      "checks": {
+        "deep": true,
+        "balanced": true,
+        "restored": true,
+        "finite": true
+      }
+    },
+    {
+      "file": "reduced-motion-browser-results.json",
+      "name": "rub",
+      "status": "pass",
+      "checks": {
+        "trail": true,
+        "bounded": true,
+        "balanced": true,
+        "restored": true
+      }
+    },
+    {
+      "file": "reduced-motion-browser-results.json",
+      "name": "turn",
+      "status": "pass",
+      "checks": {
+        "trail": true,
+        "bounded": true,
+        "balanced": true,
+        "restored": true
+      }
+    },
+    {
+      "file": "reduced-motion-browser-results.json",
+      "name": "pull",
+      "status": "pass",
+      "checks": {
+        "tip": true,
+        "body": true,
+        "absorbed": true,
+        "settled": true
+      }
+    },
+    {
+      "file": "reduced-motion-browser-results.json",
+      "name": "cancel",
+      "status": "pass",
+      "checks": {
+        "cancelled": true,
+        "blur": true
+      }
+    },
+    {
+      "file": "reduced-motion-browser-results.json",
+      "name": "empty",
+      "status": "pass",
+      "checks": {
+        "noFrames": true,
+        "noContact": true
+      }
+    },
+    {
+      "file": "reduced-motion-browser-results.json",
+      "name": "low-frame",
+      "status": "pass",
+      "checks": {
+        "finite": true,
+        "balanced": true,
+        "settled": true
+      }
+    },
+    {
+      "file": "reduced-motion-browser-results.json",
+      "name": "burst",
+      "status": "pass",
+      "checks": {
+        "settled": true,
+        "noWaves": true,
+        "bounded": true
+      }
+    }
+  ],
+  "actualTabHiddenVerified": false,
+  "iOS": "Compatibility implementation only, physical testing excluded by user",
+  "nativeInput": "real pointer press, drag, regrab, wall rebound, resize; touch scenarios DOM-injected",
+  "initialVolume": 60,
+  "finalVolume": 60
+}

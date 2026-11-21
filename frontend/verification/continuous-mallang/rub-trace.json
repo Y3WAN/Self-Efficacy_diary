@@ -1,0 +1,54 @@
+[
+  {
+    "centerX": 200,
+    "centerY": 200,
+    "cursor": {
+      "time": 1600.89999999851,
+      "trusted": true,
+      "type": "mouse",
+      "x": 178.00001525878906,
+      "y": 440.0000305175781
+    },
+    "end": null,
+    "gesture": 2,
+    "name": "03-rub-upper-left",
+    "record": {
+      "center": 2.4116013050079346,
+      "chips": 0,
+      "contact": {
+        "x": 67.06802969168899,
+        "y": 66.32705653445532
+      },
+      "contactHeight": -1.1884040286626694,
+      "dentHeight": -1.1884040286626694,
+      "depth": 0.9976290533858768,
+      "displaced": 25521.279756739736,
+      "energy": 13.792866821289063,
+      "pieces": 0,
+      "pressure": 1,
+      "raised": 25521.280021361912,
+      "rimAtContact": 105.2845687134095,
+      "rimMax": 106.95758056640624,
+      "rimMin": 94,
+      "rimOpposite": 94,
+      "rimPeakAngle": 206.25,
+      "signedHeight": 0.0002646222017543459,
+      "time": 1604.8,
+      "tip": null,
+      "trail": 2,
+      "vx": 0,
+      "vy": 0,
+      "waves": 1,
+      "x": 50.000004277593945,
+      "y": 49.99846674799828
+    },
+    "score": 0.01230991667101794,
+    "start": {
+      "time": 1559.39999999851,
+      "trusted": true,
+      "type": "mouse",
+      "x": 148,
+      "y": 469.0000305175781
+    }
+  }
+]

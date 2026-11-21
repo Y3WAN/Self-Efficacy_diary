@@ -1,0 +1,79 @@
+{
+  "outcomes": {
+    "rim-transition": {
+      "status": "pass",
+      "checks": {
+        "deepRim": true,
+        "indented": true,
+        "directional": true,
+        "balanced": true,
+        "insideFixed": true,
+        "pull": true,
+        "restored": true
+      },
+      "elapsed": 18940
+    },
+    "rub": {
+      "status": "pass",
+      "checks": {
+        "pressure": true,
+        "fixedCenter": true,
+        "bounded": true,
+        "balanced": true,
+        "restored": true
+      },
+      "elapsed": 5621
+    },
+    "turn": {
+      "status": "pass",
+      "checks": {
+        "pressure": true,
+        "fixedCenter": true,
+        "bounded": true,
+        "balanced": true,
+        "restored": true
+      },
+      "elapsed": 6769
+    },
+    "pull": {
+      "status": "pass",
+      "checks": {
+        "tip": true,
+        "body": true,
+        "absorbed": true,
+        "settled": true
+      },
+      "elapsed": 5156
+    },
+    "wax-drag": {
+      "status": "pass",
+      "checks": {
+        "firstCrack": true,
+        "pathCracks": true,
+        "persists": true,
+        "settled": true
+      },
+      "elapsed": 5856
+    },
+    "switch": {
+      "status": "pass",
+      "checks": {
+        "modeClean": true,
+        "noContact": true,
+        "progressPreserved": true,
+        "seedPreserved": true
+      },
+      "elapsed": 568
+    },
+    "cancel": {
+      "status": "pass",
+      "checks": {
+        "cancelled": true,
+        "blur": true
+      },
+      "elapsed": 707
+    }
+  },
+  "consoleErrors": [],
+  "networkFailures": []
+}

@@ -1,19 +1,36 @@
 export const PULL_TAUT_DISTANCE = 104;
+export const MAX_TETHER_DISTANCE = 128;
+export const PULL_RIM_EASE_DISTANCE = 12;
 
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
 
-export function pullStretchProgress(target, center = 100, bodyRadius = 94, tautDistance = PULL_TAUT_DISTANCE) {
+export function softLimitDistance(distance, start, limit, end) {
+  if (distance <= start) return distance;
+  const progress = clamp01((distance - start) / (end - start));
+  const span = limit - start;
+  // Unit slope at the start and zero slope at the cap.
+  return limit - span * (1 - progress) ** ((end - start) / span);
+}
+
+export function pullStretchProgress(target, center = 100, startDistance = 94, endDistance = PULL_TAUT_DISTANCE) {
   // Geometry responds to stretch, not elapsed time since the latest click.
   // The tip must already be present when the tether begins moving the body.
-  const startDistance = bodyRadius;
   const distance = Math.hypot(target.x - center, target.y - center);
-  const progress = clamp01((distance - startDistance) / Math.max(1, tautDistance - startDistance));
+  const progress = clamp01((distance - startDistance) / Math.max(1, endDistance - startDistance));
   return progress * progress * (3 - 2 * progress);
+}
+
+export function pullExtension(distanceFromRim) {
+  const ease = PULL_RIM_EASE_DISTANCE;
+  if (distanceFromRim <= -ease) return 0;
+  if (distanceFromRim >= ease) return distanceFromRim;
+  // Match the stationary rim at the start and the tether's speed at the end.
+  return (distanceFromRim + ease) ** 2 / (4 * ease);
 }
 
 export function blendPullTip(target, progress) {
   const blend = clamp01(progress);
-  // The tip stays under the pointer; only its extent and visibility ease out of the rim.
+  // The visible extent grows while the center follows the tether.
   return { x: target.x, y: target.y, radius: target.radius * blend, blend };
 }
 

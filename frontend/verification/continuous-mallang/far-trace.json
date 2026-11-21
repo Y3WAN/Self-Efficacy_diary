@@ -1,0 +1,287 @@
+[
+  {
+    "centerX": 200,
+    "centerY": 200,
+    "cursor": {
+      "time": 1882.5999999977648,
+      "trusted": true,
+      "type": "mouse",
+      "x": 145,
+      "y": 407.0000305175781
+    },
+    "end": null,
+    "gesture": 2,
+    "name": "04-before-edge",
+    "record": {
+      "center": -0.000057841902162181213,
+      "chips": 0,
+      "contact": {
+        "x": 29.031583496069658,
+        "y": 28.290627926406927
+      },
+      "contactHeight": -11.462791312503004,
+      "dentHeight": -11.462791312503004,
+      "depth": 0.997455729696723,
+      "displaced": 23165.11787480342,
+      "energy": 3.283058586120606,
+      "pieces": 0,
+      "pressure": 1,
+      "raised": 23165.117001369348,
+      "rimAtContact": 107.95813910487682,
+      "rimMax": 107.96366119384766,
+      "rimMin": 94,
+      "rimOpposite": 94,
+      "rimPeakAngle": 225,
+      "signedHeight": -0.0008734340784066626,
+      "time": 1886.5,
+      "tip": null,
+      "trail": 2,
+      "vx": 0,
+      "vy": 0,
+      "waves": 1,
+      "x": 50.000004277593945,
+      "y": 49.99846674799828
+    },
+    "score": 7.068346834972999,
+    "start": {
+      "time": 1873.800000000745,
+      "trusted": true,
+      "type": "mouse",
+      "x": 154,
+      "y": 416.0000305175781
+    }
+  },
+  {
+    "centerX": 197.6433006699897,
+    "centerY": 197.62272321199697,
+    "cursor": {
+      "time": 1903.300000000745,
+      "trusted": true,
+      "type": "mouse",
+      "x": 127.00000762939452,
+      "y": 389.0000305175781
+    },
+    "end": null,
+    "gesture": 2,
+    "name": "05-after-edge",
+    "record": {
+      "center": 0.00004240957787260413,
+      "chips": 0,
+      "contact": {
+        "x": 23.9689232099456,
+        "y": 23.354672757810732
+      },
+      "contactHeight": -9.382892379535292,
+      "dentHeight": -9.382892379535292,
+      "depth": 0.997455729696723,
+      "displaced": 23123.743301629613,
+      "energy": 5.927042999267579,
+      "pieces": 0,
+      "pressure": 1,
+      "raised": 23123.743335690157,
+      "rimAtContact": 107.95943577847186,
+      "rimMax": 107.96383666992188,
+      "rimMin": 94,
+      "rimOpposite": 94,
+      "rimPeakAngle": 225,
+      "signedHeight": 0.000034060575730768,
+      "time": 1903.2,
+      "tip": {
+        "blend": 1,
+        "edgeRadius": 107.95943577847186,
+        "radius": 38,
+        "x": 10.63270823040446,
+        "y": 9.910715307338007
+      },
+      "trail": 2,
+      "vx": -0.15900691274698,
+      "vy": -0.16029151993881408,
+      "waves": 1,
+      "x": 48.8577319604744,
+      "y": 49.29050527762564
+    },
+    "score": 18.923476569840147,
+    "start": {
+      "time": 1873.800000000745,
+      "trusted": true,
+      "type": "mouse",
+      "x": 154,
+      "y": 416.0000305175781
+    }
+  },
+  {
+    "centerX": 193.13573814639489,
+    "centerY": 193.08428570762757,
+    "cursor": {
+      "time": 1916,
+      "trusted": true,
+      "type": "mouse",
+      "x": 118.00000762939452,
+      "y": 380.0000305175781
+    },
+    "end": null,
+    "gesture": 2,
+    "name": "06-outside-pull",
+    "record": {
+      "center": 0.00012763847189489752,
+      "chips": 0,
+      "contact": {
+        "x": 23.93662428483185,
+        "y": 23.386025290553174
+      },
+      "contactHeight": -10.655913346914105,
+      "dentHeight": -10.655913346914105,
+      "depth": 0.997455729696723,
+      "displaced": 22968.96215380914,
+      "energy": 6.300085983276368,
+      "pieces": 0,
+      "pressure": 1,
+      "raised": 22968.963065606073,
+      "rimAtContact": 107.95993327732162,
+      "rimMax": 107.96401977539062,
+      "rimMin": 94,
+      "rimOpposite": 94,
+      "rimPeakAngle": 225,
+      "signedHeight": 0.0009117969042318348,
+      "time": 1919.8,
+      "tip": {
+        "blend": 1,
+        "edgeRadius": 107.95994406211496,
+        "radius": 38,
+        "x": 9.816458143021848,
+        "y": 9.16537676562605
+      },
+      "trail": 2,
+      "vx": -0.25899195355702626,
+      "vy": -0.26094997820852706,
+      "waves": 1,
+      "x": 46.66204062221096,
+      "y": 47.93024040205688
+    },
+    "score": 0,
+    "start": {
+      "time": 1873.800000000745,
+      "trusted": true,
+      "type": "mouse",
+      "x": 154,
+      "y": 416.0000305175781
+    }
+  },
+  {
+    "centerX": 173.28393453659874,
+    "centerY": 173.10899096851853,
+    "cursor": {
+      "time": 1963.300000000745,
+      "trusted": true,
+      "type": "mouse",
+      "x": 82,
+      "y": 344.0000305175781
+    },
+    "end": {
+      "time": 1963.300000000745,
+      "trusted": true,
+      "type": "mouse",
+      "x": 82,
+      "y": 344.0000305175781
+    },
+    "gesture": 2,
+    "name": "07-release",
+    "record": {
+      "center": 0.00027170145767740905,
+      "chips": 0,
+      "contact": null,
+      "contactHeight": 0,
+      "dentHeight": -13.501608165444228,
+      "depth": 0.9971914978571684,
+      "displaced": 21959.5214617595,
+      "energy": 3.3718867874145513,
+      "pieces": 0,
+      "pressure": 0,
+      "raised": 21959.521210304083,
+      "rimAtContact": 107.95763659474768,
+      "rimMax": 107.96056365966795,
+      "rimMin": 94,
+      "rimOpposite": 94,
+      "rimPeakAngle": 225,
+      "signedHeight": -0.0002514554165595278,
+      "time": 1969.8,
+      "tip": {
+        "blend": 1,
+        "edgeRadius": 107.96135747896412,
+        "radius": 38,
+        "stretch": 0.9986540847401184,
+        "x": 9.708887089542884,
+        "y": 9.27230340523856
+      },
+      "trail": 2,
+      "vx": -0.365135826266648,
+      "vy": -0.36724583762524954,
+      "waves": 2,
+      "x": 37.00859410540071,
+      "y": 41.9577910492626
+    },
+    "score": 6.4999999992548965,
+    "start": {
+      "time": 1873.800000000745,
+      "trusted": true,
+      "type": "mouse",
+      "x": 154,
+      "y": 416.0000305175781
+    }
+  },
+  {
+    "centerX": 98.507769353429,
+    "centerY": 97.9005628638264,
+    "cursor": {
+      "time": 1963.300000000745,
+      "trusted": true,
+      "type": "mouse",
+      "x": 82,
+      "y": 344.0000305175781
+    },
+    "end": {
+      "time": 1963.300000000745,
+      "trusted": true,
+      "type": "mouse",
+      "x": 82,
+      "y": 344.0000305175781
+    },
+    "gesture": 2,
+    "name": "08-restored",
+    "record": {
+      "center": 0,
+      "chips": 0,
+      "contact": null,
+      "contactHeight": 0,
+      "dentHeight": 0,
+      "depth": 0,
+      "displaced": 0,
+      "energy": 0,
+      "pieces": 0,
+      "pressure": 0,
+      "raised": 0,
+      "rimAtContact": 94,
+      "rimMax": 94,
+      "rimMin": 94,
+      "rimOpposite": 94,
+      "rimPeakAngle": null,
+      "signedHeight": 0,
+      "time": 4932.2,
+      "tip": null,
+      "trail": 0,
+      "vx": 0,
+      "vy": 0,
+      "waves": 0,
+      "x": 0.6333947950271283,
+      "y": 19.464487404124128
+    },
+    "score": 0,
+    "start": {
+      "time": 1873.800000000745,
+      "trusted": true,
+      "type": "mouse",
+      "x": 154,
+      "y": 416.0000305175781
+    }
+  }
+]

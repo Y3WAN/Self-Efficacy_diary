@@ -1,0 +1,133 @@
+diff --git a/verification/dent-merge/before-mallangSurface.js.txt b/src/utils/mallangSurface.js
+index ee55537..8196dd0 100644
+--- a/verification/dent-merge/before-mallangSurface.js.txt
++++ b/src/utils/mallangSurface.js
+@@ -1,7 +1,8 @@
+ import { MATERIAL, membranePath, membraneRadii, membraneRadiusAt } from "./mallangMaterial.js";
+ import { MAX_VISUAL_TETHER_DISTANCE } from "./mallangMotion.js";
+ import { PULL_RIM_EASE_DISTANCE, softLimitDistance } from "./mallangPull.js";
+-import { smoothStep } from "./surfacePress.js";
++import { pressRecoveryDuration, smoothStep } from "./surfacePress.js";
++import { createMallangRelief } from "./mallangRelief.js";
+ 
+ const VIEW_ORIGIN = -100;
+ const VIEW_SIZE = 400;
+@@ -9,9 +10,7 @@ const SHADE_STEP = 2;
+ const SHADE_GRID = VIEW_SIZE / SHADE_STEP + 1;
+ const PULLED_DENT_LIMIT = 136;
+ const INNER_DENT_LIMIT = 61;
+-const TRAIL_RADIUS = 8;
+-const TRAIL_OPACITY = .1;
+-const TRAIL_FADE_MS = 340;
++const MAX_TRAIL_DEPARTURE_INTERVAL_MS = 64;
+ const smooth = (t) => smoothStep(Math.max(0, Math.min(1, t)));
+ 
+ function innerDentReach(distance) {
+@@ -42,25 +41,7 @@ function contactRelief(load, tip) {
+     length, width: length * 1.18 };
+ }
+ 
+-function paintBareTrail(trail, points, now, bodyX, bodyY) {
+-  trail.fill(0);
+-  for (const point of points) {
+-    const strength = TRAIL_OPACITY * point.depth * (1 - smooth((now - point.leftAt) / TRAIL_FADE_MS));
+-    const x = point.x - bodyX, y = point.y - bodyY;
+-    const left = Math.max(0, Math.ceil((x - TRAIL_RADIUS - VIEW_ORIGIN) / SHADE_STEP));
+-    const top = Math.max(0, Math.ceil((y - TRAIL_RADIUS - VIEW_ORIGIN) / SHADE_STEP));
+-    const right = Math.min(SHADE_GRID - 1, Math.floor((x + TRAIL_RADIUS - VIEW_ORIGIN) / SHADE_STEP));
+-    const bottom = Math.min(SHADE_GRID - 1, Math.floor((y + TRAIL_RADIUS - VIEW_ORIGIN) / SHADE_STEP));
+-    for (let row = top; row <= bottom; row++) for (let col = left; col <= right; col++) {
+-      const index = row * SHADE_GRID + col;
+-      const offset = Math.hypot(VIEW_ORIGIN + col * SHADE_STEP - x, VIEW_ORIGIN + row * SHADE_STEP - y);
+-      // Overlapping samples preserve one faint groove.
+-      trail[index] = Math.max(trail[index], strength * (1 - smooth(offset / TRAIL_RADIUS)));
+-    }
+-  }
+-}
+-
+-function paintBarePixels(pixels, radii, relief, trail, flat) {
++function paintBarePixels(pixels, radii, height, flat) {
+   const { center, radius: bodyRadius } = MATERIAL;
+   const maxRadius = Math.max(...radii) + 2 * SHADE_STEP;
+   const data = pixels.data;
+@@ -74,14 +55,16 @@ function paintBarePixels(pixels, radii, relief, trail, flat) {
+     const radius = membraneRadiusAt(radii, angle);
+     if (distance > radius + 2 * SHADE_STEP) { data[p + 3] = 0; continue; }
+ 
+-    let shadow = trail[p / 4];
+-    if (relief) {
+-      const localX = x - relief.x, localY = y - relief.y;
+-      const along = (localX * relief.ux + localY * relief.uy) / relief.length;
+-      const across = (localY * relief.ux - localX * relief.uy) / relief.width;
+-      const distanceFromDent = Math.hypot(along, across);
+-      shadow = Math.max(shadow, relief.depth * .6 * (1 - smooth(distanceFromDent)));
+-    }
++    const index = row * SHADE_GRID + col;
++    const hx = (height[row * SHADE_GRID + Math.min(SHADE_GRID - 1, col + 1)] -
++      height[row * SHADE_GRID + Math.max(0, col - 1)]) / (2 * SHADE_STEP);
++    const hy = (height[Math.min(SHADE_GRID - 1, row + 1) * SHADE_GRID + col] -
++      height[Math.max(0, row - 1) * SHADE_GRID + col]) / (2 * SHADE_STEP);
++    const lighting = (hx * .62 + hy * .78) / Math.sqrt(1 + hx * hx + hy * hy);
++    const depth = Math.max(0, -height[index] / MATERIAL.maxDent);
++    // Bring back directional relief without changing the current body palette
++    // or adding a bright ring. The deepest part stays underneath the contact.
++    const shadow = Math.max(0, Math.min(.72, depth * .6 - lighting * .26 * (1 - Math.min(1, depth)) ** 2));
+     // The contour can stretch while the underlying color stays fixed to the body.
+     const edge = smooth((distance / bodyRadius - .35) / .69) ** 1.55;
+     const ambient = Math.min(1, Math.max(-.42, (-dx - dy) / (bodyRadius * Math.SQRT2))) * (1 - .40 * edge);
+@@ -138,7 +121,8 @@ export function createMallangSurface(canvas, material, overlay = null) {
+   const shadeContext = shadeCanvas.getContext("2d");
+   if (!shadeContext) return null;
+   const barePixels = shadeContext.createImageData(SHADE_GRID, SHADE_GRID);
+-  const bareTrail = new Float32Array(SHADE_GRID ** 2);
++  const reliefField = createMallangRelief({ size: SHADE_GRID, origin: VIEW_ORIGIN,
++    step: SHADE_STEP, maxDepth: MATERIAL.maxDent });
+   const trailPoints = [];
+   let trailHead = null;
+   const fieldPixels = shadeContext.createImageData(MATERIAL.grid, MATERIAL.grid);
+@@ -172,12 +156,13 @@ export function createMallangSurface(canvas, material, overlay = null) {
+   }
+ 
+   function recordTrail(relief, now, bodyX, bodyY) {
+-    while (trailPoints.length && now - trailPoints[0].leftAt >= TRAIL_FADE_MS) trailPoints.shift();
++    while (trailPoints.length && now - trailPoints[0].leftAt >= pressRecoveryDuration(trailPoints[0].depth)) trailPoints.shift();
+     if (!material.state.contact || !relief) {
+       trailHead = null;
+       return;
+     }
+-    const next = { x: relief.x + bodyX, y: relief.y + bodyY, depth: relief.depth };
++    const next = { x: relief.x + bodyX, y: relief.y + bodyY, depth: relief.depth,
++      ux: relief.ux, uy: relief.uy, time: now };
+     if (!trailHead) {
+       trailHead = next;
+       return;
+@@ -186,14 +171,17 @@ export function createMallangSurface(canvas, material, overlay = null) {
+     const distance = Math.hypot(dx, dy);
+     if (distance < MATERIAL.spacing) {
+       trailHead.depth = next.depth;
++      trailHead.time = now;
+       return;
+     }
+     const steps = Math.min(MATERIAL.maxTrail, Math.ceil(distance / MATERIAL.spacing));
++    const elapsed = Math.min(MAX_TRAIL_DEPARTURE_INTERVAL_MS, Math.max(0, now - trailHead.time));
+     // Sample the displayed dent in world space, including when the whole body moves.
+     for (let step = 0; step < steps; step++) {
+       const progress = step / steps;
+       trailPoints.push({ x: trailHead.x + dx * progress, y: trailHead.y + dy * progress,
+-        depth: trailHead.depth + (next.depth - trailHead.depth) * progress, leftAt: now });
++        depth: trailHead.depth + (next.depth - trailHead.depth) * progress, leftAt: now - elapsed * (1 - progress),
++        ux: trailHead.ux, uy: trailHead.uy });
+     }
+     if (trailPoints.length > MATERIAL.maxTrail) trailPoints.splice(0, trailPoints.length - MATERIAL.maxTrail);
+     trailHead = next;
+@@ -232,8 +220,8 @@ export function createMallangSurface(canvas, material, overlay = null) {
+       const { time } = material.state;
+       const bodyX = bodyOffset?.x ?? 0, bodyY = bodyOffset?.y ?? 0;
+       recordTrail(relief, time, bodyX, bodyY);
+-      paintBareTrail(bareTrail, trailPoints, time, bodyX, bodyY);
+-      paintBarePixels(barePixels, radii, relief, bareTrail, flat);
++      const height = reliefField.update({ contact: relief, trail: trailPoints, now: time, bodyX, bodyY });
++      paintBarePixels(barePixels, radii, height, flat);
+       shadeContext.putImageData(barePixels, 0, 0);
+       const origin = VIEW_ORIGIN - SHADE_STEP / 2, extent = SHADE_GRID * SHADE_STEP;
+       context.drawImage(shadeCanvas, origin, origin, extent, extent);

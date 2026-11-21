@@ -1,0 +1,58 @@
+exit_code: 0
+✔ right-angle paths get rounded corners without overshooting their bounds (2.1601ms)
+✔ duplicates, reversals and long trails stay finite with bounded sampling (0.3337ms)
+✔ the face's limited displacement cannot fold even across a sharp path reversal (38.0096ms)
+✔ volume defaults, clamping, invalid values and blocked storage are handled (1.6225ms)
+✔ mute avoids creating an audio context and ordinary cues share one context (5.0596ms)
+✔ a pending unlock cannot play after close, and StrictMode-style reuse can reopen (1.132ms)
+✔ wax assets are cached and cleared when the context closes (1.2652ms)
+✔ failed wax downloads are reported, stay silent and can retry (1.1152ms)
+✔ rapid cue bursts are bounded and stop cancels pending unlock work (2.9451ms)
+✔ legacy WebKit AudioContext fallback works without changing the input path (0.4466ms)
+✔ prepare starts audio activation synchronously before a frame or awaited cue (0.3236ms)
+✔ a deep rim contact indents locally with raised shoulders on both sides (133.445ms)
+✔ slow deep holds retain pressure while approaching and following the rim (310.9329ms)
+✔ fast rubbing cannot paint a sustained deep trench near the rim (108.9855ms)
+✔ contact follows the deformed contour continuously and hands pressure over to the pull (336.9769ms)
+✔ a fixed pointer near the dented rim reaches equilibrium without pressure/pull feedback growth (409.8835ms)
+✔ shell support keeps its local dwell response during a slow rim stroke (125.0347ms)
+✔ the visible tip stays under the pointer on the very first frame (1.6545ms)
+✔ the real frame integration responds equally on a first grab, held grab and regrab (0.4524ms)
+✔ a first pull just past the taut distance has no extra rim activation delay (0.1546ms)
+✔ tip growth depends continuously on stretch rather than time since a click (0.188ms)
+✔ gentle slow pulls keep the small tip visible while the body follows (3.9789ms)
+✔ actual frames preserve slack, wall constraints, coasting and low-frame stability (0.6898ms)
+✔ held force reads the current pointer on each substep at 12.5, 31 and 62 fps (0.8444ms)
+✔ local depression and raised reservoir share a bounded signed height integral (477.5949ms)
+✔ exact input, separate local contact age, continuous trail and ordered recovery (83.57ms)
+✔ reversals, circles and long pointer jumps remain finite and settle (429.3426ms)
+✔ multiple waves coexist, keep independent parameters and have a finite lifetime (102.1564ms)
+✔ shell support and removed support alter the same deforming contents (58.7843ms)
+✔ one continuous contour contains the tip and remains finite through absorption (27.4895ms)
+✔ low frame rates, cancellation and reduced motion preserve bounded material feedback (401.937ms)
+✔ contact time uses wall time even when a physics frame must be clamped (0.8774ms)
+✔ body pressure and impact stay inside the reserved wall margin while the tip is free (11.0677ms)
+✔ renderer reuses pixels without image encoding and clips lighting to the current membrane (68.803ms)
+✔ measured material workload has bounded memory under a prolonged input (254.9624ms)
+ℹ 360 material frames: 254.6 ms
+✔ rubbing the rim pushes outward in proportion to pressure (1.6355ms)
+✔ the cubic contour also stays outside the original circle (3.2892ms)
+✔ moving the trail keeps a stable grid and smooth unsaturated distortion (41.5823ms)
+✔ an outside pulled tip stays neutral and merges without a circular hole inside (24.3002ms)
+✔ faded and empty trails remove all pressure shading (13.3159ms)
+✔ the filter never clips a pulled tip outside the fixed depth grid (13.9148ms)
+✔ wax starts intact and ignores contacts outside the shell (2.0379ms)
+✔ seeded fractures are reproducible and different resets have different topology (3.3911ms)
+✔ fracture count alone never crumbles a large piece (16.1037ms)
+✔ all remaining regions remain reachable across many deterministic seeds (375.389ms)
+✔ fractures preserve area and do not mutate the old shell (0.2941ms)
+✔ dragging one hold cannot immediately refracture its newly created fragments (0.4271ms)
+✔ repeated keyboard-targeted holds remove the entire shell without stalled slivers (13.0309ms)
+ℹ tests 48
+ℹ suites 0
+ℹ pass 48
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2019.0404

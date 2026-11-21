@@ -1,0 +1,51 @@
+✔ right-angle paths get rounded corners without overshooting their bounds (2.0466ms)
+✔ duplicates, reversals and long trails stay finite with bounded sampling (0.3157ms)
+✔ the face's limited displacement cannot fold even across a sharp path reversal (35.5869ms)
+✔ volume defaults, clamping, invalid values and blocked storage are handled (1.8087ms)
+✔ mute avoids creating an audio context and ordinary cues share one context (4.2344ms)
+✔ a pending unlock cannot play after close, and StrictMode-style reuse can reopen (0.8725ms)
+✔ wax assets are cached and cleared when the context closes (0.9832ms)
+✔ failed wax downloads are reported, stay silent and can retry (0.7319ms)
+✔ rapid cue bursts are bounded and stop cancels pending unlock work (2.3769ms)
+✔ legacy WebKit AudioContext fallback works without changing the input path (0.5135ms)
+✔ prepare starts audio activation synchronously before a frame or awaited cue (0.2976ms)
+✔ the visible tip stays under the pointer on the very first frame (2.4122ms)
+✔ the real frame integration responds equally on a first grab, held grab and regrab (0.5627ms)
+✔ a first pull just past the taut distance has no extra rim activation delay (0.1842ms)
+✔ tip growth depends continuously on stretch rather than time since a click (0.1801ms)
+✔ gentle slow pulls keep the small tip visible while the body follows (4.1762ms)
+✔ actual frames preserve slack, wall constraints, coasting and low-frame stability (0.2922ms)
+✔ held force reads the current pointer on each substep at 12.5, 31 and 62 fps (0.5549ms)
+✔ local depression and raised reservoir share a bounded signed height integral (424.2869ms)
+✔ exact input, separate local contact age, continuous trail and ordered recovery (62.9836ms)
+✔ reversals, circles and long pointer jumps remain finite and settle (293.2921ms)
+✔ multiple waves coexist, keep independent parameters and have a finite lifetime (98.9051ms)
+✔ shell support and removed support alter the same deforming contents (43.8867ms)
+✔ one continuous contour contains the tip and remains finite through absorption (23.6392ms)
+✔ low frame rates, cancellation and reduced motion preserve bounded material feedback (345.3878ms)
+✔ contact time uses wall time even when a physics frame must be clamped (0.6591ms)
+✔ body pressure and impact stay inside the reserved wall margin while the tip is free (10.6401ms)
+✔ renderer reuses pixels without image encoding and clips lighting to the current membrane (18.5101ms)
+✔ measured material workload has bounded memory under a prolonged input (191.7242ms)
+ℹ 360 material frames: 191.4 ms
+✔ rubbing the rim pushes outward in proportion to pressure (2.0106ms)
+✔ the cubic contour also stays outside the original circle (3.7806ms)
+✔ moving the trail keeps a stable grid and smooth unsaturated distortion (33.8518ms)
+✔ an outside pulled tip stays neutral and merges without a circular hole inside (19.2544ms)
+✔ faded and empty trails remove all pressure shading (10.8317ms)
+✔ the filter never clips a pulled tip outside the fixed depth grid (12.6237ms)
+✔ wax starts intact and ignores contacts outside the shell (2.29ms)
+✔ seeded fractures are reproducible and different resets have different topology (3.5405ms)
+✔ fracture count alone never crumbles a large piece (14.5319ms)
+✔ all remaining regions remain reachable across many deterministic seeds (336.8372ms)
+✔ fractures preserve area and do not mutate the old shell (0.3197ms)
+✔ dragging one hold cannot immediately refracture its newly created fragments (0.9015ms)
+✔ repeated keyboard-targeted holds remove the entire shell without stalled slivers (12.0692ms)
+ℹ tests 42
+ℹ suites 0
+ℹ pass 42
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1614.7442

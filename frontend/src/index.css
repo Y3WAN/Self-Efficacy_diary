@@ -1679,6 +1679,8 @@ h1, .community-title, .diary-header h2 {
 
 body:has(.mallang-page) { overflow-x: clip; }
 .mallang-page {
+  /* The stretched canvas must not resize the playground by creating scrollbars. */
+  overflow: clip;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -1799,10 +1801,12 @@ body:has(.mallang-page) { overflow-x: clip; }
   background: var(--card);
   box-shadow: var(--shadow-sm);
   -webkit-touch-callout: none;
+  touch-action: none;
 }
 .mallang-bounds {
   position: absolute;
-  inset: calc(var(--mallang-size) * 0.47 + 4px);
+  /* Radius 94 + up to 14 pressure expansion and 3 impact expansion. */
+  inset: calc(var(--mallang-size) * 0.555 + 4px);
 }
 .mallang-character {
   --mallang-rebound: 210ms cubic-bezier(0.2, 0.76, 0.32, 1);
@@ -1818,13 +1822,10 @@ body:has(.mallang-page) { overflow-x: clip; }
 }
 .mallang-ground-shadow {
   position: absolute;
-  left: 9%;
-  right: 9%;
-  bottom: -11%;
-  height: 25%;
+  inset: -4%;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgb(91 44 68 / 0.43), rgb(91 44 68 / 0.20) 43%, transparent 73%);
-  filter: blur(4px);
+  background: radial-gradient(circle, rgb(91 44 68 / 0.14) 55%, rgb(91 44 68 / 0.07) 64%, transparent 72%);
+  filter: blur(3px);
   pointer-events: none;
 }
 .mallang-body {
@@ -1832,17 +1833,16 @@ body:has(.mallang-page) { overflow-x: clip; }
   height: 100%;
   position: relative;
   border: 0;
-  border-radius: 50% 50% 45% 55% / 55% 55% 45% 45%;
+  border-radius: 50%;
   background: transparent;
   touch-action: none;
   cursor: grab;
   transition: transform var(--mallang-rebound);
 }
-/* Give taps just outside the visible circle a small margin on every side. */
 .mallang-body::before {
   content: "";
   position: absolute;
-  inset: calc(3% - 10px);
+  inset: -6%;
   border-radius: 50%;
 }
 .mallang-body svg { pointer-events: none; }
@@ -1852,6 +1852,16 @@ body:has(.mallang-page) { overflow-x: clip; }
   pointer-events: none;
   transform-origin: center;
 }
+.mallang-face svg { width: 100%; height: 100%; }
+.mallang-material-canvas {
+  position: absolute;
+  left: -50%;
+  top: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+}
+.mallang-material-light { z-index: 2; }
 .mallang-wax-shell {
   position: absolute;
   inset: 0;

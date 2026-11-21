@@ -4,8 +4,8 @@ const FULL_TURN = Math.PI * 2;
 const RIM_POINTS = 64;
 const CONTACT_SIDES = 14;
 const MIN_REGION_AREA = 0.5;
-const MIN_WAX_AREA_RATIO = 0.003;
-const MAX_WAX_DEPTH = 4;
+// A crumb must occupy at most 1.2% of the original shell's projected area.
+const CRUMBLE_AREA_RATIO = 0.012;
 
 function sideOfEdge(start, end, point) {
   return (end.x - start.x) * (point.y - start.y) - (end.y - start.y) * (point.x - start.x);
@@ -70,12 +70,12 @@ function pieceOf(id, depth, regions, fractured = false) {
   // The outside of a contact may contain several convex regions. Render it as one shell piece.
   const transform = inset ? "translate(" + center.x + " " + center.y + ") scale(" + scale +
     ") translate(" + -center.x + " " + -center.y + ")" : undefined;
-  return { id, depth, regions, area, path, transform };
+  return { id, depth, regions, area, path, transform, center };
 }
 
-export function createWaxShell(center, radius) {
+export function createWaxShell(center, radius, seed = Math.floor(Math.random() * 0xffffffff)) {
   const whole = regionOf(ellipsePoints({ x: center, y: center }, radius, RIM_POINTS));
-  return { pieces: [pieceOf(0, 0, [whole])], chips: [], wholeArea: whole.area, fractures: 0, nextPieceId: 1 };
+  return { pieces: [pieceOf(0, 0, [whole])], chips: [], wholeArea: whole.area, fractures: 0, nextPieceId: 1, seed };
 }
 
 function splitAlongEdge(points, start, end) {
@@ -146,7 +146,8 @@ function contactWithPiece(piece, point, radius, boundary) {
 }
 
 export function fractureWaxShell(shell, point, radius, pieceLimit = Infinity) {
-  const boundary = ellipsePoints(point, radius, CONTACT_SIDES, PRESS_FLATTENING, PRESS_TILT);
+  const randomTurn = ((shell.seed * 1664525 + shell.fractures * 1013904223) >>> 0) / 0x100000000;
+  const boundary = ellipsePoints(point, radius, CONTACT_SIDES, PRESS_FLATTENING, PRESS_TILT + randomTurn * 0.28);
   const pieces = [];
   const chips = [...shell.chips];
   let nextPieceId = shell.nextPieceId;
@@ -166,22 +167,27 @@ export function fractureWaxShell(shell, point, radius, pieceLimit = Infinity) {
     const area = touched.reduce((total, region) => total + region.area, 0);
     largestBreakArea = Math.max(largestBreakArea, area);
     const depth = piece.depth + 1;
-    const crumbles = depth > MAX_WAX_DEPTH || (depth >= 3 && area / shell.wholeArea <= MIN_WAX_AREA_RATIO);
+    const crumbles = depth >= 3 && area / shell.wholeArea <= CRUMBLE_AREA_RATIO;
     if (remainder.length) pieces.push(pieceOf(piece.id, piece.depth, remainder));
 
     if (crumbles) {
-      for (const region of touched) chips.push({ id: nextPieceId++, path: region.path, fadeMs: 190 });
+      for (const region of touched) chips.push({ id: nextPieceId++, path: region.path, area: region.area, fadeMs: 190 });
       continue;
     }
 
     // Convex partitions describe the contact boundary, while each visible shard can include several partitions.
-    const fragments = splitRegions(touched, point, nextPieceId);
+    // Repeated edge presses must still subdivide a large shard. Cutting through
+    // a touched convex region's center prevents an unchanged shard gaining depth.
+    const splitPoint = depth > 1
+      ? regionCenter(touched.reduce((best, region) => region.area > best.area ? region : best))
+      : point;
+    const fragments = splitRegions(touched, splitPoint, nextPieceId + randomTurn * 6);
     if (depth === 1 && fragments.length === 2 && area / shell.wholeArea > 0.05) {
       const areaOfGroup = (regions) => regions.reduce((total, region) => total + region.area, 0);
       const largest = areaOfGroup(fragments[0]) >= areaOfGroup(fragments[1]) ? 0 : 1;
       const group = fragments[largest];
       const origin = regionCenter(group.reduce((best, region) => region.area > best.area ? region : best));
-      fragments.splice(largest, 1, ...splitRegions(group, origin, nextPieceId + 1));
+      fragments.splice(largest, 1, ...splitRegions(group, origin, nextPieceId + 1 + randomTurn * 6));
     }
     for (const regions of fragments) pieces.push(pieceOf(nextPieceId++, depth, regions, true));
   }

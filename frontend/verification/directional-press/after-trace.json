@@ -1,0 +1,2320 @@
+{
+  "phase": "after",
+  "frames": {
+    "01-rest": {
+      "active": false,
+      "frameCount": 0,
+      "contact": null,
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "02-light": {
+      "active": true,
+      "frameCount": 4,
+      "contact": {
+        "x": 32.00000265370244,
+        "y": 100,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 762.4000000022352,
+        "held": 79.09999999776483,
+        "pressure": 1,
+        "startedAt": 762.4000000022352,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 841.5,
+        "contact": {
+          "x": 32.00000265370244,
+          "y": 100
+        },
+        "depth": 0.34936162170215246,
+        "center": 1.7875760249808081e-7,
+        "energy": 3.0971833038330083,
+        "pressure": 1,
+        "contactHeight": -2.92775760416597,
+        "dentHeight": -2.92775760416597,
+        "rimMin": 94,
+        "rimMax": 98.89105987548828,
+        "rimPeakAngle": 180,
+        "rimAtContact": 98.89105987548828,
+        "rimOpposite": 94,
+        "displaced": 1474.3999214172363,
+        "raised": 1474.3999185606867,
+        "signedHeight": -0.000002856548878360849,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "03-deep": {
+      "active": false,
+      "frameCount": 54,
+      "contact": {
+        "x": 32.00000265370244,
+        "y": 100,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 762.4000000022352,
+        "held": 760,
+        "pressure": 1,
+        "startedAt": 762.4000000022352,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 1674.8,
+        "contact": {
+          "x": 32.00000265370244,
+          "y": 100
+        },
+        "depth": 1,
+        "center": 1.3481942415237427,
+        "energy": 0.0009495985135436059,
+        "pressure": 1,
+        "contactHeight": -14.994161384413653,
+        "dentHeight": -14.994161384413653,
+        "rimMin": 94,
+        "rimMax": 108,
+        "rimPeakAngle": 180,
+        "rimAtContact": 108,
+        "rimOpposite": 94,
+        "displaced": 24656.51774787903,
+        "raised": 24656.517944937532,
+        "signedHeight": 0.0001970585338755783,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "04-arc-6": {
+      "active": true,
+      "frameCount": 68,
+      "contact": {
+        "x": 37.1761819590693,
+        "y": 73.97752844769022,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 2025.199999999255,
+        "held": 760,
+        "pressure": 1,
+        "startedAt": 762.4000000022352,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 2058.2,
+        "contact": {
+          "x": 37.1761819590693,
+          "y": 73.97752844769022
+        },
+        "depth": 1,
+        "center": 1.3574295043945312,
+        "energy": 4.421478233337403,
+        "pressure": 1,
+        "contactHeight": -14.149353415050577,
+        "dentHeight": -14.149353415050577,
+        "rimMin": 94,
+        "rimMax": 108,
+        "rimPeakAngle": 202.5,
+        "rimAtContact": 107.999999895051,
+        "rimOpposite": 94,
+        "displaced": 23968.171859285358,
+        "raised": 23968.17151754613,
+        "signedHeight": -0.00034173926214076686,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "04-arc-12": {
+      "active": true,
+      "frameCount": 81,
+      "contact": {
+        "x": 51.91673610521399,
+        "y": 51.91673610521399,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 2242.699999999255,
+        "held": 760,
+        "pressure": 1,
+        "startedAt": 762.4000000022352,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 2274.8,
+        "contact": {
+          "x": 51.91673610521399,
+          "y": 51.91673610521399
+        },
+        "depth": 1,
+        "center": 1.3826669454574585,
+        "energy": 4.422906570434571,
+        "pressure": 1,
+        "contactHeight": -14.296297923752626,
+        "dentHeight": -14.296297923752626,
+        "rimMin": 94,
+        "rimMax": 108,
+        "rimPeakAngle": 225,
+        "rimAtContact": 108,
+        "rimOpposite": 94,
+        "displaced": 23996.299599886326,
+        "raised": 23996.299795982726,
+        "signedHeight": 0.00019609755815359363,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "04-arc-18": {
+      "active": true,
+      "frameCount": 98,
+      "contact": {
+        "x": 73.97752844769022,
+        "y": 37.1761819590693,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 2541.900000002235,
+        "held": 760,
+        "pressure": 1,
+        "startedAt": 762.4000000022352,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 2558.1,
+        "contact": {
+          "x": 73.97752844769022,
+          "y": 37.1761819590693
+        },
+        "depth": 1,
+        "center": 1.3858426809310913,
+        "energy": 5.330512924194337,
+        "pressure": 1,
+        "contactHeight": -13.771090359583788,
+        "dentHeight": -13.771090359583788,
+        "rimMin": 94,
+        "rimMax": 108,
+        "rimPeakAngle": 247.5,
+        "rimAtContact": 107.999999895051,
+        "rimOpposite": 94,
+        "displaced": 23839.631598399414,
+        "raised": 23839.631682978074,
+        "signedHeight": 0.00008457872230432776,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "04-arc-24": {
+      "active": true,
+      "frameCount": 111,
+      "contact": {
+        "x": 100,
+        "y": 32.00000265370245,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 2759,
+        "held": 760,
+        "pressure": 1,
+        "startedAt": 762.4000000022352,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 2774.7,
+        "contact": {
+          "x": 100,
+          "y": 32.00000265370245
+        },
+        "depth": 1,
+        "center": 1.4000803232192993,
+        "energy": 5.285745544433595,
+        "pressure": 1,
+        "contactHeight": -13.940138653907722,
+        "dentHeight": -13.940138653907722,
+        "rimMin": 94,
+        "rimMax": 108,
+        "rimPeakAngle": 270,
+        "rimAtContact": 108,
+        "rimOpposite": 94,
+        "displaced": 23885.923925632746,
+        "raised": 23885.924158311664,
+        "signedHeight": 0.00023267894589509497,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "05-release": {
+      "active": true,
+      "frameCount": 119,
+      "contact": null,
+      "last": {
+        "time": 2908,
+        "contact": null,
+        "depth": 0.9872775536646126,
+        "center": 1.3660202026367188,
+        "energy": 0.3601735305786133,
+        "pressure": 0,
+        "contactHeight": 0,
+        "dentHeight": -14.97240044301725,
+        "rimMin": 94,
+        "rimMax": 107.82188415527344,
+        "rimPeakAngle": 270,
+        "rimAtContact": 107.82188415527344,
+        "rimOpposite": 94,
+        "displaced": 24554.084303284268,
+        "raised": 24554.084132663895,
+        "signedHeight": -0.00017062034339075086,
+        "trail": 1,
+        "waves": 1,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "05b-refilling": {
+      "active": true,
+      "frameCount": 138,
+      "contact": null,
+      "last": {
+        "time": 3224.8,
+        "contact": null,
+        "depth": 0.451318656248363,
+        "center": -0.012302646413445473,
+        "energy": 2.219745597839356,
+        "pressure": 0,
+        "contactHeight": 0,
+        "dentHeight": -8.491813434744708,
+        "rimMin": 94,
+        "rimMax": 100.3184585571289,
+        "rimPeakAngle": 270,
+        "rimAtContact": 100.3184585571289,
+        "rimOpposite": 94,
+        "displaced": 7558.850350476334,
+        "raised": 7558.850305969889,
+        "signedHeight": -0.00004450644130468695,
+        "trail": 1,
+        "waves": 1,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "06-restored": {
+      "active": false,
+      "frameCount": 289,
+      "contact": null,
+      "last": {
+        "time": 5741.3,
+        "contact": null,
+        "depth": 0,
+        "center": 0,
+        "energy": 0,
+        "pressure": 0,
+        "contactHeight": 0,
+        "dentHeight": 0,
+        "rimMin": 94,
+        "rimMax": 94,
+        "rimPeakAngle": null,
+        "rimAtContact": 94,
+        "rimOpposite": 94,
+        "displaced": 0,
+        "raised": 0,
+        "signedHeight": 0,
+        "trail": 0,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "cross-4": {
+      "active": true,
+      "frameCount": 348,
+      "contact": {
+        "x": 54.66666843580163,
+        "y": 100,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 7426.900000002235,
+        "held": 760,
+        "pressure": 1,
+        "startedAt": 6471.300000000745,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 7441.2,
+        "contact": {
+          "x": 54.66666843580163,
+          "y": 100
+        },
+        "depth": 1,
+        "center": 2.6985702514648438,
+        "energy": 6.214419403076173,
+        "pressure": 1,
+        "contactHeight": -13.283891299080217,
+        "dentHeight": -13.283891299080217,
+        "rimMin": 94,
+        "rimMax": 105.91259002685547,
+        "rimPeakAngle": 180,
+        "rimAtContact": 105.91259002685547,
+        "rimOpposite": 94,
+        "displaced": 23820.375546455383,
+        "raised": 23820.375717844196,
+        "signedHeight": 0.00017138881904761274,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "cross-8": {
+      "active": true,
+      "frameCount": 357,
+      "contact": {
+        "x": 77.33333421790081,
+        "y": 100,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 7575.400000002235,
+        "held": 760,
+        "pressure": 1,
+        "startedAt": 6471.300000000745,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 7591.2,
+        "contact": {
+          "x": 77.33333421790081,
+          "y": 100
+        },
+        "depth": 1,
+        "center": -3.1122822761535645,
+        "energy": 5.949027481079102,
+        "pressure": 1,
+        "contactHeight": -13.388189090988423,
+        "dentHeight": -13.388189090988423,
+        "rimMin": 94,
+        "rimMax": 97.39266967773438,
+        "rimPeakAngle": 180,
+        "rimAtContact": 97.39266967773438,
+        "rimOpposite": 94,
+        "displaced": 24172.414302903955,
+        "raised": 24172.414438942356,
+        "signedHeight": 0.00013603841461494606,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "cross-12": {
+      "active": true,
+      "frameCount": 365,
+      "contact": {
+        "x": 100,
+        "y": 100,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 7709.900000002235,
+        "held": 760,
+        "pressure": 1,
+        "startedAt": 6471.300000000745,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 7724.5,
+        "contact": {
+          "x": 100,
+          "y": 100
+        },
+        "depth": 1,
+        "center": -13.3260498046875,
+        "energy": 6.175020904541016,
+        "pressure": 1,
+        "contactHeight": -13.3260498046875,
+        "dentHeight": -13.3260498046875,
+        "rimMin": 94,
+        "rimMax": 94,
+        "rimPeakAngle": null,
+        "rimAtContact": 94,
+        "rimOpposite": 94,
+        "displaced": 24069.286876928396,
+        "raised": 24069.28682539649,
+        "signedHeight": -0.00005153192902273228,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "cross-16": {
+      "active": true,
+      "frameCount": 378,
+      "contact": {
+        "x": 122.66666578209919,
+        "y": 100,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 7925.10000000149,
+        "held": 760,
+        "pressure": 1,
+        "startedAt": 6471.300000000745,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 7941.2,
+        "contact": {
+          "x": 122.66666578209919,
+          "y": 100
+        },
+        "depth": 1,
+        "center": -10.630270004272461,
+        "energy": 6.024485549926759,
+        "pressure": 1,
+        "contactHeight": -13.304816435983293,
+        "dentHeight": -13.304816435983293,
+        "rimMin": 94,
+        "rimMax": 97.39266967773438,
+        "rimPeakAngle": 0,
+        "rimAtContact": 97.39266967773438,
+        "rimOpposite": 94,
+        "displaced": 24097.296509992277,
+        "raised": 24097.296561606225,
+        "signedHeight": 0.000051613966263608035,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "cross-20": {
+      "active": true,
+      "frameCount": 386,
+      "contact": {
+        "x": 145.33333156419837,
+        "y": 100,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 8059,
+        "held": 760,
+        "pressure": 1,
+        "startedAt": 6471.300000000745,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 8074.5,
+        "contact": {
+          "x": 145.33333156419837,
+          "y": 100
+        },
+        "depth": 1,
+        "center": 0.4722137749195099,
+        "energy": 6.19157829284668,
+        "pressure": 1,
+        "contactHeight": -13.27109287169625,
+        "dentHeight": -13.27109287169625,
+        "rimMin": 94,
+        "rimMax": 105.91259002685547,
+        "rimPeakAngle": 0,
+        "rimAtContact": 105.91259002685547,
+        "rimOpposite": 94,
+        "displaced": 24042.95942605719,
+        "raised": 24042.959659879165,
+        "signedHeight": 0.00023382196976048583,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "cross-24": {
+      "active": true,
+      "frameCount": 394,
+      "contact": {
+        "x": 167.99999734629756,
+        "y": 100,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 8192.199999999255,
+        "held": 760,
+        "pressure": 1,
+        "startedAt": 6471.300000000745,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 8207.8,
+        "contact": {
+          "x": 167.99999734629756,
+          "y": 100
+        },
+        "depth": 1,
+        "center": 2.3137197494506836,
+        "energy": 6.490163497924805,
+        "pressure": 1,
+        "contactHeight": -13.321623314883807,
+        "dentHeight": -13.321623314883807,
+        "rimMin": 94,
+        "rimMax": 108,
+        "rimPeakAngle": 0,
+        "rimAtContact": 108,
+        "rimOpposite": 94,
+        "displaced": 23708.256121749087,
+        "raised": 23708.255450819877,
+        "signedHeight": -0.0006709292222076678,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "regrab-before": {
+      "active": true,
+      "frameCount": 400,
+      "contact": null,
+      "last": {
+        "time": 8307.9,
+        "contact": null,
+        "depth": 0.9482709975630805,
+        "center": 1.4424232244491577,
+        "energy": 1.3246532821655275,
+        "pressure": 0,
+        "contactHeight": 0,
+        "dentHeight": -14.705873300331524,
+        "rimMin": 94,
+        "rimMax": 107.27579498291016,
+        "rimPeakAngle": 0,
+        "rimAtContact": 107.27579498291016,
+        "rimOpposite": 94,
+        "displaced": 23690.03836660218,
+        "raised": 23690.038474350426,
+        "signedHeight": 0.00010774823961107692,
+        "trail": 1,
+        "waves": 1,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "regrab-after": {
+      "active": true,
+      "frameCount": 403,
+      "contact": {
+        "x": 167.99999734629756,
+        "y": 100,
+        "anchorX": 167.99999734629756,
+        "anchorY": 100,
+        "lastAt": 8321.199999999255,
+        "held": 36.700000000744694,
+        "pressure": 1,
+        "startedAt": 8321.199999999255,
+        "inheritedDepth": 0.933512257022186,
+        "rimStart": {
+          "x": 167.99999734629756,
+          "y": 100,
+          "depth": 0.933512257022186
+        }
+      },
+      "last": {
+        "time": 8357.9,
+        "contact": {
+          "x": 167.99999734629756,
+          "y": 100
+        },
+        "depth": 0.933512257022186,
+        "center": 1.2065774202346802,
+        "energy": 0.8901502132415773,
+        "pressure": 1,
+        "contactHeight": -14.420793309919764,
+        "dentHeight": -14.420793309919764,
+        "rimMin": 94,
+        "rimMax": 107.06916809082031,
+        "rimPeakAngle": 0,
+        "rimAtContact": 107.06916809082031,
+        "rimOpposite": 94,
+        "displaced": 22569.751995947154,
+        "raised": 22569.752084281175,
+        "signedHeight": 0.00008833402110205226,
+        "trail": 2,
+        "waves": 1,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "07-outside-pull": {
+      "active": true,
+      "frameCount": 594,
+      "contact": {
+        "x": 194,
+        "y": 100,
+        "anchorX": 185.00001326851222,
+        "anchorY": 100,
+        "lastAt": 11941,
+        "held": 296.2999999985095,
+        "pressure": 0,
+        "startedAt": 11678.10000000149,
+        "inheritedDepth": 0,
+        "rimStart": null
+      },
+      "last": {
+        "time": 11974.4,
+        "contact": {
+          "x": 194,
+          "y": 100
+        },
+        "depth": 0,
+        "center": -0.0000028730760277539957,
+        "energy": 1.370268077850342,
+        "pressure": 0,
+        "contactHeight": -0.5453961193561554,
+        "dentHeight": -0.5453961193561554,
+        "rimMin": 94,
+        "rimMax": 94,
+        "rimPeakAngle": null,
+        "rimAtContact": 94,
+        "rimOpposite": 94,
+        "displaced": 280.68507531351025,
+        "raised": 280.68507609308864,
+        "signedHeight": 7.795782960358686e-7,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": {
+          "x": 228,
+          "y": 100,
+          "radius": 38,
+          "blend": 1
+        },
+        "x": 56.70412693229717,
+        "y": 49.99807447914661,
+        "vx": 0.6227705495196505,
+        "vy": 0
+      },
+      "center": [
+        585.515625,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "08-pull-restored": {
+      "active": false,
+      "frameCount": 772,
+      "contact": null,
+      "last": {
+        "time": 14941,
+        "contact": null,
+        "depth": 0,
+        "center": 0,
+        "energy": 0,
+        "pressure": 0,
+        "contactHeight": 0,
+        "dentHeight": 0,
+        "rimMin": 94,
+        "rimMax": 94,
+        "rimPeakAngle": null,
+        "rimAtContact": 94,
+        "rimOpposite": 94,
+        "displaced": 0,
+        "raised": 0,
+        "signedHeight": 0,
+        "trail": 0,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 64.6665735336997,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        627.6875,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "short-click": {
+      "active": true,
+      "frameCount": 777,
+      "contact": null,
+      "last": {
+        "time": 16357.6,
+        "contact": null,
+        "depth": 0.2140871342133442,
+        "center": 7.05059903793881e-8,
+        "energy": 2.0782468986511233,
+        "pressure": 0,
+        "contactHeight": 0,
+        "dentHeight": -1.9849847701421508,
+        "rimMin": 94,
+        "rimMax": 96.99722290039062,
+        "rimPeakAngle": 0,
+        "rimAtContact": 96.99722290039062,
+        "rimOpposite": 94,
+        "displaced": 865.5776209831238,
+        "raised": 865.5776184954734,
+        "signedHeight": -0.000002487650242856693,
+        "trail": 1,
+        "waves": 1,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 64.66407125582492,
+        "y": 49.99807447914661,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        627.6875,
+        518.015625
+      ],
+      "url": "/mallang"
+    }
+  },
+  "consoleErrors": [],
+  "networkFailures": [],
+  "restCenter": {
+    "x": 550,
+    "y": 518.015625,
+    "size": 184
+  },
+  "pullRecords": [
+    {
+      "time": 11678.10000000149,
+      "contact": {
+        "x": 185.00001326851222,
+        "y": 100
+      },
+      "depth": 0.22,
+      "center": 0,
+      "energy": 0,
+      "pressure": 1,
+      "contactHeight": 0,
+      "dentHeight": 0,
+      "rimMin": 94,
+      "rimMax": 97.08000183105469,
+      "rimPeakAngle": 0,
+      "rimAtContact": 97.08000183105469,
+      "rimOpposite": 94,
+      "displaced": 0,
+      "raised": 0,
+      "signedHeight": 0,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 50,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 11691.1,
+      "contact": {
+        "x": 185.00001326851222,
+        "y": 100
+      },
+      "depth": 0.22,
+      "center": 1.8443612193053127e-9,
+      "energy": 1.6773983383178712,
+      "pressure": 1,
+      "contactHeight": -0.24792614543822392,
+      "dentHeight": -0.24792614543822392,
+      "rimMin": 94,
+      "rimMax": 97.08000183105469,
+      "rimPeakAngle": 0,
+      "rimAtContact": 97.08000183105469,
+      "rimOpposite": 94,
+      "displaced": 108.90329624712467,
+      "raised": 108.90329848384131,
+      "signedHeight": 0.000002236717999654428,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 50,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 11707.8,
+      "contact": {
+        "x": 185.00001326851222,
+        "y": 100
+      },
+      "depth": 0.22,
+      "center": 3.9388432071518764e-8,
+      "energy": 2.476841735839844,
+      "pressure": 1,
+      "contactHeight": -0.8011429258240637,
+      "dentHeight": -0.8011429258240637,
+      "rimMin": 94,
+      "rimMax": 97.08000183105469,
+      "rimPeakAngle": 0,
+      "rimAtContact": 97.08000183105469,
+      "rimOpposite": 94,
+      "displaced": 351.9096927344799,
+      "raised": 351.909692165552,
+      "signedHeight": -5.689277888008836e-7,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 50,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 11724.4,
+      "contact": {
+        "x": 185.00001326851222,
+        "y": 100
+      },
+      "depth": 0.2372721992040021,
+      "center": 1.5299374922506104e-7,
+      "energy": 2.644532356262207,
+      "pressure": 1,
+      "contactHeight": -1.4218350515288678,
+      "dentHeight": -1.4218350515288678,
+      "rimMin": 94,
+      "rimMax": 97.32180786132812,
+      "rimPeakAngle": 0,
+      "rimAtContact": 97.32180786132812,
+      "rimOpposite": 94,
+      "displaced": 631.7044295035303,
+      "raised": 631.7044101979324,
+      "signedHeight": -0.000019305598466928703,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 50,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 11741,
+      "contact": {
+        "x": 185.00001326851222,
+        "y": 100
+      },
+      "depth": 0.32263108784474054,
+      "center": 3.5847440926772833e-7,
+      "energy": 3.0928435516357426,
+      "pressure": 1,
+      "contactHeight": -2.136492514836826,
+      "dentHeight": -2.136492514836826,
+      "rimMin": 94,
+      "rimMax": 98.51683807373047,
+      "rimPeakAngle": 0,
+      "rimAtContact": 98.51683807373047,
+      "rimOpposite": 94,
+      "displaced": 1004.8918797969818,
+      "raised": 1004.891898084775,
+      "signedHeight": 0.000018287792694778574,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 50,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 11757.8,
+      "contact": {
+        "x": 185.00001326851222,
+        "y": 100
+      },
+      "depth": 0.3503073516275027,
+      "center": 6.479733087871864e-7,
+      "energy": 3.1055952453613282,
+      "pressure": 1,
+      "contactHeight": -2.8852063514065738,
+      "dentHeight": -2.8852063514065738,
+      "rimMin": 94,
+      "rimMax": 98.90430450439453,
+      "rimPeakAngle": 0,
+      "rimAtContact": 98.90430450439453,
+      "rimOpposite": 94,
+      "displaced": 1443.9668557345867,
+      "raised": 1443.9668498153014,
+      "signedHeight": -0.0000059192882178691474,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 50,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 11774.4,
+      "contact": {
+        "x": 189.99998673148775,
+        "y": 100
+      },
+      "depth": 0.3762570146782597,
+      "center": 9.696349252408254e-7,
+      "energy": 2.980792922973633,
+      "pressure": 1,
+      "contactHeight": -3.279565050496827,
+      "dentHeight": -3.279565050496827,
+      "rimMin": 94,
+      "rimMax": 99.2676010131836,
+      "rimPeakAngle": 0,
+      "rimAtContact": 99.2676010131836,
+      "rimOpposite": 94,
+      "displaced": 1872.8649544715881,
+      "raised": 1872.8648911946652,
+      "signedHeight": -0.00006327692104900064,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 50,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 11791,
+      "contact": {
+        "x": 189.99998673148775,
+        "y": 100
+      },
+      "depth": 0.4017881866397566,
+      "center": 0.0000012049998758811853,
+      "energy": 2.9503956985473634,
+      "pressure": 1,
+      "contactHeight": -3.958380565373735,
+      "dentHeight": -3.958380565373735,
+      "rimMin": 94,
+      "rimMax": 99.62503814697266,
+      "rimPeakAngle": 0,
+      "rimAtContact": 99.62503814697266,
+      "rimOpposite": 94,
+      "displaced": 2306.4233412742615,
+      "raised": 2306.423290722061,
+      "signedHeight": -0.00005055219876706367,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 50,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 11807.7,
+      "contact": {
+        "x": 196.00000796110734,
+        "y": 100
+      },
+      "depth": 0.42704711203852663,
+      "center": 0.0000012197145906611695,
+      "energy": 3.523504676818848,
+      "pressure": 1,
+      "contactHeight": -3.7834422387841964,
+      "dentHeight": -3.7834422387841964,
+      "rimMin": 94,
+      "rimMax": 99.9786605834961,
+      "rimPeakAngle": 0,
+      "rimAtContact": 99.9786605834961,
+      "rimOpposite": 94,
+      "displaced": 2675.1739924533267,
+      "raised": 2675.173995064284,
+      "signedHeight": 0.0000026109595154644856,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 50,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 11824.4,
+      "contact": {
+        "x": 196.00000796110734,
+        "y": 100
+      },
+      "depth": 0.4518747877931402,
+      "center": 8.92197817847773e-7,
+      "energy": 3.785538444519043,
+      "pressure": 1,
+      "contactHeight": -4.539478502178414,
+      "dentHeight": -4.539478502178414,
+      "rimMin": 94,
+      "rimMax": 100.32624816894531,
+      "rimPeakAngle": 0,
+      "rimAtContact": 100.32624816894531,
+      "rimOpposite": 94,
+      "displaced": 3060.7975778839073,
+      "raised": 3060.797583941027,
+      "signedHeight": 0.000006057117846262821,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 50,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 11841.1,
+      "contact": {
+        "x": 198.26238250732422,
+        "y": 100
+      },
+      "depth": 0.32089070406967085,
+      "center": 1.9140502161008044e-7,
+      "energy": 2.6683112716674806,
+      "pressure": 0.67376200446748,
+      "contactHeight": -4.575752677596029,
+      "dentHeight": -4.575752677596029,
+      "rimMin": 94,
+      "rimMax": 98.49246978759766,
+      "rimPeakAngle": 0,
+      "rimAtContact": 98.49246978759766,
+      "rimOpposite": 94,
+      "displaced": 3143.0349568713746,
+      "raised": 3143.034970122115,
+      "signedHeight": 0.00001325058623679613,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": {
+        "x": 203.00001061480978,
+        "y": 100,
+        "radius": 12.39704383023576,
+        "blend": 0.32623799553252
+      },
+      "x": 50,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 11857.7,
+      "contact": {
+        "x": 198.49246978759766,
+        "y": 100
+      },
+      "depth": 0.3369334451267197,
+      "center": -7.676437689951854e-7,
+      "energy": 2.836730079650879,
+      "pressure": 0.67376200446748,
+      "contactHeight": -4.831095559459754,
+      "dentHeight": -4.831095559459754,
+      "rimMin": 94,
+      "rimMax": 98.71707153320312,
+      "rimPeakAngle": 0,
+      "rimAtContact": 98.71707153320312,
+      "rimOpposite": 94,
+      "displaced": 3041.9853890720547,
+      "raised": 3041.985379791574,
+      "signedHeight": -0.00000928047946964789,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": {
+        "x": 203.00001061480978,
+        "y": 100,
+        "radius": 12.39704383023576,
+        "blend": 0.32623799553252
+      },
+      "x": 50,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 11874.4,
+      "contact": {
+        "x": 194,
+        "y": 100
+      },
+      "depth": 0,
+      "center": -0.0000018276083437740454,
+      "energy": 3.2208641052246096,
+      "pressure": 0,
+      "contactHeight": -4.588923692703247,
+      "dentHeight": -4.588923692703247,
+      "rimMin": 94,
+      "rimMax": 94,
+      "rimPeakAngle": null,
+      "rimAtContact": 94,
+      "rimOpposite": 94,
+      "displaced": 2647.9187838113535,
+      "raised": 2647.9187851224324,
+      "signedHeight": 0.0000013110795845438075,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": {
+        "x": 208.7813488223647,
+        "y": 100,
+        "radius": 38,
+        "blend": 1
+      },
+      "x": 50.21162909983238,
+      "y": 49.99807447914661,
+      "vx": 0.08723133342295267,
+      "vy": 0
+    },
+    {
+      "time": 11891,
+      "contact": {
+        "x": 194,
+        "y": 100
+      },
+      "depth": 0.016347682775505478,
+      "center": -0.000002752248974502436,
+      "energy": 3.8556684875488285,
+      "pressure": 0.029912558299162617,
+      "contactHeight": -3.719294548034668,
+      "dentHeight": -3.719294548034668,
+      "rimMin": 94,
+      "rimMax": 94.22886657714844,
+      "rimPeakAngle": 0,
+      "rimAtContact": 94.22886657714844,
+      "rimOpposite": 94,
+      "displaced": 2104.1946490596333,
+      "raised": 2104.194613672553,
+      "signedHeight": -0.00003538707806087399,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": {
+        "x": 206.60183311929075,
+        "y": 100,
+        "radius": 36.86332278463182,
+        "blend": 0.9700874417008374
+      },
+      "x": 50.59011634278936,
+      "y": 49.99807447914661,
+      "vx": 0.12843698923000535,
+      "vy": 0
+    },
+    {
+      "time": 11907.7,
+      "contact": {
+        "x": 194,
+        "y": 100
+      },
+      "depth": 0,
+      "center": -0.000003383754801689065,
+      "energy": 3.8082631301879886,
+      "pressure": 0,
+      "contactHeight": -2.8039979934692383,
+      "dentHeight": -2.8039979934692383,
+      "rimMin": 94,
+      "rimMax": 94,
+      "rimPeakAngle": null,
+      "rimAtContact": 94,
+      "rimOpposite": 94,
+      "displaced": 1561.6226839052642,
+      "raised": 1561.622678505459,
+      "signedHeight": -0.000005399806142925783,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": {
+        "x": 211.58654443882187,
+        "y": 100,
+        "radius": 38,
+        "blend": 1
+      },
+      "x": 51.287391651749445,
+      "y": 49.99807447914661,
+      "vx": 0.24330842305970388,
+      "vy": 0
+    },
+    {
+      "time": 11924.4,
+      "contact": {
+        "x": 194,
+        "y": 100
+      },
+      "depth": 0.013401733859130663,
+      "center": -0.0000036629253372666426,
+      "energy": 3.1925627899169924,
+      "pressure": 0.022665524528154624,
+      "contactHeight": -2.0127495527267456,
+      "dentHeight": -2.0127495527267456,
+      "rimMin": 94,
+      "rimMax": 94.1876220703125,
+      "rimPeakAngle": 0,
+      "rimAtContact": 94.1876220703125,
+      "rimOpposite": 94,
+      "displaced": 1100.0039649159849,
+      "raised": 1100.003967022417,
+      "signedHeight": 0.000002106434054916477,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": {
+        "x": 206.6987666017739,
+        "y": 100,
+        "radius": 37.13871006793013,
+        "blend": 0.9773344754718454
+      },
+      "x": 52.13618643451764,
+      "y": 49.99807447914661,
+      "vx": 0.27270531972514467,
+      "vy": 0
+    },
+    {
+      "time": 11941,
+      "contact": {
+        "x": 194,
+        "y": 100
+      },
+      "depth": 0,
+      "center": -0.0000036151839140075026,
+      "energy": 2.5797599792480472,
+      "pressure": 0,
+      "contactHeight": -1.377440333366394,
+      "dentHeight": -1.377440333366394,
+      "rimMin": 94,
+      "rimMax": 94,
+      "rimPeakAngle": null,
+      "rimAtContact": 94,
+      "rimOpposite": 94,
+      "displaced": 739.1127043200831,
+      "raised": 739.112694807072,
+      "signedHeight": -0.000009513010449942949,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": {
+        "x": 213.19938711593096,
+        "y": 100,
+        "radius": 38,
+        "blend": 1
+      },
+      "x": 53.26485059536361,
+      "y": 49.99807447914661,
+      "vx": 0.37729594477558026,
+      "vy": 0
+    },
+    {
+      "time": 11957.7,
+      "contact": {
+        "x": 194,
+        "y": 100
+      },
+      "depth": 0,
+      "center": -0.000003320191808597883,
+      "energy": 1.9359771537780763,
+      "pressure": 0,
+      "contactHeight": -0.8921458125114441,
+      "dentHeight": -0.8921458125114441,
+      "rimMin": 94,
+      "rimMax": 94,
+      "rimPeakAngle": null,
+      "rimAtContact": 94,
+      "rimOpposite": 94,
+      "displaced": 469.5915834588236,
+      "raised": 469.5915825786954,
+      "signedHeight": -8.801279902065324e-7,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": {
+        "x": 220.27588107677332,
+        "y": 100,
+        "radius": 38,
+        "blend": 1
+      },
+      "x": 54.814470605348866,
+      "y": 49.99807447914661,
+      "vx": 0.5203394108521774,
+      "vy": 0
+    },
+    {
+      "time": 11974.4,
+      "contact": {
+        "x": 194,
+        "y": 100
+      },
+      "depth": 0,
+      "center": -0.0000028730760277539957,
+      "energy": 1.370268077850342,
+      "pressure": 0,
+      "contactHeight": -0.5453961193561554,
+      "dentHeight": -0.5453961193561554,
+      "rimMin": 94,
+      "rimMax": 94,
+      "rimPeakAngle": null,
+      "rimAtContact": 94,
+      "rimOpposite": 94,
+      "displaced": 280.68507531351025,
+      "raised": 280.68507609308864,
+      "signedHeight": 7.795782960358686e-7,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": {
+        "x": 228,
+        "y": 100,
+        "radius": 38,
+        "blend": 1
+      },
+      "x": 56.70412693229717,
+      "y": 49.99807447914661,
+      "vx": 0.6227705495196505,
+      "vy": 0
+    },
+    {
+      "time": 11991,
+      "contact": {
+        "x": 194,
+        "y": 100
+      },
+      "depth": 0,
+      "center": -0.0000023639956907572923,
+      "energy": 0.9220345211029054,
+      "pressure": 0,
+      "contactHeight": -0.31164318323135376,
+      "dentHeight": -0.31164318323135376,
+      "rimMin": 94,
+      "rimMax": 94,
+      "rimPeakAngle": null,
+      "rimAtContact": 94,
+      "rimOpposite": 94,
+      "displaced": 156.09669110555512,
+      "raised": 156.09669101677048,
+      "signedHeight": -8.878499199586784e-8,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": {
+        "x": 226.25460423909578,
+        "y": 100,
+        "radius": 38,
+        "blend": 1
+      },
+      "x": 58.812276945531885,
+      "y": 49.99807447914661,
+      "vx": 0.6867252877616583,
+      "vy": 0
+    },
+    {
+      "time": 12007.7,
+      "contact": {
+        "x": 194,
+        "y": 100
+      },
+      "depth": 0,
+      "center": -0.0000018539867596700788,
+      "energy": 0.5865266418457031,
+      "pressure": 0,
+      "contactHeight": -0.16044743359088898,
+      "dentHeight": -0.16044743359088898,
+      "rimMin": 94,
+      "rimMax": 94,
+      "rimPeakAngle": null,
+      "rimAtContact": 94,
+      "rimOpposite": 94,
+      "displaced": 77.70283073782245,
+      "raised": 77.70283066725948,
+      "signedHeight": -7.056297335068101e-8,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": {
+        "x": 213.62859291035466,
+        "y": 100,
+        "radius": 38,
+        "blend": 1
+      },
+      "x": 61.004866891371194,
+      "y": 49.99807447914661,
+      "vx": 0.682983469073682,
+      "vy": 0
+    },
+    {
+      "time": 12024.4,
+      "contact": {
+        "x": 194,
+        "y": 100
+      },
+      "depth": 0.5419837459374338,
+      "center": -0.0000014153570191410836,
+      "energy": 4.354902877807618,
+      "pressure": 0.7590229530404825,
+      "contactHeight": -0.9656097590923309,
+      "dentHeight": -0.9656097590923309,
+      "rimMin": 94,
+      "rimMax": 101.58777618408203,
+      "rimPeakAngle": 0,
+      "rimAtContact": 101.58777618408203,
+      "rimOpposite": 94,
+      "displaced": 677.9841002636745,
+      "raised": 677.9840991643382,
+      "signedHeight": -0.0000010993368143325254,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": {
+        "x": 202.5625634507427,
+        "y": 100,
+        "radius": 9.157127784461665,
+        "blend": 0.2409770469595175
+      },
+      "x": 62.926555721023625,
+      "y": 49.99807447914661,
+      "vx": 0.5914563902371909,
+      "vy": 0
+    },
+    {
+      "time": 12041,
+      "contact": {
+        "x": 192.54268506137532,
+        "y": 100
+      },
+      "depth": 0.7327381384338936,
+      "center": -0.0000012825847761632758,
+      "energy": 7.674529724121094,
+      "pressure": 1,
+      "contactHeight": -2.635913497755718,
+      "dentHeight": -2.635913497755718,
+      "rimMin": 94,
+      "rimMax": 104.25833129882812,
+      "rimPeakAngle": 0,
+      "rimAtContact": 104.25833129882812,
+      "rimOpposite": 94,
+      "displaced": 2169.388856815936,
+      "raised": 2169.3888641030053,
+      "signedHeight": 0.000007287068551137433,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 64.6665735336997,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 12057.7,
+      "contact": {
+        "x": 192.54268506137532,
+        "y": 100
+      },
+      "depth": 0.7510288564516364,
+      "center": -0.0000017747760239217314,
+      "energy": 8.283768768310548,
+      "pressure": 1,
+      "contactHeight": -4.6008695538588436,
+      "dentHeight": -4.6008695538588436,
+      "rimMin": 94,
+      "rimMax": 104.514404296875,
+      "rimPeakAngle": 0,
+      "rimAtContact": 104.514404296875,
+      "rimOpposite": 94,
+      "displaced": 4122.972282612015,
+      "raised": 4122.972302740519,
+      "signedHeight": 0.000020128505875049307,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 64.6665735336997,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    },
+    {
+      "time": 12074.3,
+      "contact": {
+        "x": 192.54268506137532,
+        "y": 100
+      },
+      "depth": 0.7687000058798725,
+      "center": -0.0000030539961244357983,
+      "energy": 7.560350875854493,
+      "pressure": 1,
+      "contactHeight": -6.445658011918054,
+      "dentHeight": -6.445658011918054,
+      "rimMin": 94,
+      "rimMax": 104.76180267333984,
+      "rimPeakAngle": 0,
+      "rimAtContact": 104.76180267333984,
+      "rimOpposite": 94,
+      "displaced": 6075.838930198266,
+      "raised": 6075.838884489189,
+      "signedHeight": -0.00004570907983372001,
+      "trail": 1,
+      "waves": 0,
+      "pieces": 0,
+      "chips": 0,
+      "tip": null,
+      "x": 64.6665735336997,
+      "y": 49.99807447914661,
+      "vx": 0,
+      "vy": 0
+    }
+  ],
+  "events": [
+    {
+      "type": "pointermove",
+      "at": 760.4000000022352,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointerdown",
+      "at": 762,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "gotpointercapture",
+      "at": 813.3000000007451,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 1844.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 1892,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 1925.5,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 1958.9000000022352,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 1991.9000000022352,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2025.1000000014901,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2075.60000000149,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2110,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2141.800000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2175.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2209.300000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2242.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2375.900000002235,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2408.5,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2441.800000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2476.900000002235,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2509.5,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2541.800000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2575.400000002235,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2608.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2658.400000002235,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2692.60000000149,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2726.199999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 2758.900000002235,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointerup",
+      "at": 2862.5,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "lostpointercapture",
+      "at": 2863.5,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointerdown",
+      "at": 6471.10000000149,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "gotpointercapture",
+      "at": 7325.5,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7325.5,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7358.60000000149,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7392.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7426.800000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7460.300000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7508.800000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7542.400000002235,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7575.300000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7608.400000002235,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7641.5,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7675.5,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7709.800000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7825.60000000149,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7858.60000000149,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7892.10000000149,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7925,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7958.10000000149,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 7991.900000002235,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 8025,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 8058.800000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 8091.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 8127.300000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 8159,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 8192.10000000149,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointerup",
+      "at": 8214.199999999255,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "lostpointercapture",
+      "at": 8214.900000002235,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointerdown",
+      "at": 8321.10000000149,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "gotpointercapture",
+      "at": 8369.300000000745,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointerup",
+      "at": 8369.300000000745,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "lostpointercapture",
+      "at": 8370.199999999255,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointerdown",
+      "at": 11677.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "gotpointercapture",
+      "at": 11777.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 11777.800000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 11810.300000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 11842.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 11876.60000000149,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 11911.300000000745,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 11942.400000002235,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 11960.10000000149,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 11975.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointerup",
+      "at": 12086.699999999255,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "lostpointercapture",
+      "at": 12087.5,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointerdown",
+      "at": 16293,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "gotpointercapture",
+      "at": 16308.400000002235,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointerup",
+      "at": 16323,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "lostpointercapture",
+      "at": 16324.199999999255,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    }
+  ]
+}

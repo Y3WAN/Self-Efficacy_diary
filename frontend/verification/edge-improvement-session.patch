@@ -1,0 +1,529 @@
+--- a/frontend/src/utils/mallangMaterial.js
++++ b/frontend/src/utils/mallangMaterial.js
+@@ -1,11 +1,13 @@
+ // Material coordinates: a 200-unit body; time: milliseconds; height: visual units.
+-import { pressDepth, pressRecoveryDuration, smoothStep } from "./surfacePress.js";
++import { FULL_PRESS_MS, pressDepth, pressRecoveryDuration, smoothStep } from "./surfacePress.js";
+ 
+ export const MATERIAL = Object.freeze({
+   radius: 94, center: 100, grid: 57, extent: 224, origin: -12,
+   maxDent: 15, spring: 118, damping: 21, coupling: 22,
+   maxTrail: 72, spacing: 3, maxWaves: 12,
+   waveSpeed: 75.2, waveWidth: 94 * 0.19 * 1.1, waveTravel: 195,
++  rimPressureStart: 55, rimPressureSpan: 25,
++  slowPressSpeed: 0.04, scrubPressSpeed: 0.16, pressureSpeedTime: 90,
+ });
+ const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+ const smooth = (x) => smoothStep(clamp(x, 0, 1));
+@@ -34,28 +36,42 @@
+   }
+ 
+   function depthOf(node, now) {
+-    if (node.leftAt === null) return pressDepth(node.dwell);
++    if (node.leftAt === null) {
++      const contact = state.contact;
++      if (!contact) return pressDepth(node.dwell);
++      // Local dwell still owns the trail. Sustained pressure supports only slow
++      // rim contact; a fast scrub and the shell keep their local dwell response.
++      const edge = state.shell ? 0 : smooth((Math.hypot(node.x - 100, node.y - 100) -
++        MATERIAL.rimPressureStart) / MATERIAL.rimPressureSpan);
++      const slow = 1 - smooth((contact.speed - MATERIAL.slowPressSpeed) /
++        (MATERIAL.scrubPressSpeed - MATERIAL.slowPressSpeed));
++      return Math.max(pressDepth(node.dwell), pressDepth(contact.held) * edge * slow) * contact.pressure;
++    }
+     const t = clamp((now - node.leftAt) / pressRecoveryDuration(node.depth), 0, 1);
+     return node.depth * (1 - smooth(t));
+   }
+ 
+   function touch(x, y, now) {
+     state.time = Math.max(state.time, now);
+-    state.contact = { x, y, anchorX: x, anchorY: y, lastAt: now };
++    state.contact = { x, y, anchorX: x, anchorY: y, lastAt: now, held: 0, speed: 0, pressure: 1 };
+     // Older recovering contacts keep their own clocks when a new press begins.
+     nodes.push({ x, y, dwell: 0, depth: 0, leftAt: null });
+     state.active = true;
+   }
+ 
+-  function move(x, y, now) {
++  function move(x, y, now, pressure = 1) {
+     const contact = state.contact;
+     if (!contact || !Number.isFinite(x + y + now)) return;
+     const dx = x - contact.x, dy = y - contact.y, distance = Math.hypot(dx, dy);
++    pressure = clamp(pressure, 0, 1);
++    if (pressure !== contact.pressure) { contact.pressure = pressure; state.active = true; }
+     if (distance < 0.01) return;
+     const elapsed = Math.max(1, now - contact.lastAt);
+     // Input position is exact. Only the liquid offset has a delayed response.
+     state.sloshX = clamp(state.sloshX + dx / elapsed * 2, -12, 12);
+     state.sloshY = clamp(state.sloshY + dy / elapsed * 2, -12, 12);
++    // A long idle interval is not the duration of the next pointer jump.
++    contact.speed = distance / Math.min(elapsed, MATERIAL.pressureSpeedTime);
+     let head = nodes.at(-1);
+     if (head && Math.hypot(x - contact.anchorX, y - contact.anchorY) < MATERIAL.spacing) {
+       head.x = x; head.y = y;
+@@ -69,14 +85,14 @@
+     const initialDwell = head?.dwell ?? 0;
+     for (let step = 1; step <= count; step++) {
+       const t = step / count;
+-      if (head) { head.depth = pressDepth(head.dwell); head.leftAt = now - elapsed * (1 - t); }
++      if (head) { head.depth = depthOf(head, now); head.leftAt = now - elapsed * (1 - t); }
+       head = { x: contact.x + dx * t, y: contact.y + dy * t,
+         dwell: initialDwell * Math.exp(-distance * t / 11) + Math.min(90, elapsed / count),
+         depth: 0, leftAt: null };
+       nodes.push(head);
+     }
+     if (nodes.length > MATERIAL.maxTrail) nodes.splice(0, nodes.length - MATERIAL.maxTrail);
+-    state.contact = { x, y, anchorX: x, anchorY: y, lastAt: now };
++    state.contact = { ...contact, x, y, anchorX: x, anchorY: y, lastAt: now };
+     state.active = true;
+   }
+ 
+@@ -89,7 +105,7 @@
+ 
+   function release(now, ripple = true) {
+     const head = nodes.at(-1);
+-    const strength = head && head.leftAt === null ? pressDepth(head.dwell) : 0;
++    const strength = head && head.leftAt === null ? depthOf(head, now) : 0;
+     if (head && head.leftAt === null) {
+       head.depth = strength; head.leftAt = now;
+       if (ripple) wave(head.x, head.y, strength, now, pressRecoveryDuration(strength) * 0.4);
+@@ -187,7 +203,11 @@
+     const elapsed = Math.min(wallElapsed, 96);
+     state.time = Math.max(state.time, now);
+     const head = nodes.at(-1);
+-    if (state.contact && head) head.dwell = Math.min(760, head.dwell + wallElapsed);
++    if (state.contact && head) {
++      head.dwell = Math.min(FULL_PRESS_MS, head.dwell + wallElapsed);
++      state.contact.held = Math.min(FULL_PRESS_MS, state.contact.held + wallElapsed);
++      state.contact.speed *= Math.exp(-wallElapsed / MATERIAL.pressureSpeedTime);
++    }
+     state.sloshX *= Math.exp(-wallElapsed / 230); state.sloshY *= Math.exp(-wallElapsed / 230);
+     targets(now);
+     let remaining = elapsed / 1000;
+@@ -196,7 +216,11 @@
+       for (let row = 1; row < N - 1; row++) for (let col = 1; col < N - 1; col++) {
+         const i = row * N + col;
+         if (!coverage[i]) continue;
+-        const lap = (height[i - 1] + height[i + 1] + height[i - N] + height[i + N]) / 4 - height[i];
++        // A free edge has no flat neighbour pulling it back to zero height.
++        const lap = ((coverage[i - 1] ? height[i - 1] : height[i]) +
++          (coverage[i + 1] ? height[i + 1] : height[i]) +
++          (coverage[i - N] ? height[i - N] : height[i]) +
++          (coverage[i + N] ? height[i + N] : height[i])) / 4 - height[i];
+         velocity[i] += ((target[i] - height[i]) * MATERIAL.spring + lap * MATERIAL.coupling) * dt;
+         velocity[i] *= Math.exp(-MATERIAL.damping * dt);
+       }
+@@ -215,7 +239,7 @@
+     }
+     state.energy = energy; state.displaced = down; state.raised = up; state.signedHeight = signed * STEP ** 2;
+     state.active = energy > 0.004 || waves.length > 0 || Math.hypot(state.sloshX, state.sloshY) > 0.01 ||
+-      nodes.some((node) => node.leftAt !== null || node.dwell < 760);
++      nodes.some((node) => node.leftAt !== null || node.dwell < FULL_PRESS_MS);
+     if (!state.active && !state.contact) {
+       height.fill(0); velocity.fill(0); target.fill(0);
+       state.energy = state.displaced = state.raised = state.signedHeight = 0;
+@@ -253,19 +277,34 @@
+   for (let n = 0; n < radii.length; n++) {
+     const angle = n / radii.length * Math.PI * 2, cx = Math.cos(angle), cy = Math.sin(angle);
+     const rimHeight = material.sample(100 + cx * 85, 100 + cy * 85);
+-    // Near-rim indentation transfers liquid pressure outward; the same field's
+-    // positive height supplies the adjoining shoulders and their recovery.
+-    const flex = Math.max(0, rimHeight) * 1.5 + Math.max(0, -rimHeight) * 0.55;
++    // Keep the sign: contact indents the membrane while displaced contents
++    // raise its shoulders. Both follow the same recovering height field.
++    const flex = clamp(rimHeight * (rimHeight > 0 ? 1.5 : 0.55), -10, 10);
+     const squash = impact ? -7 * Math.abs(impact.x) * cx ** 2 - 7 * Math.abs(impact.y) * cy ** 2 +
+       3 * Math.abs(impact.x) * cy ** 2 + 3 * Math.abs(impact.y) * cx ** 2 : 0;
+-    const base = Math.min(104, 94 + Math.min(10, flex) + squash);
+-    if (!pull || pull.radius < 0.05) { radii[n] = base; continue; }
++    const base = Math.min(104, 94 + flex + squash);
++    if (!pull || pull.radius <= 0) { radii[n] = base; continue; }
+     const difference = Math.atan2(Math.sin(angle - direction), Math.cos(angle - direction));
+     const span = 0.30 + 0.26 * smooth(pull.radius / 38);
+     const extension = Math.max(0, distance + pull.radius - base);
+     radii[n] = base + extension * Math.exp(-((difference / span) ** 2));
+   }
+   return radii;
++}
++
++export function membraneRadiusAt(radii, angle) {
++  const index = ((angle / (Math.PI * 2) % 1 + 1) % 1) * radii.length;
++  const left = Math.floor(index), blend = index - left;
++  return radii[left] * (1 - blend) + radii[(left + 1) % radii.length] * blend;
++}
++
++export function materialContact(material, raw, pull = null, impact = null) {
++  const dx = raw.x - 100, dy = raw.y - 100, distance = Math.hypot(dx, dy);
++  // Resolve against the body alone, so the tip cannot feed back into its anchor.
++  const radius = membraneRadiusAt(membraneRadii(material, null, impact), Math.atan2(dy, dx));
++  const scale = distance > radius ? radius / distance : 1;
++  return { x: 100 + dx * scale, y: 100 + dy * scale, radius,
++    pressure: 1 - (pull?.blend ?? 0) };
+ }
+ 
+ export function membranePath(radii) {
+--- a/frontend/src/utils/mallangSurface.js
++++ b/frontend/src/utils/mallangSurface.js
+@@ -1,4 +1,5 @@
+-import { MATERIAL, membranePath, membraneRadii } from "./mallangMaterial.js";
++import { MATERIAL, membranePath, membraneRadii, membraneRadiusAt } from "./mallangMaterial.js";
++import { smoothStep } from "./surfacePress.js";
+ 
+ // One reusable lighting buffer: no PNG encoding or SVG displacement filter.
+ // Upper-left is the common light for the membrane, its contents and the shell.
+@@ -10,6 +11,7 @@
+   const shadeContext = shadeCanvas.getContext("2d");
+   if (!shadeContext) return null;
+   const pixels = shadeContext.createImageData(MATERIAL.grid, MATERIAL.grid);
++  const slopeX = new Float32Array(MATERIAL.grid ** 2), slopeY = new Float32Array(MATERIAL.grid ** 2);
+   const dpr = Math.min(2, window.devicePixelRatio || 1);
+   canvas.width = canvas.height = Math.round(400 * dpr);
+   const lightContext = overlay?.getContext("2d");
+@@ -31,16 +33,41 @@
+     context.fillRect(-100, -100, 400, 400);
+     if (!flat) { context.fillStyle = sheen; context.fillRect(-100, -100, 400, 400); }
+     const { height, coverage } = material.state, n = MATERIAL.grid;
++    const bodyRadii = membraneRadii(material, null, impact);
++    const step = MATERIAL.extent / (n - 1);
++    for (let row = 0; row < n; row++) for (let col = 0; col < n; col++) {
++      const i = row * n + col;
++      const left = row * n + Math.max(0, col - 1), right = row * n + Math.min(n - 1, col + 1);
++      const top = Math.max(0, row - 1) * n + col, bottom = Math.min(n - 1, row + 1) * n + col;
++      // The free boundary continues the material, rather than a fictitious flat
++      // surface outside the disk producing a bright ring around a deep dent.
++      slopeX[i] = ((coverage[right] ? height[right] : height[i]) -
++        (coverage[left] ? height[left] : height[i])) / (2 * step);
++      slopeY[i] = ((coverage[bottom] ? height[bottom] : height[i]) -
++        (coverage[top] ? height[top] : height[i])) / (2 * step);
++    }
+     for (let row = 0; row < n; row++) for (let col = 0; col < n; col++) {
+       const i = row * n + col, p = i * 4;
+-      const hx = (height[row * n + Math.min(n - 1, col + 1)] - height[row * n + Math.max(0, col - 1)]) / 8;
+-      const hy = (height[Math.min(n - 1, row + 1) * n + col] - height[Math.max(0, row - 1) * n + col]) / 8;
++      const x = MATERIAL.origin + col * step, y = MATERIAL.origin + row * step;
++      const dx = x - 100, dy = y - 100, distance = Math.hypot(dx, dy);
++      const radius = membraneRadiusAt(bodyRadii, Math.atan2(dy, dx));
++      const edge = smoothStep(Math.max(0, Math.min(1,
++        (distance - MATERIAL.rimPressureStart) / (radius - MATERIAL.rimPressureStart))));
++      const reference = distance - (radius - MATERIAL.radius) * edge;
++      const scale = distance > 0 ? reference / distance : 1;
++      const sx = 100 + dx * scale, sy = 100 + dy * scale;
++      // Lighting follows the displaced rim, including the raised shoulders that
++      // now extend beyond the reference disk. The centre keeps its original map.
++      const hx = edge ? material.sample(sx, sy, slopeX) : slopeX[i];
++      const hy = edge ? material.sample(sx, sy, slopeY) : slopeY[i];
++      const h = edge ? material.sample(sx, sy) : height[i];
++      const opacity = smoothStep(Math.max(0, Math.min(1, (radius - distance) / 5)));
+       const lighting = (hx * 0.62 + hy * 0.78) / Math.sqrt(1 + hx * hx + hy * hy);
+       const bright = lighting > 0;
+       pixels.data[p] = bright ? 255 : 122;
+       pixels.data[p + 1] = bright ? 246 : 51;
+       pixels.data[p + 2] = bright ? 252 : 88;
+-      pixels.data[p + 3] = Math.min(165, Math.abs(lighting) * 220 + Math.max(0, -height[i]) * 1.1) * coverage[i];
++      pixels.data[p + 3] = Math.min(165, Math.abs(lighting) * 220 + Math.max(0, -h) * 1.1) * opacity;
+     }
+     shadeContext.putImageData(pixels, 0, 0);
+     const lightingContext = lightContext || context;
+--- a/frontend/src/utils/mallangMotion.js
++++ b/frontend/src/utils/mallangMotion.js
+@@ -51,9 +51,9 @@
+   };
+ }
+ 
+-export function pulledCircle(motion) {
++export function pulledCircle(motion, bodyRadius = BODY_RADIUS) {
+   const target = pullTarget(motion);
+-  const progress = pullStretchProgress(target, BLOB_CENTER, BODY_RADIUS, PULL_TAUT_DISTANCE);
++  const progress = pullStretchProgress(target, BLOB_CENTER, bodyRadius, PULL_TAUT_DISTANCE);
+   return progress > 0 ? blendPullTip(target, progress) : null;
+ }
+ 
+--- a/frontend/src/pages/MallangPage.jsx
++++ b/frontend/src/pages/MallangPage.jsx
+@@ -2,7 +2,7 @@
+ import { useSearchParams } from "react-router-dom";
+ import AppBar from "../components/AppBar";
+ import WaxShell from "../components/WaxShell";
+-import { createMallangMaterial, membraneRadii } from "../utils/mallangMaterial";
++import { createMallangMaterial, materialContact, membraneRadii, membraneRadiusAt } from "../utils/mallangMaterial";
+ import { createMallangSurface } from "../utils/mallangSurface";
+ import { createWaxShell, fractureWaxShell, waxKeyboardPoint } from "../utils/waxShell";
+ import { pressRadiusRatio } from "../utils/surfacePress";
+@@ -70,19 +70,16 @@
+       return { x: (clientX - rect.left) / rect.width * 200, y: (clientY - rect.top) / rect.height * 200 };
+     }
+     function contactPoint(raw) {
+-      const dx = raw.x - 100, dy = raw.y - 100, distance = Math.hypot(dx, dy);
+-      const scale = distance > 92 ? 92 / distance : 1;
+-      return { x: 100 + dx * scale, y: 100 + dy * scale };
++      return materialContact(material, raw, null, r.impactPaint);
+     }
+     function geometry(motion) {
+       motion.rect = bounds.current.getBoundingClientRect();
+       motion.bodySize = character.current.getBoundingClientRect().width;
+     }
+     function hit(raw) {
+-      const radii = membraneRadii(material, r.motion?.pull);
+-      const angle = (Math.atan2(raw.y - 100, raw.x - 100) + Math.PI * 2) % (Math.PI * 2);
+-      const index = Math.floor(angle / (Math.PI * 2) * radii.length);
+-      return Math.hypot(raw.x - 100, raw.y - 100) <= radii[index];
++      const radii = membraneRadii(material, r.motion?.pull, r.impactPaint);
++      const angle = Math.atan2(raw.y - 100, raw.x - 100);
++      return Math.hypot(raw.x - 100, raw.y - 100) <= membraneRadiusAt(radii, angle);
+     }
+     function paint() {
+       if (disposed || !face.current || !character.current) return;
+@@ -108,8 +105,12 @@
+       if (!import.meta.env.DEV) return;
+       r.frames++; r.costs.push(cost); if (r.costs.length > 240) r.costs.shift();
+       const state = material.state;
++      const rim = membraneRadii(material);
+       r.records.push({ time: state.time, contact: state.contact && { x: state.contact.x, y: state.contact.y },
+         depth: material.contactDepth(), center: material.sample(100, 100), energy: state.energy,
++        pressure: state.contact?.pressure ?? 0,
++        contactHeight: state.contact ? material.sample(state.contact.x, state.contact.y) : 0,
++        rimMin: Math.min(...rim), rimMax: Math.max(...rim),
+         displaced: state.displaced, raised: state.raised, signedHeight: state.signedHeight,
+         trail: state.nodes.length, waves: state.waves.length, pieces: r.mode ? r.shell.pieces.length : 0,
+         chips: r.shell.chips.length, tip: r.motion?.pull && { ...r.motion.pull },
+@@ -146,13 +147,13 @@
+       if (motion) {
+         advanceMotion(motion, now);
+         if (motion.mode === "grab") {
+-          motion.pull = pulledCircle(motion);
+           const raw = {
+             x: 100 + (motion.pointer.x - motion.rect.left - motion.position.x / 100 * motion.rect.width) * 200 / motion.bodySize,
+             y: 100 + (motion.pointer.y - motion.rect.top - motion.position.y / 100 * motion.rect.height) * 200 / motion.bodySize,
+           };
+           const local = contactPoint(raw);
+-          material.move(local.x, local.y, now);
++          motion.pull = pulledCircle(motion, local.radius);
++          material.move(local.x, local.y, now, 1 - (motion.pull?.blend ?? 0));
+           if (motion.pull?.radius > 3 && !r.input?.stretched) {
+             if (r.input) r.input.stretched = true;
+             audio.play("stretch", Math.min(1, motion.pull.radius / 38));
+@@ -253,13 +254,13 @@
+         material.release(now, false); request(); return;
+       }
+       if (r.input.wax && !material.state.contact) material.touch(local.x, local.y, now);
+-      material.move(local.x, local.y, now);
+       if (r.motion?.mode === "grab") {
+         r.motion.pointer = { x: event.clientX, y: event.clientY };
+         // No interpolation or filtering in the force/input path.
+-        r.motion.pull = pulledCircle({ ...r.motion, tetherPoint: r.motion.pointer });
++        r.motion.pull = pulledCircle(r.motion, local.radius);
+         character.current.classList.toggle("mallang-character--dragging", !!r.motion.pull);
+       }
++      material.move(local.x, local.y, now, 1 - (r.motion?.pull?.blend ?? 0));
+       request();
+     }
+     function end(event) {
+--- a/frontend/tests/mallangSurface.test.js
++++ b/frontend/tests/mallangSurface.test.js
+@@ -86,10 +86,11 @@
+ });
+ test("one continuous contour contains the tip and remains finite through absorption", () => {
+   const m=createMallangMaterial();m.touch(190,100,0);run(m,0,1500);
++  const bodyRadius=membraneRadii(m)[0];
+   let previous=null;
+-  for(let d=94;d<=128;d+=.25) {
++  for(let d=bodyRadius;d<=128;d+=.25) {
+     const target={x:100+d,y:100,radius:38};
+-    const pull=blendPullTip(target,pullStretchProgress(target));
++    const pull=blendPullTip(target,pullStretchProgress(target,100,bodyRadius));
+     const radii=membraneRadii(m,pull);
+     if(pull.radius>0)assert(radii[0]>=d+pull.radius-.2);
+     assert(radii.every(Number.isFinite));
+@@ -123,7 +124,9 @@
+ 
+ test("body pressure and impact stay inside the reserved wall margin while the tip is free", () => {
+   const m=createMallangMaterial();m.touch(190,100,0);run(m,0,1600);
+-  assert(membraneRadii(m)[0]>100,"near-rim indentation must push the rim outward");
++  const rim=membraneRadii(m);
++  assert(rim[0]<94,"contact pressure must indent the rim");
++  assert(rim[8]>94 && rim[88]>94,"displaced contents must raise the adjoining shoulders");
+   const body=membraneRadii(m,null,{x:.9,y:.5});
+   assert(body.every(r=>r<=104));
+   const pulled=membraneRadii(m,{x:228,y:100,radius:38});
+@@ -133,7 +136,7 @@
+   const originalDocument=globalThis.document,originalWindow=globalThis.window,originalPath=globalThis.Path2D;
+   const calls={pixels:0,clips:0,encodes:0};
+   const context={createImageData:(w,h)=>{calls.pixels++;return {data:new Uint8ClampedArray(w*h*4)};},
+-    putImageData(){},setTransform(){},clearRect(){},save(){},restore(){},clip(){calls.clips++;},
++    putImageData(pixels){calls.lastPixels=pixels;},setTransform(){},clearRect(){},save(){},restore(){},clip(){calls.clips++;},
+     fillRect(){},drawImage(){},stroke(){},beginPath(){},moveTo(){},lineTo(){},ellipse(){},fill(){},
+     createRadialGradient:()=>({addColorStop(){}}),createLinearGradient:()=>({addColorStop(){}})};
+   globalThis.document={createElement:()=>({getContext:()=>context,toDataURL(){calls.encodes++;throw Error("PNG encoding");}})};
+@@ -145,6 +148,13 @@
+   for(let time=16;time<1000;time+=16){m.advance(time);renderer.draw();}
+   assert.equal(calls.pixels,1);assert.equal(calls.encodes,0);assert(calls.clips>100);
+   assert.equal(canvas.width,overlay.width);
++  m.reset();m.touch(190,100,0);run(m,0,2000);renderer.draw();
++  let litShoulder=false;
++  for(let row=0;row<MATERIAL.grid;row++)for(let col=0;col<MATERIAL.grid;col++) {
++    const x=MATERIAL.origin+col*4,y=MATERIAL.origin+row*4;
++    if(Math.hypot(x-100,y-100)>94 && calls.lastPixels.data[(row*MATERIAL.grid+col)*4+3]>5)litShoulder=true;
++  }
++  assert(litShoulder,"the raised rim must carry lighting beyond the reference disk");
+ });
+ test("measured material workload has bounded memory under a prolonged input", (t) => {
+   const m=createMallangMaterial();m.touch(100,100,0);const started=performance.now();
+--- a/frontend/tests/mallang-browser.jsx
++++ b/frontend/tests/mallang-browser.jsx
+@@ -28,6 +28,23 @@
+     const before=snapshot();const started=performance.now();
+     let checks={};
+     try {
++      if(name==="rim-transition") {
++        const stage=(phase)=>setReport({name,status:"running",phase,state:snapshot()});
++        send("pointerdown",100,100);await wait(1200);stage("central hold");
++        for(let i=1;i<=225;i++){send("pointermove",100+i*.4,100);await wait(20);}
++        stage("rim hold");await wait(1800);
++        const held=inspect().records.at(-1);
++        for(let i=1;i<=150;i++) {
++          const angle=Math.sin(i/45)*.55;
++          send("pointermove",100+Math.cos(angle)*90,100+Math.sin(angle)*90);await wait(20);
++        }
++        stage("rim reversal");await wait(1200);
++        for(let i=1;i<=85;i++){send("pointermove",190+i*.45,100);await wait(20);}
++        stage("outside pull");const pulled=inspect().records.slice(-80);
++        send("pointerup",228,100);await wait(3600);
++        checks={deepRim:held.depth>.8,indented:held.rimMin<93,shoulders:held.rimMax>94.5,
++          balanced:Math.abs(held.signedHeight)<.05,pull:pulled.some(s=>s.tip?.radius>20),restored:!snapshot().active};
++      }
+       if(name==="hold"||name==="edge") {
+         const x=name==="edge"?188:100;
+         send("pointerdown",x,100);await wait(2100);
+@@ -142,7 +159,7 @@
+       <p>개발용 입력 재현 (프로덕션 빌드 제외)</p>
+       <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+         <button type="button" disabled={running} onClick={suite}>suite</button>
+-        {["hold","edge","rub","turn","pull","cancel","empty","low-frame","wax","wax-drag","switch","burst"].map((name)=>
++        {["rim-transition","hold","edge","rub","turn","pull","cancel","empty","low-frame","wax","wax-drag","switch","burst"].map((name)=>
+           <button type="button" key={name} disabled={running} onClick={()=>run(name,setRunning,reportResult)}>{name}</button>)}
+       </div>
+       <button id="ordinary-test" type="button" onClick={()=>setClicks((v)=>v+1)}>일반 버튼 {clicks}</button>
+--- /dev/null
++++ b/frontend/tests/mallangEdge.test.js
+@@ -0,0 +1,121 @@
++import test from "node:test";
++import assert from "node:assert/strict";
++import { createMallangMaterial, materialContact, membraneRadii, membraneRadiusAt } from "../src/utils/mallangMaterial.js";
++import { pulledCircle } from "../src/utils/mallangMotion.js";
++import { createWaxShell } from "../src/utils/waxShell.js";
++
++function run(material, from, to, step = 16) {
++  for (let now = from + step; now <= to; now += step) material.advance(now);
++}
++
++test("a deep rim contact indents locally with raised shoulders on both sides", () => {
++  for (const angle of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
++    const material = createMallangMaterial();
++    material.touch(100 + Math.cos(angle) * 90, 100 + Math.sin(angle) * 90, 0);
++    run(material, 0, 2400);
++    const radii = membraneRadii(material), index = Math.round(angle / (2 * Math.PI) * radii.length);
++    assert(radii[index] < 92, "negative height must indent, not inflate the contact");
++    assert(radii[(index + 8) % radii.length] > 94.5, "first shoulder must carry displaced contents");
++    assert(radii[(index + radii.length - 8) % radii.length] > 94.5, "second shoulder must carry displaced contents");
++  }
++});
++
++test("slow deep holds retain pressure while approaching and following the rim", () => {
++  const material = createMallangMaterial();
++  material.touch(100, 100, 0); run(material, 0, 1200);
++  let now = 1200;
++  for (let distance = 0.4; distance <= 90; distance += 0.4) {
++    now += 16; material.move(100 + distance, 100, now); material.advance(now);
++    if (distance > 84) assert(material.contactDepth() > 0.9, "slow rim contact lost sustained pressure");
++  }
++  for (let frame = 1; frame <= 150; frame++) {
++    now += 16;
++    const angle = Math.sin(frame / 55) * 0.65;
++    material.move(100 + Math.cos(angle) * 90, 100 + Math.sin(angle) * 90, now);
++    material.advance(now);
++    assert(material.contactDepth() > 0.88);
++    assert(Math.abs(material.state.signedHeight) < 0.05);
++  }
++  const before = membraneRadii(material);
++  run(material, now, now + 5000); const settled = membraneRadii(material);
++  run(material, now + 5000, now + 12000);
++  assert.equal(material.state.active, false);
++  assert(Math.max(...settled.map((r, i) => Math.abs(r - membraneRadii(material)[i]))) < 0.02);
++  assert(Math.max(...before.map((r, i) => Math.abs(r - settled[i]))) < 10);
++  material.release(now + 12000); run(material, now + 12000, now + 18000);
++  assert.equal(material.state.active, false);
++  assert(membraneRadii(material).every(r => r === 94));
++});
++
++test("fast rubbing cannot paint a sustained deep trench near the rim", () => {
++  const material = createMallangMaterial();
++  material.touch(100, 100, 0); run(material, 0, 1200);
++  material.move(189, 100, 1216); material.advance(1216);
++  assert(material.contactDepth() < 0.35);
++  for (let frame = 1; frame <= 60; frame++) {
++    const angle = frame * 0.09, now = 1216 + frame * 16;
++    material.move(100 + Math.cos(angle) * 88, 100 + Math.sin(angle) * 88, now); material.advance(now);
++    assert(material.contactDepth() < 0.5);
++  }
++  material.release(2176, false); run(material, 2176, 5000);
++  assert.equal(material.state.active, false);
++});
++
++test("contact follows the deformed contour continuously and hands pressure over to the pull", () => {
++  const material = createMallangMaterial();
++  const motion = { rect: { left: 0, top: 0, width: 800, height: 600 }, bodySize: 200,
++    position: { x: 50, y: 50 }, pointer: { x: 400, y: 300 } };
++  material.touch(100, 100, 0); run(material, 0, 1200);
++  let now = 1200, previous = membraneRadii(material), lastContact = { x: 100, y: 100 };
++  for (const direction of [1, -1]) {
++    for (let i = 0; i <= 480; i++) {
++      const distance = direction === 1 ? i / 4 : 120 - i / 4;
++      const raw = { x: 100 + distance, y: 100 };
++      const boundary = materialContact(material, raw);
++      motion.pointer.x = 400 + distance;
++      const pull = pulledCircle(motion, boundary.radius), contact = materialContact(material, raw, pull);
++      now += 16; material.move(contact.x, contact.y, now, contact.pressure); material.advance(now);
++      const radii = membraneRadii(material, pull);
++      assert(Math.abs(contact.x - lastContact.x) < 2, "the contact anchor jumped at the rim");
++      assert(Math.max(...radii.map((r, index) => Math.abs(r - previous[index]))) < 3);
++      assert(Math.abs(material.state.signedHeight) < 0.05);
++      if (distance < boundary.radius) assert.equal(contact.x, raw.x, "inside input must remain exact");
++      if (distance > 104) assert.equal(material.contactDepth(), 0, "full pull must not retain a deep active dent");
++      previous = radii; lastContact = contact;
++    }
++  }
++  material.release(now); run(material, now, now + 6000);
++  assert.equal(material.state.active, false);
++  assert.equal(membraneRadiusAt(membraneRadii(material), -Math.PI / 4), 94);
++});
++
++test("a fixed pointer near the dented rim reaches equilibrium without pressure/pull feedback growth", () => {
++  for (const distance of [87, 91, 94, 98, 103]) {
++    const material = createMallangMaterial(); material.touch(180, 100, 0); run(material, 0, 1200);
++    const motion = { rect: { left: 0, top: 0, width: 800, height: 600 }, bodySize: 200,
++      position: { x: 50, y: 50 }, pointer: { x: 400 + distance, y: 300 } };
++    let previous, delta = 0;
++    for (let now = 1216; now <= 10000; now += 16) {
++      const raw = { x: 100 + distance, y: 100 }, boundary = materialContact(material, raw);
++      const pull = pulledCircle(motion, boundary.radius), contact = materialContact(material, raw, pull);
++      material.move(contact.x, contact.y, now, contact.pressure); material.advance(now);
++      const radii = membraneRadii(material, pull);
++      if (now > 8000) delta = Math.max(delta, Math.max(...radii.map((r, i) => Math.abs(r - previous[i]))));
++      previous = radii;
++    }
++    assert(delta < 0.01, `stationary contact at ${distance} kept oscillating: ${delta}`);
++  }
++});
++
++test("shell support keeps its local dwell response during a slow rim stroke", () => {
++  const material = createMallangMaterial(); material.setShell(createWaxShell(100, 94, 123));
++  material.touch(100, 100, 0); run(material, 0, 1200);
++  for (let frame = 1; frame <= 225; frame++) {
++    const now = 1200 + frame * 16;
++    material.move(100 + frame * 0.4, 100, now); material.advance(now);
++  }
++  assert(material.contactDepth() < 0.9, "a covered shell must not inherit sustained rim pressure");
++  assert(Math.abs(material.state.signedHeight) < 0.05);
++  material.release(4800); run(material, 4800, 11000);
++  assert.equal(material.state.active, false);
++});

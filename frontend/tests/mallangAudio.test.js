@@ -90,3 +90,30 @@ test("failed wax downloads are reported, stay silent and can retry", async (t) =
   h.options.fetchFailed = false; audio.play("waxLarge"); await h.flush();
   assert.equal(h.fetches.length, 2); assert.equal(h.starts.length, 1); audio.close();
 });
+
+test("rapid cue bursts are bounded and stop cancels pending unlock work", async (t) => {
+  let resume;
+  const h=audioHarness(t,{suspended:true,resume:()=>new Promise(resolve=>{resume=resolve;})});
+  const audio=createMallangAudio();audio.play("press");audio.stop();resume();await h.flush();
+  assert.equal(h.starts.length,0);
+  h.options.resume=null;
+  for(let i=0;i<200;i++)audio.play("press");
+  await h.flush();
+  assert(h.starts.length>0&&h.starts.length<8,"duplicate input must not enqueue hundreds of notes");
+  assert(h.starts.every(start=>start.args[0]<.2),"no delayed queue may build up");
+  audio.close();
+});
+
+test("legacy WebKit AudioContext fallback works without changing the input path", async (t) => {
+  const h=audioHarness(t);
+  window.webkitAudioContext=window.AudioContext;delete window.AudioContext;
+  const audio=createMallangAudio();audio.play("press");await h.flush();
+  assert.equal(h.contexts.length,1);assert(h.starts.length>0);audio.close();
+});
+
+test("prepare starts audio activation synchronously before a frame or awaited cue", (t) => {
+  const h=audioHarness(t),audio=createMallangAudio();
+  audio.prepare();assert.equal(h.contexts.length,1);
+  assert.equal(h.starts.length,0,"activation alone must not invent a cue");
+  audio.close();
+});

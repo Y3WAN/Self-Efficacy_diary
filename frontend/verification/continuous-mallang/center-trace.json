@@ -1,0 +1,54 @@
+[
+  {
+    "centerX": 200,
+    "centerY": 200,
+    "cursor": {
+      "time": 1631.39999999851,
+      "trusted": true,
+      "type": "mouse",
+      "x": 207.00001525878903,
+      "y": 469.0000305175781
+    },
+    "end": null,
+    "gesture": 2,
+    "name": "10-center-cross",
+    "record": {
+      "center": -4.366270542144775,
+      "chips": 0,
+      "contact": {
+        "x": 100.49398210482244,
+        "y": 99.75300894758875
+      },
+      "contactHeight": -4.2050561332395455,
+      "dentHeight": -4.2050561332395455,
+      "depth": 0.9961067079175382,
+      "displaced": 27867.412404865023,
+      "energy": 12.678235168457032,
+      "pieces": 0,
+      "pressure": 1,
+      "raised": 27867.4119809147,
+      "rimAtContact": 94,
+      "rimMax": 94,
+      "rimMin": 94,
+      "rimOpposite": 94,
+      "rimPeakAngle": null,
+      "signedHeight": -0.0004239503582139475,
+      "time": 1635.3,
+      "tip": null,
+      "trail": 2,
+      "vx": 0,
+      "vy": 0,
+      "waves": 1,
+      "x": 50.000004277593945,
+      "y": 49.99846674799828
+    },
+    "score": 0.4939821048224502,
+    "start": {
+      "time": 1575.39999999851,
+      "trusted": true,
+      "type": "mouse",
+      "x": 172.00001525878906,
+      "y": 469.0000305175781
+    }
+  }
+]

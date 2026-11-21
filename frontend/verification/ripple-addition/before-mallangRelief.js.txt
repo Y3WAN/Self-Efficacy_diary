@@ -1,0 +1,54 @@
+import { pressRecoveryDuration, smoothStep } from "./surfacePress.js";
+
+const smooth = (value) => smoothStep(Math.max(0, Math.min(1, value)));
+
+// Visual height in material units. The current controller still owns input,
+// outlines and motion; this field restores the dent's relief and filling trail.
+export function createMallangRelief({ size, origin, step, maxDepth }) {
+  const height = new Float32Array(size * size);
+  const depression = new Float32Array(height.length);
+  const shoulder = new Float32Array(height.length);
+
+  function stamp(point, depth, offsetX = 0, offsetY = 0) {
+    if (depth <= 0) return;
+    const x = point.x - offsetX, y = point.y - offsetY;
+    const length = 19 + depth * 9, width = length * 1.18;
+    const ux = point.ux ?? 1, uy = point.uy ?? 0;
+    const extent = width * 1.85;
+    const left = Math.max(0, Math.ceil((x - extent - origin) / step));
+    const right = Math.min(size - 1, Math.floor((x + extent - origin) / step));
+    const top = Math.max(0, Math.ceil((y - extent - origin) / step));
+    const bottom = Math.min(size - 1, Math.floor((y + extent - origin) / step));
+    for (let row = top; row <= bottom; row++) for (let col = left; col <= right; col++) {
+      const dx = origin + col * step - x, dy = origin + row * step - y;
+      const q = Math.hypot((dx * ux + dy * uy) / length, (dy * ux - dx * uy) / width);
+      const index = row * size + col;
+      depression[index] = Math.max(depression[index], depth * (1 - smooth(q)));
+      const lift = smooth((q - .65) / .4) * (1 - smooth((q - 1.05) / .8));
+      shoulder[index] = Math.max(shoulder[index], depth * lift);
+    }
+  }
+
+  function update({ contact, trail, now, bodyX = 0, bodyY = 0 }) {
+    depression.fill(0); shoulder.fill(0);
+    for (const point of trail) {
+      const remaining = 1 - smooth((now - point.leftAt) / pressRecoveryDuration(point.depth));
+      stamp(point, point.depth * remaining, bodyX, bodyY);
+    }
+    if (contact) stamp(contact, contact.depth);
+    let down = 0, up = 0;
+    for (let i = 0; i < height.length; i++) {
+      shoulder[i] *= 1 - depression[i];
+      down += depression[i]; up += shoulder[i];
+    }
+    // Equal signed-height contributions are a visual redistribution proxy,
+    // not a claim about 3D volume. Overlapping paths never sum their dents.
+    const ratio = up ? down / up : 0;
+    for (let i = 0; i < height.length; i++) {
+      height[i] = maxDepth * (-depression[i] + shoulder[i] * ratio);
+    }
+    return height;
+  }
+
+  return { height, update };
+}

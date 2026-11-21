@@ -10,7 +10,6 @@ const DISABLED_CONTROL = ":disabled, [aria-disabled='true'], [inert]";
 const RIPPLE_DURATION = 525;
 const MAX_RIPPLE_DIAMETER = 132;
 const MAX_DENT_DIAMETER = 72;
-const NAVIGATION_DELAY = 180;
 const RIPPLE_EASING = "cubic-bezier(.2, .65, .3, 1)";
 
 function isPlainActivation(event) {
@@ -31,30 +30,8 @@ export function installButtonRipple(root) {
   let dent;
   let surfaceFrame = null;
   let rippleAnimation;
-  let pendingNavigation;
-  let navigationTimer;
-  let replayingClick = false;
   let surface;
   const trail = createPressTrail();
-
-  function cancelNavigation() {
-    window.clearTimeout(navigationTimer);
-    pendingNavigation = undefined;
-  }
-
-  function continueNavigation() {
-    const control = pendingNavigation;
-    cancelNavigation();
-    if (!control || !root.contains(control) || control.closest(DISABLED_CONTROL)) return;
-
-    // React Router still handles the original link, including its route state.
-    replayingClick = true;
-    try {
-      control.click();
-    } finally {
-      replayingClick = false;
-    }
-  }
 
   function clearRipple() {
     press = undefined;
@@ -149,7 +126,7 @@ export function installButtonRipple(root) {
 
     const { x, y, width, height } = point;
     const diameter = Math.min(MAX_DENT_DIAMETER, Math.min(width, height) * 1.12);
-    dent ??= createButtonDent({ maxPull: 5 });
+    dent ??= createButtonDent({ maxPull: 3 });
     if (dent) {
       dent.position(x, y, width, height, diameter);
       control.classList.add("button-surface-deforming");
@@ -208,8 +185,7 @@ export function installButtonRipple(root) {
   }
 
   function handleClick(event) {
-    if (replayingClick || event.defaultPrevented || !isPlainActivation(event)) return;
-    cancelNavigation();
+    if (event.defaultPrevented || !isPlainActivation(event)) return;
     const control = findControl(event.target);
     if (!control || control.hasAttribute("download") || (control.target && control.target !== "_self")) return;
 
@@ -219,22 +195,14 @@ export function installButtonRipple(root) {
       playRelease(0);
     }
 
-    // Give eligible navigation links time to show the ripple before React Router replaces the control.
-    if (!control.matches(NAVIGATION_LINK)) return;
-    event.preventDefault();
-    event.stopPropagation();
-    pendingNavigation = control;
-    navigationTimer = window.setTimeout(continueNavigation, NAVIGATION_DELAY);
   }
 
   function reset() {
-    cancelNavigation();
     clearRipple();
   }
 
   function handleMotionPreferenceChange() {
     clearRipple();
-    if (reducedMotion.matches) continueNavigation();
   }
 
   root.addEventListener("pointerdown", handlePointerDown);

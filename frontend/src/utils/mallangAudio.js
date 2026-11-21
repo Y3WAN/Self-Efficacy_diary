@@ -5,7 +5,7 @@ import smallWaxClip from "../assets/wax-audio/small.mp3";
 const VOLUME_KEY = "codemyworld.mallang.volume";
 const DEFAULT_VOLUME = 60;
 const SILENCE = 0.0001;
-const MAX_CUE_WAIT_MS = 1200;
+const MAX_CUE_WAIT_MS = 180;
 const MIN_CUE_GAP_SECONDS = 0.035;
 
 const WAX_CLIPS = { waxLarge: largeWaxClip, waxMedium: mediumWaxClip, waxSmall: smallWaxClip };
@@ -42,7 +42,7 @@ function envelope(context, destination, start, duration, level, attack, hasBounc
   return gain;
 }
 
-function createVoice(context, output) {
+function createVoice(context, output, track) {
   const noise = context.createBuffer(1, Math.round(context.sampleRate * 0.7), context.sampleRate);
   const samples = noise.getChannelData(0);
   for (let index = 0; index < samples.length; index++) samples[index] = Math.random() * 2 - 1;
@@ -62,6 +62,7 @@ function createVoice(context, output) {
       filter.disconnect();
       gain.disconnect();
     };
+    track(source);
     source.start(start, Math.random() * (noise.duration - duration), duration);
   }
 
@@ -88,6 +89,7 @@ function createVoice(context, output) {
       oscillator.disconnect();
       gain.disconnect();
     };
+    track(oscillator);
     oscillator.start(start);
     oscillator.stop(start + duration);
   }
@@ -146,24 +148,48 @@ export function createMallangAudio() {
   let voice;
   let volume = DEFAULT_VOLUME / 100;
   let nextOnset = 0;
+  let generation = 0;
+  let loadingController = null;
+  const sources = new Set();
+  const lastCue = new Map();
   const waxClips = new Map();
 
+  function track(source) {
+    if (sources.size >= 24) {
+      const oldest = sources.values().next().value;
+      oldest.stop?.(); sources.delete(oldest);
+    }
+    sources.add(source);
+    const ended = source.onended;
+    source.onended = () => { sources.delete(source); ended?.(); };
+  }
+
+  function stop() {
+    generation++;
+    for (const source of sources) { try { source.stop?.(); } catch (error) {
+      if (error.name !== "InvalidStateError") console.warn("효과음 중단 실패", error);
+    } }
+    sources.clear(); lastCue.clear(); nextOnset = 0;
+  }
+
   function unlock() {
-    if (volume === 0 || !window.AudioContext) return null;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (volume === 0 || !AudioContext) return null;
     if (!context) {
       try {
-        context = new window.AudioContext();
+        context = new AudioContext();
       } catch {
         return null;
       }
       master = context.createGain();
+      loadingController = new AbortController();
       master.gain.value = volume ** 1.4;
       const compressor = context.createDynamicsCompressor();
       compressor.threshold.value = -14;
       compressor.attack.value = 0.003;
       master.connect(compressor);
       compressor.connect(context.destination);
-      voice = createVoice(context, master);
+      voice = createVoice(context, master, track);
     }
     const active = context;
     return active.state === "running" ? Promise.resolve(active) : active.resume().then(() => active, () => null);
@@ -171,7 +197,7 @@ export function createMallangAudio() {
 
   function loadWaxClip(active, name) {
     if (waxClips.has(name)) return waxClips.get(name);
-    const loading = fetch(WAX_CLIPS[name])
+    const loading = fetch(WAX_CLIPS[name], { signal: loadingController?.signal })
       .then((response) => {
         if (!response.ok) throw new Error("Could not load " + name + ": " + response.status);
         return response.arrayBuffer();
@@ -192,6 +218,7 @@ export function createMallangAudio() {
     const source = active.createBufferSource();
     const gain = active.createGain();
     source.buffer = buffer;
+    if (source.playbackRate) source.playbackRate.value = vary(0.035);
     gain.gain.value = 0.8 + 0.2 * strength;
     source.connect(gain);
     gain.connect(master);
@@ -199,10 +226,14 @@ export function createMallangAudio() {
       source.disconnect();
       gain.disconnect();
     };
+    track(source);
     source.start(start);
   }
 
   return {
+    // Called directly by a trusted pointer/key handler, before any RAF or await.
+    // Safari can require this timing even though the cue itself is state-driven.
+    prepare() { void unlock(); },
     prepareWax() {
       unlock()?.then((active) => {
         if (!active || active !== context) return;
@@ -211,24 +242,33 @@ export function createMallangAudio() {
     },
     play(name, strength = 0.5, delay = 0) {
       const requestedAt = performance.now();
+      const requestedGeneration = generation;
       unlock()?.then(async (active) => {
         if (!active || active !== context || !volume) return;
         const isWax = Object.hasOwn(WAX_CLIPS, name);
         const clip = isWax ? await loadWaxClip(active, name) : null;
-        if ((isWax && !clip) || active !== context || !volume || performance.now() - requestedAt > MAX_CUE_WAIT_MS) return;
+        if ((isWax && !clip) || requestedGeneration !== generation || active !== context || !volume ||
+          performance.now() - requestedAt > MAX_CUE_WAIT_MS) return;
+        if (active.currentTime - (lastCue.get(name) ?? -Infinity) < (isWax ? 0.075 : 0.09)) return;
+        if (nextOnset - active.currentTime > 0.15) return;
         const start = Math.max(nextOnset, active.currentTime + 0.012 + delay);
         nextOnset = start + MIN_CUE_GAP_SECONDS;
+        lastCue.set(name, active.currentTime);
         if (clip) playWaxClip(active, clip, start, strength);
         else playSound(voice, name, start, strength);
       });
     },
     setVolume(percent) {
-      volume = percent / 100;
+      volume = Math.max(0, Math.min(100, percent)) / 100;
+      if (!volume) stop();
       if (context) master.gain.setTargetAtTime(volume ** 1.4, context.currentTime, 0.012);
     },
+    stop,
     close() {
+      stop();
       const active = context;
       context = null;
+      loadingController?.abort(); loadingController = null;
       waxClips.clear();
       nextOnset = 0;
       void active?.close().catch(() => null);

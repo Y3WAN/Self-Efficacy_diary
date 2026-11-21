@@ -1,0 +1,111 @@
+[
+  {
+    "centerX": 200,
+    "centerY": 200,
+    "cursor": {
+      "time": 2070.5,
+      "trusted": true,
+      "type": "mouse",
+      "x": 142,
+      "y": 405.0000305175781
+    },
+    "end": null,
+    "gesture": 2,
+    "name": "04-before-edge",
+    "record": {
+      "center": -0.00006152571586426347,
+      "chips": 0,
+      "contact": {
+        "x": 25.573726349883444,
+        "y": 25.985389828949437
+      },
+      "contactHeight": -11.993855623884423,
+      "dentHeight": -11.993855623884423,
+      "depth": 0.99684417468303,
+      "displaced": 22343.904297084027,
+      "energy": 4.389189109802246,
+      "pieces": 0,
+      "pressure": 1,
+      "raised": 22343.90476334909,
+      "rimAtContact": 107.95236122320722,
+      "rimMax": 107.95565795898438,
+      "rimMin": 94,
+      "rimOpposite": 94,
+      "rimPeakAngle": 225,
+      "signedHeight": 0.0004662650802380983,
+      "time": 2074.4,
+      "tip": null,
+      "trail": 2,
+      "vx": 0,
+      "vy": 0,
+      "waves": 1,
+      "x": 50.000004277593945,
+      "y": 49.99846674799828
+    },
+    "score": 2.988402036186187,
+    "start": {
+      "time": 2016.79999999702,
+      "trusted": true,
+      "type": "mouse",
+      "x": 152,
+      "y": 415.0000305175781
+    }
+  },
+  {
+    "centerX": 200,
+    "centerY": 200,
+    "cursor": {
+      "time": 2087.29999999702,
+      "trusted": true,
+      "type": "mouse",
+      "x": 139,
+      "y": 402.0000305175781
+    },
+    "end": null,
+    "gesture": 2,
+    "name": "05-after-edge",
+    "record": {
+      "center": -0.000060121328715467826,
+      "chips": 0,
+      "contact": {
+        "x": 23.46404642708741,
+        "y": 23.86858399590052
+      },
+      "contactHeight": -11.838440191419108,
+      "dentHeight": -11.838440191419108,
+      "depth": 0.99684417468303,
+      "displaced": 22005.91439731546,
+      "energy": 4.69842155456543,
+      "pieces": 0,
+      "pressure": 1,
+      "raised": 22005.91455996772,
+      "rimAtContact": 107.95251295003132,
+      "rimMax": 107.95568084716795,
+      "rimMin": 94,
+      "rimOpposite": 94,
+      "rimPeakAngle": 225,
+      "signedHeight": 0.00016265227765197997,
+      "time": 2091.1,
+      "tip": {
+        "blend": 0.18129357333021576,
+        "radius": 6.8891557865482,
+        "x": 22.11586920369723,
+        "y": 22.527532682763223
+      },
+      "trail": 2,
+      "vx": 0,
+      "vy": 0,
+      "waves": 1,
+      "x": 50.000004277593945,
+      "y": 49.99846674799828
+    },
+    "score": 1.9015767422323648,
+    "start": {
+      "time": 2016.79999999702,
+      "trusted": true,
+      "type": "mouse",
+      "x": 152,
+      "y": 415.0000305175781
+    }
+  }
+]

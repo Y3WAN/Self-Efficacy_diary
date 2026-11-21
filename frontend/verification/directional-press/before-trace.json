@@ -1,0 +1,563 @@
+{
+  "phase": "before",
+  "frames": {
+    "01-rest": {
+      "active": false,
+      "frameCount": 0,
+      "contact": null,
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "02-light": {
+      "active": true,
+      "frameCount": 4,
+      "contact": {
+        "x": 32.00000265370244,
+        "y": 100,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 2192.599999997765,
+        "held": 73.60000000223499,
+        "speed": 0,
+        "pressure": 1
+      },
+      "last": {
+        "time": 2266.2,
+        "contact": {
+          "x": 32.00000265370244,
+          "y": 100
+        },
+        "depth": 0.3406672035366672,
+        "center": 1.9578300225475687e-7,
+        "energy": 1.078222007751465,
+        "pressure": 1,
+        "contactHeight": -0.593512982272446,
+        "rimMin": 93.96896362304688,
+        "rimMax": 94.18913269042969,
+        "displaced": 271.91234865784645,
+        "raised": 271.91234966552605,
+        "signedHeight": 0.0000010076794698511729,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99813370161622,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "03-deep": {
+      "active": true,
+      "frameCount": 60,
+      "contact": {
+        "x": 32.00000265370244,
+        "y": 100,
+        "anchorX": 32.00000265370244,
+        "anchorY": 100,
+        "lastAt": 2192.599999997765,
+        "held": 760,
+        "speed": 0,
+        "pressure": 1
+      },
+      "last": {
+        "time": 3199.4,
+        "contact": {
+          "x": 32.00000265370244,
+          "y": 100
+        },
+        "depth": 1,
+        "center": 1.5929909944534302,
+        "energy": 0.13222037434577943,
+        "pressure": 1,
+        "contactHeight": -14.717480440749332,
+        "rimMin": 88.53648376464844,
+        "rimMax": 100.96751403808594,
+        "displaced": 22368.2877188862,
+        "raised": 22368.28751075486,
+        "signedHeight": -0.0002081313633229588,
+        "trail": 1,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99813370161622,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "04-arc-6": {
+      "active": true,
+      "frameCount": 77,
+      "contact": {
+        "x": 37.1761819590693,
+        "y": 73.97752844769022,
+        "anchorX": 37.1761819590693,
+        "anchorY": 73.97752844769022,
+        "lastAt": 3467.599999997765,
+        "held": 760,
+        "speed": 0.09093566983271928,
+        "pressure": 1
+      },
+      "last": {
+        "time": 3482.8,
+        "contact": {
+          "x": 37.1761819590693,
+          "y": 73.97752844769022
+        },
+        "depth": 0.548127983508894,
+        "center": 1.3380061388015747,
+        "energy": 1.33278377532959,
+        "pressure": 1,
+        "contactHeight": -6.313378877223457,
+        "rimMin": 88.99897766113281,
+        "rimMax": 100.68421936035156,
+        "displaced": 20788.91564262405,
+        "raised": 20788.915733621827,
+        "signedHeight": 0.00009099775283888042,
+        "trail": 12,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99813370161622,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "04-arc-12": {
+      "active": true,
+      "frameCount": 90,
+      "contact": {
+        "x": 51.91673610521399,
+        "y": 51.91673610521399,
+        "anchorX": 51.91673610521399,
+        "anchorY": 51.91673610521399,
+        "lastAt": 3683.2999999970198,
+        "held": 760,
+        "speed": 0.09457284318759929,
+        "pressure": 1
+      },
+      "last": {
+        "time": 3699.4,
+        "contact": {
+          "x": 51.91673610521399,
+          "y": 51.91673610521399
+        },
+        "depth": 0.4688663625670001,
+        "center": 0.3715178072452545,
+        "energy": 2.1584833145141604,
+        "pressure": 1,
+        "contactHeight": -0.3687572308297487,
+        "rimMin": 91.55574798583984,
+        "rimMax": 98.57337951660156,
+        "displaced": 12364.352075979796,
+        "raised": 12364.351633082902,
+        "signedHeight": -0.00044289690088791106,
+        "trail": 24,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99813370161622,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "04-arc-18": {
+      "active": true,
+      "frameCount": 108,
+      "contact": {
+        "x": 73.97752844769022,
+        "y": 37.1761819590693,
+        "anchorX": 73.97752844769022,
+        "anchorY": 37.1761819590693,
+        "lastAt": 3983.7999999970198,
+        "held": 760,
+        "speed": 0.06184326976405273,
+        "pressure": 1
+      },
+      "last": {
+        "time": 3999.4,
+        "contact": {
+          "x": 73.97752844769022,
+          "y": 37.1761819590693
+        },
+        "depth": 0.5054650414450884,
+        "center": 0.03372369334101677,
+        "energy": 1.8311740875244142,
+        "pressure": 1,
+        "contactHeight": -1.9885122980647263,
+        "rimMin": 92.97307586669922,
+        "rimMax": 96.28195190429688,
+        "displaced": 6516.519331937119,
+        "raised": 6516.519367873558,
+        "signedHeight": 0.00003593643401682278,
+        "trail": 23,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99813370161622,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "04-arc-24": {
+      "active": true,
+      "frameCount": 121,
+      "contact": {
+        "x": 100,
+        "y": 32.00000265370244,
+        "anchorX": 100,
+        "anchorY": 32.00000265370244,
+        "lastAt": 4200.099999997765,
+        "held": 760,
+        "speed": 0.06122752496655987,
+        "pressure": 1
+      },
+      "last": {
+        "time": 4216.1,
+        "contact": {
+          "x": 100,
+          "y": 32.00000265370244
+        },
+        "depth": 0.49008773287332075,
+        "center": 0.005130346864461899,
+        "energy": 1.8384984207153323,
+        "pressure": 1,
+        "contactHeight": -1.6025908488801457,
+        "rimMin": 93.70613098144531,
+        "rimMax": 95.70252990722656,
+        "displaced": 5254.27959179919,
+        "raised": 5254.279563815636,
+        "signedHeight": -0.000027983550955731212,
+        "trail": 25,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99813370161622,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "05-release": {
+      "active": true,
+      "frameCount": 131,
+      "contact": null,
+      "last": {
+        "time": 4382.7,
+        "contact": null,
+        "depth": 0.6191513263503724,
+        "center": 0.0010354218538850546,
+        "energy": 1.6336431312561037,
+        "pressure": 0,
+        "contactHeight": 0,
+        "rimMin": 92.98838806152344,
+        "rimMax": 96.57601928710938,
+        "displaced": 5602.859638529982,
+        "raised": 5602.859678031504,
+        "signedHeight": 0.00003950152428092851,
+        "trail": 16,
+        "waves": 1,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99813370161622,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    },
+    "06-restored": {
+      "active": false,
+      "frameCount": 296,
+      "contact": null,
+      "last": {
+        "time": 7132.6,
+        "contact": null,
+        "depth": 0,
+        "center": 0,
+        "energy": 0,
+        "pressure": 0,
+        "contactHeight": 0,
+        "rimMin": 94,
+        "rimMax": 94,
+        "displaced": 0,
+        "raised": 0,
+        "signedHeight": 0,
+        "trail": 0,
+        "waves": 0,
+        "pieces": 0,
+        "chips": 0,
+        "tip": null,
+        "x": 50,
+        "y": 49.99813370161622,
+        "vx": 0,
+        "vy": 0
+      },
+      "center": [
+        550,
+        518.015625
+      ],
+      "url": "/mallang"
+    }
+  },
+  "consoleErrors": [],
+  "networkFailures": [],
+  "restCenter": {
+    "x": 550,
+    "y": 518.015625,
+    "size": 184
+  },
+  "events": [
+    {
+      "type": "pointermove",
+      "at": 2189.7999999970198,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointerdown",
+      "at": 2191.89999999851,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "gotpointercapture",
+      "at": 2244,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3300.199999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3333.099999997765,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3368.199999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3399.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3433.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3467.599999997765,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3516.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3550.2999999970198,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3584.7999999970198,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3618.199999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3650.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3683.199999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3799.7999999970198,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3833.099999997765,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3866.599999997765,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3899.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3933.89999999851,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 3983.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 4016.699999999255,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 4051.2999999970198,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 4083.39999999851,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 4116.599999997765,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 4149.79999999702,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointermove",
+      "at": 4199.89999999851,
+      "buttons": 1,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "pointerup",
+      "at": 4326.89999999851,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    },
+    {
+      "type": "lostpointercapture",
+      "at": 4328,
+      "buttons": 0,
+      "target": "mallang-body",
+      "isTrusted": true
+    }
+  ]
+}

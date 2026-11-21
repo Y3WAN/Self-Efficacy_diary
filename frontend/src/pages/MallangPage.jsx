@@ -1,899 +1,420 @@
-import { useState, useEffect, useId, useRef, useCallback } from "react";
+import { useState, useEffect, useId, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import AppBar from "../components/AppBar";
 import WaxShell from "../components/WaxShell";
+import { bareSurfaceContact, createMallangMaterial, materialContact, membraneRadii, membraneRadiusAt } from "../utils/mallangMaterial";
 import { createMallangSurface } from "../utils/mallangSurface";
 import { createWaxShell, fractureWaxShell, waxKeyboardPoint } from "../utils/waxShell";
-import { createButtonDent } from "../utils/buttonDent";
-import { FULL_PRESS_MS, PRESS_FLATTENING, pressDepth, pressRadiusRatio, pressRecoveryDuration } from "../utils/surfacePress";
-import { pressureRimPath } from "../utils/mallangRim";
-import { BLOB_CENTER, BODY_RADIUS, STOP_SPEED, MAX_TETHER_DISTANCE, positionFromPoint,
-  followTether, pullTarget, pulledCircle, beginPull, retractCircle, springDisplacement, advanceMotion } from "../utils/mallangMotion";
+import { pressRadiusRatio } from "../utils/surfacePress";
+import { BLOB_CENTER, BODY_RADIUS, PULL_RADIUS, STOP_SPEED, advanceMotion, beginPull, positionFromPoint,
+  pullTarget, springDisplacement, updatePull } from "../utils/mallangMotion";
 import { createMallangAudio, readMallangVolume, saveMallangVolume } from "../utils/mallangAudio";
 
-const MIN_DRAG_DISTANCE = 8;
-const DRAG_SIZE_RATIO = 0.075;
-const IMPACT_MS = 155;
-const IMPACT_SOUND_GAP_MS = 85;
-const TAP_REACTION_MS = 360;
-const MIN_WAX_HOLD_MS = 190;
-const WAX_DRAG_STEP = 18;
-const RIM_SPAN = 0.44;
-const MIN_RETRACT_MS = 175;
-const MAX_RETRACT_MS = 315;
 const WAX_MODE_KEY = "codemyworld.mallang.wax";
-const IDLE_REACTIONS = [
-  { expression: "blink", duration: 170 },
-  { expression: "happy", duration: 720 },
-  { expression: "curious", duration: 580 },
-];
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
+const RETURNING_TIP_HIT_PADDING = 6;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+function readWaxMode() {
+  try { return localStorage.getItem(WAX_MODE_KEY) === "true"; } catch { return false; }
 }
 
-function circularRim(radius) {
-  const diameter = radius * 2;
-  return `M ${BLOB_CENTER + radius} ${BLOB_CENTER} a ${radius} ${radius} 0 1 0 ${-diameter} 0 a ${radius} ${radius} 0 1 0 ${diameter} 0 Z`;
-}
-
-const RESTING_RIM = circularRim(BODY_RADIUS);
-
-function flexedRim(angle, amount) {
-  if (!amount) return RESTING_RIM;
-  if (angle === null) return circularRim(BODY_RADIUS * (1 + amount * 0.45));
-
-  const start = angle - RIM_SPAN;
-  const end = angle + RIM_SPAN;
-  const handle = BODY_RADIUS * RIM_SPAN / 3;
-  function point(direction, radius, tangent = 0) {
-    const x = BLOB_CENTER + Math.cos(direction) * radius - Math.sin(direction) * tangent;
-    const y = BLOB_CENTER + Math.sin(direction) * radius + Math.cos(direction) * tangent;
-    return `${x.toFixed(2)} ${y.toFixed(2)}`;
-  }
-
-  const crest = BODY_RADIUS * (1 + amount);
-  return [
-    `M ${point(end, BODY_RADIUS)} A ${BODY_RADIUS} ${BODY_RADIUS} 0 1 1 ${point(start, BODY_RADIUS)}`,
-    `C ${point(start, BODY_RADIUS, handle)} ${point(angle, crest, -handle)} ${point(angle, crest)}`,
-    `C ${point(angle, crest, handle)} ${point(end, BODY_RADIUS, -handle)} ${point(end, BODY_RADIUS)} Z`,
-  ].join(" ");
-}
-
-function MallangSilhouette({ pull, bodyStyle, surfaceCanvas, rimRef, dentRef, appearance }) {
-  const isGel = appearance === "3d";
-  const id = useId();
-  const left = Math.min(-100, (pull?.x ?? BLOB_CENTER) - 90);
-  const top = Math.min(-100, (pull?.y ?? BLOB_CENTER) - 90);
-  const width = Math.max(300, (pull?.x ?? BLOB_CENTER) + 90) - left;
-  const height = Math.max(300, (pull?.y ?? BLOB_CENTER) + 90) - top;
-  const body = <use href={`#${id}-outline`} className="mallang-main-circle" style={bodyStyle} />;
-  const visibleShape = pull ? <rect x={left} y={top} width={width} height={height} /> : body;
-  const bodyFill = appearance === "2d" ? "#ffcedf" : `url(#${id}-body)`;
-  const pullOpacity = pull
-    ? clamp((Math.hypot(pull.x - BLOB_CENTER, pull.y - BLOB_CENTER) - 48) / 53, 0, 1) * 0.54 * (pull.blend ?? 1)
-    : 0;
-  return (
-    <svg className="mallang-silhouette" aria-hidden="true" viewBox="0 0 200 200">
-      <defs>
-        <path ref={rimRef} id={`${id}-outline`} d={RESTING_RIM} />
-        <clipPath id={`${id}-resting-shape`}>{body}</clipPath>
-        {appearance === "original" && (
-          <radialGradient id={`${id}-body`} gradientUnits="userSpaceOnUse" cx="76" cy="64" r="143">
-            <stop offset="0" stopColor="#faddea" />
-            <stop offset=".48" stopColor="#f5cede" />
-            <stop offset=".82" stopColor="#ebb4ce" />
-            <stop offset="1" stopColor="#da97b9" />
-          </radialGradient>
-        )}
-        {isGel && (
-          <>
-            <radialGradient id={`${id}-body`} gradientUnits="userSpaceOnUse" cx="65" cy="51" r="158">
-              <stop offset="0" stopColor="#fff3f9" />
-              <stop offset="0.42" stopColor="#ffd0e6" />
-              <stop offset="0.76" stopColor="#ee9ac4" />
-              <stop offset="0.93" stopColor="#cc6a9e" />
-              <stop offset="1" stopColor="#c05892" />
-            </radialGradient>
-            <radialGradient id={`${id}-shine`} gradientUnits="userSpaceOnUse" cx="58" cy="48" r="55"
-              gradientTransform="rotate(-30 58 48) translate(0 24) scale(1 .5)">
-              <stop offset="0" stopColor="#fff9fd" stopOpacity="0.95" />
-              <stop offset="0.44" stopColor="#fff9fd" stopOpacity="0.63" />
-              <stop offset="1" stopColor="#fff9fd" stopOpacity="0" />
-            </radialGradient>
-          </>
-        )}
-        {pull && (
-          <>
-            <radialGradient id={`${id}-pull-light`}>
-              <stop offset="0" stopColor="#fff0f8" stopOpacity=".7" />
-              <stop offset="1" stopColor="#fff0f8" stopOpacity="0" />
-            </radialGradient>
-            <filter
-              id={`${id}-blend`}
-              filterUnits="userSpaceOnUse"
-              x={left} y={top} width={width} height={height}
-            >
-              <feGaussianBlur stdDeviation="24" />
-              <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 18 -8" />
-            </filter>
-            <mask
-              id={`${id}-shape`}
-              maskUnits="userSpaceOnUse"
-              x={left} y={top} width={width} height={height}
-              style={{ maskType: "alpha" }}
-            >
-              {body}
-              <g filter={`url(#${id}-blend)`} opacity={pull.blend ?? 1}>
-                {body}
-                <line x1={BLOB_CENTER} y1={BLOB_CENTER} x2={pull.x} y2={pull.y}
-                  stroke="black" strokeWidth={pull.radius * 2} strokeLinecap="round" />
-                <circle className="mallang-pull" cx={pull.x} cy={pull.y} r={pull.radius} />
-              </g>
-            </mask>
-          </>
-        )}
-      </defs>
-      <g mask={pull ? `url(#${id}-shape)` : undefined}
-        clipPath={pull ? undefined : `url(#${id}-resting-shape)`}>
-        <g ref={dentRef}>
-        <g fill={bodyFill}>{visibleShape}</g>
-        {isGel && <g fill={`url(#${id}-shine)`}>{visibleShape}</g>}
-        {pull && (
-          <ellipse cx={pull.x - pull.radius * 0.16} cy={pull.y - pull.radius * 0.2}
-            rx={pull.radius * 0.74} ry={pull.radius * 0.52} opacity={pullOpacity}
-            fill={`url(#${id}-pull-light)`} />
-        )}
-        <foreignObject
-          className="mallang-main-circle"
-          style={bodyStyle}
-          x={-BLOB_CENTER * 2}
-          y={-BLOB_CENTER * 2}
-          width={BLOB_CENTER * 6}
-          height={BLOB_CENTER * 6}
-        >
-          <canvas ref={surfaceCanvas} className="mallang-surface" />
-        </foreignObject>
-        </g>
-      </g>
-    </svg>
-  );
-}
-
-function MallangFace({ state, squish, appearance, dentFilter }) {
-  const id = useId();
-  const isGel = appearance === "3d";
-  const isOriginal = appearance === "original";
-  const blushFill = isGel ? `url(#${id}-blush)` : isOriginal ? "#d96789" : "#ed93ae";
-  const blushOpacity = isOriginal ? (squish ? 0.49 : 0.32) : (squish ? 1 : 0.82);
-  const eyeFill = isGel ? `url(#${id}-eye)` : isOriginal ? "#3D1A26" : "#582438";
-  return (
-    <svg aria-hidden="true" viewBox="0 0 200 200" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
-      {isOriginal && (
-        <defs>
-          <filter id={`${id}-blush-blur`} x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" />
-          </filter>
-        </defs>
-      )}
-      {isGel && (
-        <defs>
-          <radialGradient id={`${id}-blush`} cx="43%" cy="42%">
-            <stop offset="0" stopColor="#eb699c" stopOpacity="0.63" />
-            <stop offset="1" stopColor="#eb699c" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id={`${id}-eye`} cx="30%" cy="28%" r="74%">
-            <stop offset="0" stopColor="#97516b" />
-            <stop offset="1" stopColor="#351321" />
-          </radialGradient>
-        </defs>
-      )}
-      <g filter={`url(#${dentFilter})`}>
-      {[62, 138].map(x => (
-        <ellipse key={x} cx={x} cy="116"
-          rx={isGel ? 24 : isOriginal ? 22 : 16}
-          ry={isGel ? 16 : isOriginal ? 13 : 8}
-          fill={blushFill} opacity={blushOpacity}
-          filter={isOriginal ? `url(#${id}-blush-blur)` : undefined} />
-      ))}
-
-      {state === "squished" && (
-        <>
-          <path d="M 78 96 Q 86 101 94 94 M 106 94 Q 114 101 122 96"
-            stroke="#6B2D40" strokeWidth="3.5" strokeLinecap="round" fill="none" />
-          <ellipse cx="100" cy="117" rx="6" ry="2.7" fill="#8B4058" />
-        </>
-      )}
-      {state === "blink" && (
-        <>
-          <line x1="80" y1="95" x2="93" y2="95" stroke="#6B2D40" strokeWidth="3.5" strokeLinecap="round" />
-          <line x1="107" y1="95" x2="120" y2="95" stroke="#6B2D40" strokeWidth="3.5" strokeLinecap="round" />
-          <line x1="95" y1="117" x2="105" y2="117" stroke="#8B4058" strokeWidth="2.5" strokeLinecap="round" />
-        </>
-      )}
-
-      {state === "happy" && (
-        <>
-          <path d="M 79 97 Q 86 89 93 97" stroke="#6B2D40" strokeWidth="3" fill="none" strokeLinecap="round" />
-          <path d="M 107 97 Q 114 89 121 97" stroke="#6B2D40" strokeWidth="3" fill="none" strokeLinecap="round" />
-          <path d="M 89 114 Q 100 127 111 114" stroke="#8B4058" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-        </>
-      )}
-
-      {(state === "normal" || state === "moving" || state === "curious") && (
-        <>
-          <circle cx="86" cy="94" r={state === "moving" ? 3.8 : 6.2} fill={eyeFill} />
-          <circle cx="114" cy="94" r={state === "moving" ? 3.8 : 6.2} fill={eyeFill} />
-          {appearance !== "2d" && [86, 114].map(x => (
-            <circle key={x} cx={x + (isGel ? -2.3 : 3.5)} cy={isGel ? 91.5 : 90.5}
-              r={state === "moving" ? 1 : isGel ? 1.8 : 1.9} fill={isGel ? "#fff4fb" : "white"} />
-          ))}
-          {state === "curious" ? (
-            <>
-              <path d="M 106 82 Q 113 76 121 82" stroke="#6B2D40" strokeWidth="2.3" fill="none" strokeLinecap="round" />
-              <ellipse cx="100" cy="117" rx="4" ry="5" fill="#8B4058" />
-            </>
-          ) : (
-            <text x="100" y="123" textAnchor="middle" fontSize="20" fill="#8B4058" fontWeight="800"
-              fontFamily="system-ui,sans-serif" style={{ userSelect: "none" }}>ω</text>
-          )}
-        </>
-      )}
-      </g>
-    </svg>
-  );
-}
-
-function IdleMallangFace({ appearance, dentFilter }) {
-  const [expression, setExpression] = useState("normal");
-
-  useEffect(() => {
-    let timer;
-
-    function waitForReaction() {
-      timer = setTimeout(() => {
-        const reaction = IDLE_REACTIONS[Math.floor(Math.random() * IDLE_REACTIONS.length)];
-        setExpression(reaction.expression);
-        timer = setTimeout(() => {
-          setExpression("normal");
-          waitForReaction();
-        }, reaction.duration);
-      }, 2800 + Math.random() * 3600);
-    }
-
-    waitForReaction();
-    return () => clearTimeout(timer);
-  }, []);
-
-  return <MallangFace state={expression} squish={false} appearance={appearance} dentFilter={dentFilter} />;
-}
-
-function endWaxHold(holdRef, contactRef) {
-  const hold = holdRef.current;
-  contactRef.current?.setAttribute("visibility", "hidden");
-  if (!hold) return false;
-  if (hold.frame !== null) cancelAnimationFrame(hold.frame);
-  holdRef.current = null;
-  return true;
-}
-
-function pointOnWax(button, clientX, clientY) {
-  const { left, top, width, height } = button.getBoundingClientRect();
-  if (!width || !height) return null;
-  const x = (clientX - left) / width * BLOB_CENTER * 2;
-  const y = (clientY - top) / height * BLOB_CENTER * 2;
-  return Math.hypot(x - BLOB_CENTER, y - BLOB_CENTER) <= BODY_RADIUS ? { x, y } : null;
-}
-
-function paintWaxContact(contact, point, radius, depth) {
-  if (!contact) return;
-  if (!point) {
-    contact.setAttribute("visibility", "hidden");
-    return;
-  }
-  contact.setAttribute("transform", "translate(" + point.x + " " + point.y + ")");
-  contact.setAttribute("opacity", depth.toFixed(3));
-  contact.setAttribute("visibility", "visible");
-  const ellipse = contact.firstElementChild;
-  ellipse.setAttribute("rx", radius.toFixed(2));
-  ellipse.setAttribute("ry", (radius * PRESS_FLATTENING).toFixed(2));
+function MallangFace() {
+  return <svg aria-hidden="true" viewBox="0 0 200 200">
+    <ellipse cx="63" cy="115" rx="19" ry="10" fill="#db789b" opacity=".3" />
+    <ellipse cx="137" cy="115" rx="19" ry="10" fill="#db789b" opacity=".3" />
+    <circle cx="86" cy="94" r="6.2" fill="#492032" />
+    <circle cx="114" cy="94" r="6.2" fill="#492032" />
+    <circle cx="84" cy="92" r="1.8" fill="#fff6fb" />
+    <circle cx="112" cy="92" r="1.8" fill="#fff6fb" />
+    <path d="M90 113 Q89 122 96 121 Q100 121 100 115 Q100 122 105 121 Q112 122 110 113"
+      stroke="#91465f" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+  </svg>;
 }
 
 export default function MallangPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const previewStyle = searchParams.get("style");
-  const showComparison = import.meta.env.DEV && (previewStyle === "2d" || previewStyle === "3d");
-  const appearance = showComparison ? previewStyle : "original";
-  const isGel = appearance === "3d";
-  const [position, setPosition] = useState({ x: 50, y: 50 });
-  const [phase, setPhase] = useState("idle");
-  const [pull, setPull] = useState(null);
-  const [impact, setImpact] = useState(null);
-  const [volumePercent, setVolumePercent] = useState(readMallangVolume);
+  const [params, setParams] = useSearchParams();
+  const appearance = import.meta.env.DEV && params.get("style") === "2d" ? "2d" : "original";
+  const runtime = useRef(null);
   const [audio] = useState(createMallangAudio);
-  const [isWaxMode, setIsWaxMode] = useState(() => {
-    try {
-      return localStorage.getItem(WAX_MODE_KEY) === "true";
-    } catch {
-      return false;
-    }
-  });
+  const [isWaxMode, setIsWaxMode] = useState(readWaxMode);
   const [waxShell, setWaxShell] = useState(() => createWaxShell(BLOB_CENTER, BODY_RADIUS));
-  const hasWaxShell = isWaxMode && waxShell.pieces.length > 0;
-  const hasWaxMaterial = hasWaxShell || (isWaxMode && waxShell.chips.length > 0);
-  const isBodyBusy = hasWaxMaterial && !hasWaxShell;
-  const waxShellRef = useRef(waxShell);
-  const waxHoldRef = useRef(null);
-  const waxContactRef = useRef(null);
-  const deformationRef = useRef(null);
-  const faceRef = useRef(null);
-  const dentId = useId();
-  const volumeControlId = useId();
-  const surfaceCanvas = useRef(null);
-  const rimRef = useRef(null);
-  const surface = useRef(null);
-  const bounds = useRef(null);
-  const character = useRef(null);
-  const motionRef = useRef(null);
-  const reactionTimer = useRef(null);
-
-  const cancelInteraction = useCallback(() => {
-    endWaxHold(waxHoldRef, waxContactRef);
-    const motion = motionRef.current;
-    clearTimeout(reactionTimer.current);
-    if (motion?.frame != null) cancelAnimationFrame(motion.frame);
-    motionRef.current = null;
-    surface.current?.stop();
-    setPull(null);
-    setImpact(null);
-    setPhase("idle");
-  }, []);
+  const initial = useRef({ shell: waxShell, mode: isWaxMode });
+  const [volume, setVolume] = useState(readMallangVolume);
+  const canvas = useRef(null), overlay = useRef(null), character = useRef(null), bounds = useRef(null);
+  const face = useRef(null), shellElement = useRef(null), control = useRef(null), controller = useRef(null);
+  const inspect = useRef(null);
+  const volumeId = useId();
 
   useEffect(() => {
-    const dent = createButtonDent({ id: dentId, maxPull: 5, surfaceRadius: BODY_RADIUS / (BLOB_CENTER * 2),
-      detailId: `${dentId}-face`, detailPull: 3.5 });
-    const waveSurface = createMallangSurface(
-      surfaceCanvas.current,
-      BODY_RADIUS / (BLOB_CENTER * 2),
-      (angle, amount, contacts = []) => {
-        const rim = rimRef.current;
-        const outline = contacts.length
-          ? pressureRimPath(contacts, BLOB_CENTER, BODY_RADIUS, angle, amount)
-          : flexedRim(angle, amount);
-        if (rim && rim.getAttribute("d") !== outline) rim.setAttribute("d", outline);
-      },
-      (contact) => {
-        const body = deformationRef.current;
-        if (!body || !dent) return;
-        if (!contact?.depth) {
-          body.style.removeProperty("filter");
-          dent.setDepth(0);
-          faceRef.current?.style.removeProperty("transform");
-          return;
-        }
-        const size = BLOB_CENTER * 2;
-        const pull = motionRef.current?.pull;
-        const protectedCircle = pull && {
-          x: pull.x / (BLOB_CENTER * 2),
-          y: pull.y / (BLOB_CENTER * 2),
-          radius: (pull.radius + 2) / (BLOB_CENTER * 2),
-        };
-        dent.trace(contact.trail, size, size, contact.diameter * size, protectedCircle);
-        body.style.filter = "url(#" + dentId + ")";
-        // The face shares the surface field at a limited strength, with a small overall compression.
-        const depth = contact.depth;
-        const x = clamp((contact.x - 0.5) * 5 * depth, -1.8, 1.8);
-        const y = clamp((contact.y - 0.5) * 5 * depth, -1.8, 1.8);
-        if (faceRef.current) faceRef.current.style.transform =
-          `translate(${x}px, ${y}px) scale(${1 - depth * 0.015}, ${1 - depth * 0.025})`;
-      },
-    );
-    surface.current = waveSurface;
+    const r = { material: createMallangMaterial(), audio, shell: initial.current.shell,
+      mode: initial.current.mode, frame: null, motion: null, input: null, pressFollowsTether: false, records: [], costs: [], frames: 0 };
+    runtime.current = r;
+    const material = r.material;
+    const surface = createMallangSurface(canvas.current, material, overlay.current);
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const reduced = () => media.matches;
+    let disposed = false;
+    r.material.state.reducedMotion = reduced();
+    material.reset(performance.now());
+    material.setShell(r.mode ? r.shell : null);
+    r.surface = surface;
 
-    function cancelInterruptedPointer(event) {
-      if (waxHoldRef.current?.pointerId === event.pointerId || motionRef.current?.pointerId === event.pointerId) {
-        cancelInteraction();
-      }
+    function updateShell(shell, topology = true) {
+      r.shell = shell;
+      if (topology) material.setShell(r.mode ? shell : null);
+      setWaxShell(shell);
     }
-
-    function cancelWhenHidden() {
-      if (document.visibilityState === "hidden") cancelInteraction();
+    function request() {
+      if (!disposed && r.frame === null) r.frame = requestAnimationFrame(frame);
     }
-
-    window.addEventListener("blur", cancelInteraction);
-    window.addEventListener("pointerup", cancelInterruptedPointer);
-    window.addEventListener("pointercancel", cancelInterruptedPointer);
-    document.addEventListener("visibilitychange", cancelWhenHidden);
-    return () => {
-      window.removeEventListener("blur", cancelInteraction);
-      window.removeEventListener("pointerup", cancelInterruptedPointer);
-      window.removeEventListener("pointercancel", cancelInterruptedPointer);
-      document.removeEventListener("visibilitychange", cancelWhenHidden);
-      endWaxHold(waxHoldRef, waxContactRef);
-      clearTimeout(reactionTimer.current);
-      if (motionRef.current?.frame != null) cancelAnimationFrame(motionRef.current.frame);
-      waveSurface?.dispose();
-      dent?.dispose();
-      surface.current = null;
-    };
-  }, [dentId, cancelInteraction]);
-
-  useEffect(() => {
-    surface.current?.setFlatStyle(appearance === "2d");
-  }, [appearance]);
-
-  useEffect(() => () => audio.close(), [audio]);
-
-  useEffect(() => {
-    audio.setVolume(volumePercent);
-  }, [audio, volumePercent]);
-
-  function changeVolume(event) {
-    const percent = event.currentTarget.valueAsNumber;
-    setVolumePercent(percent);
-    saveMallangVolume(percent);
-  }
-
-  function selectPreviewStyle(style) {
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("style", style);
-    setSearchParams(nextParams, { replace: true });
-  }
-
-  function settle(nextPhase, duration) {
-    clearTimeout(reactionTimer.current);
-    setPhase(nextPhase);
-    if (nextPhase !== "idle") {
-      reactionTimer.current = setTimeout(() => setPhase("idle"), duration);
+    function point(clientX, clientY) {
+      const rect = character.current.getBoundingClientRect();
+      return { x: (clientX - rect.left) / rect.width * 200, y: (clientY - rect.top) / rect.height * 200 };
     }
-  }
-
-  function reactAfterRefill(delay) {
-    clearTimeout(reactionTimer.current);
-    setPhase("refilling");
-    reactionTimer.current = setTimeout(() => settle("happy", TAP_REACTION_MS), Math.max(0, delay));
-  }
-
-  function pointOnCharacter(clientX, clientY) {
-    const { left, top, width, height } = character.current.getBoundingClientRect();
-    if (!width || !height) return null;
-    return { x: (clientX - left) / width, y: (clientY - top) / height };
-  }
-
-  function tapAt(clientX, clientY, pointerTarget) {
-    if (isBodyBusy || hasWaxShell) return;
-    const point = pointOnCharacter(clientX, clientY);
-    if (!point) return;
-    const strength = surface.current?.addDrop(point.x, point.y);
-    const keyboardTap = !pointerTarget;
-    if (keyboardTap) audio.play("press");
-    audio.play("refill", strength, keyboardTap ? 0.065 : 0);
-    reactAfterRefill(pressRecoveryDuration(strength ?? 0));
-  }
-
-  function beginWaxHold(point, input) {
-    if (!point || waxHoldRef.current || motionRef.current?.pointerId != null) return false;
-    if (motionRef.current?.frame != null) cancelAnimationFrame(motionRef.current.frame);
-    motionRef.current = null;
-    clearTimeout(reactionTimer.current);
-    surface.current?.stop();
-    setPull(null);
-    setImpact(null);
-    setPhase("pressingWax");
-    audio.prepareWax();
-
-    const hold = { ...input, point, startedAt: performance.now(), lastFracturePoint: null, pieceLimit: waxShellRef.current.nextPieceId, frame: null };
-    waxHoldRef.current = hold;
-    scheduleWaxHold(hold);
-    return true;
-  }
-
-  function scheduleWaxHold(hold) {
-    if (hold.frame === null) {
-      hold.frame = requestAnimationFrame((timestamp) => advanceWaxHold(hold, timestamp));
+    function contactPoint(raw) {
+      return materialContact(material, raw, r.impactPaint);
     }
-  }
-
-  function advanceWaxHold(hold, timestamp, finishing = false) {
-    if (waxHoldRef.current !== hold) return;
-    hold.frame = null;
-    const elapsed = Math.max(0, timestamp - hold.startedAt);
-    const depth = pressDepth(elapsed);
-    const radius = BODY_RADIUS * pressRadiusRatio(depth);
-    const { point } = hold;
-    paintWaxContact(waxContactRef.current, point, radius, depth);
-
-    const ready = elapsed >= (finishing ? MIN_WAX_HOLD_MS : FULL_PRESS_MS);
-    if (ready && point) {
-      const previous = hold.lastFracturePoint;
-      const distance = previous ? Math.hypot(point.x - previous.x, point.y - previous.y) : 0;
-      const steps = previous ? Math.floor(distance / WAX_DRAG_STEP) : 1;
-      const includeEnd = finishing && distance > 2 && steps === 0;
-      let shell = waxShellRef.current;
-      let sound = null;
-      for (let step = 1; step <= steps + (includeEnd ? 1 : 0); step++) {
-        const progress = previous && !includeEnd ? Math.min(1, step * WAX_DRAG_STEP / distance) : 1;
-        const sample = previous ? {
-          x: previous.x + (point.x - previous.x) * progress,
-          y: previous.y + (point.y - previous.y) * progress,
-        } : point;
-        hold.lastFracturePoint = sample;
-        const fracture = fractureWaxShell(shell, sample, radius, hold.pieceLimit);
-        if (!fracture) continue;
-        shell = fracture.shell;
-        if (!sound || fracture.strength > sound.strength) sound = fracture;
-      }
-      if (sound) {
-        updateWaxShell(shell);
-        audio.play(sound.sound, sound.strength);
-        if (!shell.pieces.length) {
-          finishWaxHold();
-          return;
-        }
-      }
+    function geometry(motion) {
+      motion.rect = bounds.current.getBoundingClientRect();
+      motion.bodySize = character.current.getBoundingClientRect().width;
     }
-    if (!finishing && elapsed < FULL_PRESS_MS) scheduleWaxHold(hold);
-  }
-
-  function finishWaxHold() {
-    if (endWaxHold(waxHoldRef, waxContactRef)) settle("idle");
-  }
-
-  function startWaxKey(event) {
-    if (!hasWaxShell || (event.key !== "Enter" && event.key !== " ")) return;
-    event.preventDefault();
-    if (!event.repeat) beginWaxHold(waxKeyboardPoint(waxShellRef.current), { key: event.key });
-  }
-
-  function sampleFinalWaxPressure(hold) {
-    if (hold.frame !== null) cancelAnimationFrame(hold.frame);
-    advanceWaxHold(hold, performance.now(), true);
-    finishWaxHold();
-  }
-
-  function releaseWaxKey(event) {
-    const hold = waxHoldRef.current;
-    if (hold?.key !== event.key) return;
-    event.preventDefault();
-    sampleFinalWaxPressure(hold);
-  }
-
-  function updateWaxShell(shell) {
-    waxShellRef.current = shell;
-    setWaxShell(shell);
-  }
-
-  function resetWaxShell() {
-    cancelInteraction();
-    updateWaxShell(createWaxShell(BLOB_CENTER, BODY_RADIUS));
-  }
-
-  function removeWaxChip(id) {
-    const shell = waxShellRef.current;
-    const chips = shell.chips.filter((chip) => chip.id !== id);
-    if (chips.length === shell.chips.length) return;
-    updateWaxShell({ ...shell, chips });
-
-  }
-
-  function toggleWaxMode() {
-    const enabled = !isWaxMode;
-    setIsWaxMode(enabled);
-    if (enabled) audio.prepareWax();
-    resetWaxShell();
-    try {
-      localStorage.setItem(WAX_MODE_KEY, String(enabled));
-    } catch {
-      // The switch still works for the current visit if browser storage is unavailable.
+    function hit(raw) {
+      const pull = r.motion?.pull;
+      const radii = membraneRadii(material, pull, r.impactPaint);
+      const dx = raw.x - BLOB_CENTER, dy = raw.y - BLOB_CENTER;
+      const angle = Math.atan2(dy, dx);
+      // A returning tip moves between the displayed frame and the incoming press.
+      const nearReturningTip = pull && r.motion.mode === "coast" &&
+        Math.hypot(raw.x - pull.x, raw.y - pull.y) <= RETURNING_TIP_HIT_PADDING;
+      return nearReturningTip || Math.hypot(dx, dy) <= membraneRadiusAt(radii, angle);
     }
-  }
-
-  function readGeometry(motion) {
-    motion.rect = bounds.current.getBoundingClientRect();
-    motion.bodySize = character.current.getBoundingClientRect().width;
-  }
-
-  function startGrab() {
-    const previous = motionRef.current;
-    if (previous?.frame != null) cancelAnimationFrame(previous.frame);
-    clearTimeout(reactionTimer.current);
-    const body = character.current.getBoundingClientRect();
-    const motion = {
-      mode: "grab",
-      pressedAt: performance.now(),
-      pointerId: null,
-      frame: null,
-      vx: previous?.vx ?? 0,
-      vy: previous?.vy ?? 0,
-      reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-      centerX: body.left + body.width / 2,
-      centerY: body.top + body.height / 2,
-      tetherPoint: null,
-      pull: null,
-      impact: null,
-    };
-    readGeometry(motion);
-    motion.position = positionFromPoint(motion.centerX, motion.centerY, motion.rect);
-    motion.target = null;
-    motionRef.current = motion;
-    setPull(null);
-    setImpact(null);
-    return motion;
-  }
-
-  function schedule(motion, timestamp) {
-    if (motion.frame !== null) return;
-    motion.lastFrame = timestamp;
-    motion.frame = requestAnimationFrame((time) => animate(motion, time));
-  }
-
-  function animate(motion, timestamp) {
-    motion.frame = null;
-    const { tetherMoving } = advanceMotion(motion, timestamp);
-    const held = motion.mode === "grab";
-    const coasting = motion.mode === "coast";
-    const { rect, position } = motion;
-    const spring = springDisplacement(motion, position.x * rect.width / 100, position.y * rect.height / 100);
-    const tension = Math.hypot(spring.x, spring.y);
-    if (motion.reducedMotion) {
-      motion.position = {
-        x: clamp(position.x + spring.x / rect.width * 100, 0, 100),
-        y: clamp(position.y + spring.y / rect.height * 100, 0, 100),
+    function paint() {
+      if (disposed || !face.current || !character.current) return;
+      const motion = r.motion;
+      const reliefTip = r.pressFollowsTether ? motion?.pull : null;
+      const unitsPerPercent = motion ? 2 / motion.bodySize : 0;
+      const bodyOffset = motion && {
+        x: motion.position.x * motion.rect.width * unitsPerPercent,
+        y: motion.position.y * motion.rect.height * unitsPerPercent,
       };
-    }
-    if (held) {
-      followTether(motion);
-      motion.pull = pulledCircle(motion);
-      // Pressure follows the actual pointer, even while the visible tip is blending out of the rim.
-      const target = pullTarget(motion);
-      surface.current?.moveIndentation(target.x / (BLOB_CENTER * 2), target.y / (BLOB_CENTER * 2));
-    } else if (motion.retraction) {
-      motion.pull = retractCircle(motion.retraction, timestamp);
-      if (!motion.pull) motion.retraction = null;
-    }
-    if (motion.impact && timestamp - motion.impact.time >= IMPACT_MS) motion.impact = null;
-    if (motion.impact && motion.impact.time - (motion.lastImpactSound ?? -Infinity) >= IMPACT_SOUND_GAP_MS) {
-      motion.lastImpactSound = motion.impact.time;
-      audio.play("wall", Math.min(1, Math.hypot(motion.impact.x, motion.impact.y)));
-    }
-    const squash = motion.impact && (1 - (timestamp - motion.impact.time) / IMPACT_MS) ** 2;
-    setPull(motion.pull);
-    setImpact(motion.impact && { x: motion.impact.x * squash, y: motion.impact.y * squash });
-
-    const moving = Math.hypot(motion.vx, motion.vy) > STOP_SPEED;
-    if (!moving && !coasting && tension < 0.3) {
-      if (motion.target) motion.position = motion.target;
-      motion.vx = 0;
-      motion.vy = 0;
-    }
-    setPosition(motion.position);
-    if (moving || (!coasting && !motion.reducedMotion && tension >= 0.3) ||
-      tetherMoving || motion.impact || (coasting && motion.pull)) {
-      motion.frame = requestAnimationFrame((time) => animate(motion, time));
-    } else if (!held) {
-      motionRef.current = null;
-      reactAfterRefill((motion.refillUntil ?? 0) - performance.now());
-    }
-  }
-
-  function press(event) {
-    if (isBodyBusy || !event.isPrimary || event.button !== 0 || motionRef.current?.pointerId != null) return;
-    if (hasWaxShell) {
-      const point = pointOnWax(event.currentTarget, event.clientX, event.clientY);
-      if (beginWaxHold(point, { pointerId: event.pointerId })) {
-        event.currentTarget.setPointerCapture(event.pointerId);
+      surface?.draw(motion?.pull, r.impactPaint, reliefTip, bodyOffset);
+      if (r.motion) {
+        character.current.style.left = r.motion.position.x + "%";
+        character.current.style.top = r.motion.position.y + "%";
       }
-      return;
-    }
-
-    const motion = startGrab();
-    const catching = Math.hypot(motion.vx, motion.vy) > STOP_SPEED;
-    motion.pointerId = event.pointerId;
-    motion.pointer = { x: event.clientX, y: event.clientY };
-    motion.startX = event.clientX;
-    motion.startY = event.clientY;
-    if (catching) motion.target = motion.position;
-    motion.hasMoved = catching;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setPhase(catching ? "dragging" : "pressed");
-    audio.play(catching ? "stretch" : "press");
-    const point = pointOnCharacter(event.clientX, event.clientY);
-    if (point) surface.current?.setIndentation(point.x, point.y);
-    // Track the real tether from pointer down, including the first grab after release.
-    beginPull(motion);
-    setPull(motion.pull);
-    schedule(motion, event.timeStamp);
-  }
-
-  function movePointer(event) {
-    const hold = waxHoldRef.current;
-    if (hold?.pointerId === event.pointerId) {
-      hold.point = pointOnWax(event.currentTarget, event.clientX, event.clientY);
-      if (!hold.point) hold.lastFracturePoint = null;
-      scheduleWaxHold(hold);
-      return;
-    }
-
-    const motion = motionRef.current;
-    if (!motion || event.pointerId !== motion.pointerId) return;
-
-    const previous = motion.pointer;
-    if (event.clientX === previous.x && event.clientY === previous.y) return;
-    motion.pointer = { x: event.clientX, y: event.clientY };
-    const point = pointOnCharacter(event.clientX, event.clientY);
-    if (!motion.hasMoved && point) surface.current?.moveIndentation(point.x, point.y);
-    const distance = Math.hypot(event.clientX - motion.startX, event.clientY - motion.startY);
-    const dragDistance = Math.max(MIN_DRAG_DISTANCE, motion.bodySize * DRAG_SIZE_RATIO);
-    if (distance >= dragDistance) motion.target = null;
-    readGeometry(motion);
-    followTether(motion);
-    const spring = springDisplacement(motion,
-      motion.position.x / 100 * motion.rect.width, motion.position.y / 100 * motion.rect.height);
-    if (!motion.hasMoved && Math.hypot(spring.x, spring.y) > 0.3) {
-      motion.hasMoved = true;
-      audio.play("stretch");
-      setPhase("dragging");
-    }
-    schedule(motion, event.timeStamp);
-  }
-
-  function release(event) {
-    const hold = waxHoldRef.current;
-    if (hold?.pointerId === event.pointerId) {
-      if (event.type === "pointerup") sampleFinalWaxPressure(hold);
-      else finishWaxHold();
-      return;
-    }
-
-    const motion = motionRef.current;
-    if (!motion || event.pointerId !== motion.pointerId) return;
-    const released = event.type === "pointerup";
-    if (released && motion.hasMoved) {
-      // Integrate the held force through release before coasting with that velocity.
-      if (motion.frame !== null && !motion.reducedMotion) {
-        advanceMotion(motion, event.timeStamp);
-        motion.pull = pulledCircle(motion);
+      const hx = (material.sample(106, 100) - material.sample(94, 100)) / 12;
+      const hy = (material.sample(100, 106) - material.sample(100, 94)) / 12;
+      const h = material.sample(100, 100);
+      face.current.style.transform = "translate(" + clamp(-hx * 1.3, -1.5, 1.5) + "px," +
+        clamp(h * 0.11 - hy, -2, 2) + "px) scale(" + (1 + clamp(hx * 0.018, -.025, .025)) +
+        "," + (1 + clamp(h * 0.0015, -.025, .025)) + ")";
+      for (const node of shellElement.current?.querySelectorAll("[data-piece-id]") ?? []) {
+        const piece = r.shell.pieces.find((p) => String(p.id) === node.dataset.pieceId);
+        if (!piece?.depth) continue;
+        const z = material.sample(piece.center.x, piece.center.y);
+        node.setAttribute("transform", "translate(0 " + (z * .16).toFixed(3) + ")");
       }
-      const pull = motion.pull;
-      if (pull) {
-        const stretch = clamp(Math.hypot(pull.x - BLOB_CENTER, pull.y - BLOB_CENTER) / MAX_TETHER_DISTANCE, 0, 1);
-        audio.play("retract", stretch);
-        if (!motion.reducedMotion) {
-          motion.retraction = {
-            start: event.timeStamp,
-            duration: MIN_RETRACT_MS + (MAX_RETRACT_MS - MIN_RETRACT_MS) * stretch,
-            from: pull,
-          };
+    }
+    r.paint = paint;
+    function record(cost) {
+      if (!import.meta.env.DEV) return;
+      r.frames++; r.costs.push(cost); if (r.costs.length > 240) r.costs.shift();
+      const state = material.state;
+      const rim = membraneRadii(material), rimMax = Math.max(...rim);
+      const dent = state.contact ?? state.nodes.at(-1);
+      const bearing = dent && Math.atan2(dent.y - BLOB_CENTER, dent.x - BLOB_CENTER);
+      r.records.push({ time: state.time, contact: state.contact && { x: state.contact.x, y: state.contact.y },
+        depth: material.contactDepth(), center: material.sample(100, 100), energy: state.energy,
+        pressure: state.contact?.pressure ?? 0,
+        contactHeight: state.contact ? material.sample(state.contact.x, state.contact.y) : 0,
+        dentHeight: dent ? material.sample(dent.x, dent.y) : 0,
+        rimMin: Math.min(...rim), rimMax,
+        rimPeakAngle: rimMax > BODY_RADIUS ? rim.indexOf(rimMax) / rim.length * 360 : null,
+        rimAtContact: dent ? membraneRadiusAt(rim, bearing) : BODY_RADIUS,
+        rimOpposite: dent ? membraneRadiusAt(rim, bearing + Math.PI) : BODY_RADIUS,
+        displaced: state.displaced, raised: state.raised, signedHeight: state.signedHeight,
+        trail: state.nodes.length, waves: state.waves.length, pieces: r.mode ? r.shell.pieces.length : 0,
+        chips: r.shell.chips.length, tip: r.motion?.pull ?? null, relief: material.rimLoad(),
+        motionMode: r.motion?.mode ?? null,
+        x: r.motion?.position.x, y: r.motion?.position.y, vx: r.motion?.vx ?? 0, vy: r.motion?.vy ?? 0 });
+      if (r.records.length > 300) r.records.shift();
+      if (inspect.current) inspect.current.textContent = JSON.stringify({
+        active: material.state.active || !!moving(), frames: r.frames,
+        costs: r.costs, records: r.records, mode: r.mode, seed: r.shell.seed,
+      });
+    }
+    function fracture(now) {
+      const input = r.input;
+      if (!input?.wax || !r.shell.pieces.length || !material.state.contact) return;
+      const contact = material.state.contact, depth = material.contactDepth();
+      // The press and release paths use precisely the same stress test.
+      const indentation = Math.max(0, -material.sample(contact.x, contact.y)) / 15;
+      const stress = depth * .8 + indentation * .4;
+      if (stress < .59) return;
+      const radius = BODY_RADIUS * pressRadiusRatio(depth);
+      const previous = input.fracturedAt;
+      if (previous && Math.hypot(previous.x - contact.x, previous.y - contact.y) < 15 &&
+        radius - previous.radius < 9) return;
+      input.fracturedAt = { x: contact.x, y: contact.y, radius };
+      const broken = fractureWaxShell(r.shell, contact, radius, input.pieceLimit);
+      if (!broken) return;
+      const chips = broken.shell.chips.map((chip) => chip.expiresAt ? chip : { ...chip, expiresAt: now + chip.fadeMs });
+      updateShell({ ...broken.shell, chips });
+      // Lost support releases the same local liquid field under the remaining shards.
+      material.impulse(contact.x, contact.y, broken.strength * .2, now);
+      audio.play(broken.sound, broken.strength);
+    }
+    function advance(now) {
+      material.state.reducedMotion = reduced();
+      const motion = r.motion;
+      const grabbing = motion?.mode === "grab";
+      if (motion) {
+        motion.tetherMoving = advanceMotion(motion, now);
+        if (grabbing) {
+          const contact = bareSurfaceContact(pullTarget(motion));
+          material.move(contact.x, contact.y, now);
         }
       }
+      material.advance(now);
+      if (motion) {
+        if (grabbing || motion.pull) updatePull(motion, contactPoint(pullTarget(motion)).radius);
+        if (grabbing) {
+          character.current.classList.toggle("mallang-character--dragging", !!motion.pull);
+          if (motion.pull?.radius > 3 && !r.input?.stretched) {
+            if (r.input) r.input.stretched = true;
+            audio.play("stretch", Math.min(1, motion.pull.radius / PULL_RADIUS));
+          }
+        }
+        if (motion.impact && motion.impact.time !== r.lastImpact) {
+          r.lastImpact = motion.impact.time;
+          const strength = Math.hypot(motion.impact.x, motion.impact.y);
+          r.impact = { ...motion.impact };
+          const p = { x: 100 + Math.sign(motion.impact.x) * 88, y: 100 + Math.sign(motion.impact.y) * 88 };
+          material.impulse(p.x, p.y, strength * .65, now);
+          audio.play("wall", Math.min(1, strength));
+        }
+      }
+      if (r.impact) {
+        const left = Math.max(0, 1 - (now - r.impact.time) / 210);
+        r.impactPaint = { x: r.impact.x * left * left, y: r.impact.y * left * left };
+        if (!left) { r.impact = null; r.impactPaint = null; }
+      }
+      if (r.input && !r.input.wax && !r.input.sounded && material.contactDepth() >= .12) {
+        r.input.sounded = true; audio.play("press", material.contactDepth());
+      }
+      fracture(now);
+      if (r.shell.chips.some((chip) => chip.expiresAt <= now)) {
+        updateShell({ ...r.shell, chips: r.shell.chips.filter((chip) => chip.expiresAt > now) }, false);
+      }
     }
-    if (released && motion.hasMoved && !motion.reducedMotion) {
-      surface.current?.clearIndentation();
-      motion.refillUntil = performance.now() + pressRecoveryDuration(pressDepth(performance.now() - motion.pressedAt));
-      motion.pointerId = null;
-      if (!motion.retraction) motion.pull = null;
-      motion.mode = "coast";
-      motion.target = null;
-      setPhase("releasing");
-      schedule(motion, event.timeStamp);
-      return;
+    function moving() {
+      const motion = r.motion;
+      if (!motion) return false;
+      const speed = Math.hypot(motion.vx, motion.vy);
+      if (motion.mode === "coast" && speed <= STOP_SPEED) motion.vx = motion.vy = 0;
+      if (speed > STOP_SPEED || motion.tetherMoving || (motion.mode === "coast" && motion.pull)) return true;
+      if (motion.mode !== "grab" || !motion.pull) return false;
+      const spring = springDisplacement(motion, motion.position.x * motion.rect.width / 100,
+        motion.position.y * motion.rect.height / 100);
+      return Math.hypot(spring.x, spring.y) > .3;
     }
-    if (motion.frame != null) cancelAnimationFrame(motion.frame);
-    motionRef.current = null;
-    setPull(null);
-    setImpact(null);
-    if (released && !motion.hasMoved) {
-      tapAt(event.clientX, event.clientY, event.currentTarget);
-    } else {
-      surface.current?.clearIndentation();
-      settle("idle");
+    function frame(now) {
+      r.frame = null;
+      const started = performance.now();
+      advance(now);
+      paint();
+      record(performance.now() - started);
+      if (moving() || material.state.active || surface?.trailActive || r.impact || r.shell.chips.length) request();
     }
-  }
-
-  const squished = phase === "pressingWax" || !!impact;
-  const dragging = phase === "dragging";
-  const breathing = phase === "idle" && !isWaxMode;
-  const eyeState = squished ? "squished" : phase === "happy" ? "happy" :
-    phase === "releasing" ? "moving" : "normal";
-  const impactX = Math.abs(impact?.x ?? 0);
-  const impactY = Math.abs(impact?.y ?? 0);
-  let bodyStyle;
-  if (impact) {
-    bodyStyle = {
-      transform: `scale(${1 - 0.32 * impactX + 0.12 * impactY}, ${1 - 0.32 * impactY + 0.12 * impactX})`,
-      transformOrigin: `${impact.x < 0 ? "left" : impact.x > 0 ? "right" : "center"} ${impact.y < 0 ? "top" : impact.y > 0 ? "bottom" : "center"}`,
-      transitionDuration: "0ms",
+    function cancel(reason) {
+      const captured = r.input?.id;
+      if (r.frame !== null) cancelAnimationFrame(r.frame);
+      r.frame = null; r.input = null; r.motion = null; r.impact = null; r.impactPaint = null;
+      r.pressFollowsTether = false;
+      r.cancelReason = reason?.type ?? "reset";
+      if (captured !== undefined && control.current?.hasPointerCapture(captured)) control.current.releasePointerCapture(captured);
+      material.reset(performance.now());
+      surface?.resetTrail();
+      audio.stop();
+      if (!disposed && r.shell.chips.length) updateShell({ ...r.shell, chips: [] }, false);
+      character.current?.classList.remove("mallang-character--dragging");
+      paint();
+      if (!disposed) record(0);
+    }
+    function down(event) {
+      if (r.input || event.button !== 0 || !event.isPrimary) return;
+      if (r.mode && !r.shell.pieces.length && r.shell.chips.length) return;
+      const raw = point(event.clientX, event.clientY);
+      if (!hit(raw)) return;
+      const now = performance.now();
+      const previousMotion = r.motion;
+      const wasReturning = !!previousMotion?.pull;
+      audio.prepare();
+      const wax = r.mode && r.shell.pieces.length > 0;
+      const local = wax ? contactPoint(raw) : bareSurfaceContact(wasReturning ? pullTarget(previousMotion) : raw);
+      r.pressFollowsTether = !wax;
+      r.input = { id: event.pointerId, wax, pieceLimit: r.shell.nextPieceId, fracturedAt: null };
+      if (!control.current.contains(event.target)) event.preventDefault();
+      control.current.setPointerCapture(event.pointerId);
+      material.touch(local.x, local.y, now);
+      if (wax) { audio.prepareWax(); r.motion = null; }
+      else {
+        const body = character.current.getBoundingClientRect();
+        const motion = { mode: "grab", vx: previousMotion?.vx ?? 0, vy: previousMotion?.vy ?? 0,
+          position: previousMotion?.position, pointer: { x: event.clientX, y: event.clientY },
+          lastFrame: now, pull: previousMotion?.pull ?? null, pullStartRadius: contactPoint(raw).radius,
+          tetherPoint: wasReturning ? previousMotion.tetherPoint : null,
+          tetherSpeed: wasReturning ? previousMotion.tetherSpeed : null };
+        geometry(motion);
+        motion.position ??= positionFromPoint(body.left + body.width / 2, body.top + body.height / 2, motion.rect);
+        if (!wasReturning) beginPull(motion, motion.pullStartRadius);
+        r.motion = motion;
+      }
+      request();
+    }
+    function move(event) {
+      if (r.input?.id !== event.pointerId) return;
+      const now = performance.now();
+      if (r.motion?.mode === "grab") {
+        r.motion.pointer = { x: event.clientX, y: event.clientY };
+      } else {
+        const raw = point(event.clientX, event.clientY);
+        if (Math.hypot(raw.x - BLOB_CENTER, raw.y - BLOB_CENTER) > 96) {
+          material.release(now, false);
+        } else {
+          const local = contactPoint(raw);
+          if (material.state.contact) material.move(local.x, local.y, now);
+          else material.touch(local.x, local.y, now);
+        }
+      }
+      request();
+    }
+    function end(event) {
+      if (!r.input || (event.pointerId !== undefined ? r.input.id !== event.pointerId : r.input.key !== event.key)) return;
+      if (event.type === "pointercancel" || event.type === "lostpointercapture") { cancel(); return; }
+      audio.prepare();
+      const now = performance.now();
+      const motion = r.motion;
+      if (motion?.mode !== "grab") advance(now);
+      const strength = material.release(now, !reduced());
+      if (!r.input.wax) audio.play("refill", strength);
+      r.input = null;
+      if (motion?.mode === "grab") {
+        if (motion.pull) audio.play("retract", motion.pull.radius / PULL_RADIUS);
+        // Start recovery from the last painted pose and keep both velocities.
+        motion.mode = "coast";
+        motion.lastFrame = now;
+        motion.tetherMoving = false;
+      }
+      character.current.classList.remove("mallang-character--dragging");
+      request();
+    }
+    function keyDown(event) {
+      if (event.key !== " " && event.key !== "Enter") return;
+      event.preventDefault();
+      if (event.repeat || r.input || (r.mode && !r.shell.pieces.length && r.shell.chips.length)) return;
+      const wax = r.mode && r.shell.pieces.length > 0;
+      const local = wax ? waxKeyboardPoint(r.shell) : { x: 100, y: 100 };
+      r.pressFollowsTether = false;
+      r.input = { key: event.key, wax, pieceLimit: r.shell.nextPieceId };
+      audio.prepare();
+      material.touch(local.x, local.y, performance.now());
+      if (wax) audio.prepareWax();
+      request();
+    }
+    function hidden() { if (document.visibilityState === "hidden") cancel(); }
+    function preference() {
+      material.state.reducedMotion = reduced();
+      if (reduced()) material.state.waves.length = 0;
+      request();
+    }
+    const resize = new ResizeObserver(() => { if (r.input || moving()) cancel(); else paint(); });
+    resize.observe(bounds.current);
+    controller.current = { down, move, end, keyDown, cancel,
+      mode(enabled) { cancel(); r.mode = enabled; material.setShell(enabled ? r.shell : null); request(); },
+      reset() { cancel(); updateShell(createWaxShell(100, 94)); request(); },
+      chip(id) { if (r.shell.chips.some((c) => c.id === id)) {
+        updateShell({ ...r.shell, chips: r.shell.chips.filter((c) => c.id !== id) }, false); request();
+      } } };
+    window.addEventListener("blur", cancel);
+    document.addEventListener("visibilitychange", hidden);
+    media.addEventListener("change", preference);
+    if (import.meta.env.DEV) window.__mallangInspect = () => ({
+      active: r.frame !== null, records: r.records.slice(), costs: r.costs.slice(), frames: r.frames,
+      mode: r.mode, seed: r.shell.seed, shellPieces: r.shell.pieces.length,
+      waxTarget: waxKeyboardPoint(r.shell),
+      contact: material.state.contact, reducedMotion: material.state.reducedMotion });
+    paint();
+    return () => {
+      disposed = true; cancel(); resize.disconnect(); surface?.dispose(); audio.close();
+      window.removeEventListener("blur", cancel); document.removeEventListener("visibilitychange", hidden);
+      media.removeEventListener("change", preference);
+      if (import.meta.env.DEV) delete window.__mallangInspect;
+      controller.current = null;
     };
-  }
+  }, [audio]);
 
-  return (
-    <div className={`mallang-page mallang-page--${appearance}`}>
-      <AppBar />
-      <main className="mallang-content">
-        <h1>사이버 말랑이</h1>
-        <p id="mallang-help" aria-live="polite">{isWaxMode
-          ? (hasWaxShell ? "왁스를 길게 눌러 보세요. 같은 조각을 다시 누르면 더 잘게 갈라져요."
-            : isBodyBusy ? "마지막 왁스 조각이 부스러지고 있어요."
-              : "껍질 안에 있던 말랑이가 나왔어요.")
-          : "말랑이를 길게 눌러 보세요. 잡아당겼다가 놓을 수도 있어요."}</p>
-        <div className="mallang-controls">
-          <button type="button" role="switch" aria-checked={isWaxMode} className="mallang-wax-toggle" onClick={toggleWaxMode}>
-            왁뿌볼
-            <span className="mallang-wax-track" aria-hidden="true" />
-          </button>
-          {isWaxMode && (
-            <button type="button" className="mallang-wax-reset"
-              disabled={waxShell.fractures === 0} onClick={resetWaxShell}>
-              껍질 복원
-            </button>
-          )}
-          <div className="mallang-range-control">
-            <label htmlFor={volumeControlId}>효과음</label>
-            <input
-              id={volumeControlId}
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={volumePercent}
-              aria-valuetext={volumePercent === 0 ? "음소거" : `${volumePercent}%`}
-              onChange={changeVolume}
-            />
-            <output htmlFor={volumeControlId}>{volumePercent}%</output>
-          </div>
-          {showComparison && (
-            <div className="mallang-style-preview" role="group" aria-label="말랑이 그림체 비교">
-              <button type="button" aria-pressed={!isGel} onClick={() => selectPreviewStyle("2d")}>2D</button>
-              <button type="button" aria-pressed={isGel} onClick={() => selectPreviewStyle("3d")}>3D</button>
-            </div>
-          )}
+  useEffect(() => { audio.setVolume(volume); }, [audio, volume]);
+  useEffect(() => { runtime.current?.surface?.setFlatStyle(appearance === "2d"); runtime.current?.paint(); }, [appearance]);
+
+  function toggle() {
+    const enabled = !isWaxMode;
+    if (enabled) audio.prepareWax();
+    controller.current.mode(enabled); setIsWaxMode(enabled);
+    try { localStorage.setItem(WAX_MODE_KEY, String(enabled)); } catch { /* Current visit remains usable. */ }
+  }
+  const busy = isWaxMode && !waxShell.pieces.length && waxShell.chips.length > 0;
+  return <div className={`mallang-page mallang-page--${appearance}`}>
+    <AppBar />
+    <main className="mallang-content">
+      {import.meta.env.DEV && params.has("inspect") && <output ref={inspect} id="mallang-inspect" hidden />}
+      <h1>사이버 말랑이</h1>
+      <p id="mallang-help" aria-live="polite">{isWaxMode
+        ? waxShell.pieces.length ? "왁스를 길게 누르고 문질러 보세요. 다시 누르면 더 잘게 갈라져요."
+          : busy ? "마지막 왁스 조각이 부스러지고 있어요." : "껍질 안의 말랑이가 나왔어요. 자유롭게 만져 보세요."
+        : "길게 누르고 문질러 보세요. 가장자리에서 바깥으로 잡아당길 수도 있어요."}</p>
+      <div className="mallang-controls">
+        <button type="button" role="switch" aria-checked={isWaxMode} className="mallang-wax-toggle" onClick={toggle}>
+          왁뿌볼<span className="mallang-wax-track" aria-hidden="true" />
+        </button>
+        {isWaxMode && <button type="button" className="mallang-wax-reset" disabled={!waxShell.fractures}
+          onClick={() => controller.current.reset()}>껍질 복원</button>}
+        <div className="mallang-range-control">
+          <label htmlFor={volumeId}>효과음</label>
+          <input id={volumeId} type="range" min="0" max="100" step="1" value={volume}
+            aria-valuetext={volume === 0 ? "음소거" : volume + "%"}
+            onChange={(event) => { const value = event.currentTarget.valueAsNumber; setVolume(value); saveMallangVolume(value); }} />
+          <output htmlFor={volumeId}>{volume}%</output>
         </div>
-        <section className="mallang-room" aria-label="말랑이 놀이터">
-          <div ref={bounds} className="mallang-bounds">
-            <div
-              ref={character}
-              className={`mallang-character${dragging ? " mallang-character--dragging" : ""}${breathing ? " mallang-idle" : ""}`}
-              style={{ left: `${position.x}%`, top: `${position.y}%` }}
-            >
-              <span className="mallang-ground-shadow" aria-hidden="true" />
-              <div className="mallang-deformation">
-                <MallangSilhouette pull={hasWaxMaterial ? null : pull} bodyStyle={bodyStyle}
-                  surfaceCanvas={surfaceCanvas} rimRef={rimRef} dentRef={deformationRef} appearance={appearance} />
-                <button
-                  type="button"
-                  draggable={false}
-                  className={`mallang-body${dragging ? " mallang-dragging" : ""}`}
-                  aria-label={hasWaxMaterial ? "왁스 껍질 길게 누르기" : "말랑이 누르기"}
-                  aria-disabled={isBodyBusy || undefined}
-                  aria-describedby="mallang-help"
-                  onPointerDown={press}
-                  onPointerMove={movePointer}
-                  onPointerUp={release}
-                  onPointerCancel={release}
-                  onLostPointerCapture={release}
-                  onKeyDown={startWaxKey}
-                  onKeyUp={releaseWaxKey}
-                  onBlur={cancelInteraction}
-                  onClick={(event) => {
-                    if (event.detail !== 0 || motionRef.current !== null) return;
-                    const { left, top, width, height } = character.current.getBoundingClientRect();
-                    tapAt(left + width / 2, top + height / 2);
-                  }}
-                  style={bodyStyle}
-                >
-                  <span ref={faceRef} className="mallang-face">
-                  {phase === "idle" && !squished
-                    ? <IdleMallangFace appearance={appearance} dentFilter={`${dentId}-face`} />
-                    : <MallangFace state={eyeState} squish={squished} appearance={appearance} dentFilter={`${dentId}-face`} />}
-                  </span>
-                </button>
-                {isWaxMode && <WaxShell shell={waxShell} center={BLOB_CENTER} radius={BODY_RADIUS}
-                  contactRef={waxContactRef} onChipEnd={removeWaxChip} />}
-              </div>
+        {import.meta.env.DEV && params.has("style") && <div className="mallang-style-preview">
+          {["original", "2d"].map((style) => <button key={style} type="button" aria-pressed={appearance === style}
+            onClick={() => { const next = new URLSearchParams(params); next.set("style", style); setParams(next, { replace: true }); }}>
+            {style === "2d" ? "2D" : "기본"}</button>)}
+        </div>}
+      </div>
+      <section className="mallang-room" aria-label="말랑이 놀이터" onPointerDown={(e) => controller.current.down(e)}>
+        <div ref={bounds} className="mallang-bounds">
+          <div ref={character} className="mallang-character" style={{ left: "50%", top: "50%" }}>
+            {isWaxMode && waxShell.pieces.length > 0 && <span className="mallang-ground-shadow" aria-hidden="true" />}
+            <div className="mallang-deformation">
+              <canvas ref={canvas} className="mallang-material-canvas" aria-hidden="true" />
+              <button ref={control} type="button" draggable={false} className="mallang-body"
+                aria-label={isWaxMode && waxShell.pieces.length ? "왁스 껍질 길게 누르기" : "말랑이 누르기"}
+                aria-disabled={busy || undefined} aria-describedby="mallang-help"
+                onPointerMove={(e) => controller.current.move(e)}
+                onPointerUp={(e) => controller.current.end(e)} onPointerCancel={(e) => controller.current.end(e)}
+                onLostPointerCapture={(e) => controller.current.end(e)}
+                onKeyDown={(e) => controller.current.keyDown(e)} onKeyUp={(e) => controller.current.end(e)}
+                onClick={() => audio.prepare()}
+                onBlur={() => controller.current.cancel({ type: "control-blur" })}>
+                <span ref={face} className="mallang-face"><MallangFace /></span>
+              </button>
+              {isWaxMode && <WaxShell shell={waxShell} center={100} radius={94}
+                shellRef={shellElement} onChipEnd={(id) => controller.current?.chip(id)} />}
+              <canvas ref={overlay} className="mallang-material-canvas mallang-material-light" aria-hidden="true" />
             </div>
           </div>
-        </section>
-      </main>
-    </div>
-  );
+        </div>
+      </section>
+    </main>
+  </div>;
 }

@@ -1,0 +1,16 @@
+
+Oops! Something went wrong! :(
+
+ESLint: 10.4.0
+
+Error: EPERM: operation not permitted, scandir 'D:\Project\Apps\Self-Efficacy_diary\frontend\verification\surface-inspection-local'
+    at async Object.readdir (node:internal/fs/promises:1668:18)
+    at async NodeHfsImpl.list (file:///D:/Project/Apps/Self-Efficacy_diary/frontend/node_modules/@humanfs/node/src/node-hfs.js:304:19)
+    at async NodeHfs.<anonymous> (file:///D:/Project/Apps/Self-Efficacy_diary/frontend/node_modules/@humanfs/core/src/hfs.js:560:21)
+    at async NodeHfs.<anonymous> (file:///D:/Project/Apps/Self-Efficacy_diary/frontend/node_modules/@humanfs/core/src/hfs.js:604:6)
+    at async NodeHfs.<anonymous> (file:///D:/Project/Apps/Self-Efficacy_diary/frontend/node_modules/@humanfs/core/src/hfs.js:604:6)
+    at async NodeHfs.walk (file:///D:/Project/Apps/Self-Efficacy_diary/frontend/node_modules/@humanfs/core/src/hfs.js:614:3)
+    at async globSearch (D:\Project\Apps\Self-Efficacy_diary\frontend\node_modules\eslint\lib\eslint\eslint-helpers.js:366:20)
+    at async Promise.allSettled (index 0)
+    at async globMultiSearch (D:\Project\Apps\Self-Efficacy_diary\frontend\node_modules\eslint\lib\eslint\eslint-helpers.js:457:18)
+    at async Promise.all (index 0)
