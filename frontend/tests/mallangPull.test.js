@@ -50,6 +50,21 @@ test("a first pull just past the taut distance has no extra rim activation delay
   }
 });
 
+test("the pull force engages gradually outside both a resting and a swollen rim", () => {
+  const motion = motionAt();
+  for (const [rim, onset] of [[94, 100], [108, 108]]) {
+    motion.pullStartRadius = rim;
+    const forceAt = (extension) => {
+      motion.pointer.x = 400 + onset + extension;
+      return springDisplacement(motion, 400, 300).x;
+    };
+    assert.equal(forceAt(0), 0);
+    assert(forceAt(0.5) > 0 && forceAt(0.5) < forceAt(1) / 3);
+    assert(forceAt(4) < forceAt(8));
+    assert(Math.abs((forceAt(8) - forceAt(7.99)) - (forceAt(8.01) - forceAt(8))) < 0.00001);
+  }
+});
+
 test("tip growth depends continuously on stretch rather than time since a click", () => {
   let previousRadius = 0;
   for (let distance = 94; distance <= 104; distance += 0.25) {
@@ -164,7 +179,7 @@ test("actual frames preserve slack, wall constraints, coasting and low-frame sta
   coast.vx = 0.5;
   advanceMotion(coast, 16);
   assert(coast.position.x > 50 && coast.vx > 0 && coast.vx < 0.5);
-  assert.deepEqual(tetherSpringDisplacement({ x: 0, y: 0 }, 104, { x: 200, y: 200 },
+  assert.deepEqual(tetherSpringDisplacement({ x: 0, y: 0 }, 104, 8, { x: 200, y: 200 },
     { width: 500, height: 500 }), { x: 0, y: 0 });
 });
 

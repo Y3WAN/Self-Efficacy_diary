@@ -5,6 +5,7 @@ const TETHER_SPRING_TIME_MS = 43;
 const CATCH_SPRING_TIME_MS = 40;
 const TIP_FOLLOW_TIME_MS = 8;
 const TIP_LIMIT_EASE_RANGE = 12;
+const TENSION_EASE_DISTANCE = 8;
 export const MAX_VISUAL_TETHER_DISTANCE = 166;
 const TIP_RETURN_TIME_MS = 70;
 const TIP_MERGE_RADIUS_RATIO = 0.55;
@@ -16,7 +17,7 @@ const COAST_FRICTION = 0.0052;
 export const STOP_SPEED = 0.015;
 export const BLOB_CENTER = 100;
 export const BODY_RADIUS = 94;
-export const PULL_RADIUS = 26;
+export const PULL_RADIUS = 22;
 const MAX_TETHER_ACCELERATION = 0.012;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -118,9 +119,10 @@ export function springDisplacement(motion, x, y) {
   if (motion.mode !== "grab") return { x: 0, y: 0 };
 
   const offset = tetherOffset(motion, x, y);
-  const slackRadius = Math.max(PULL_TAUT_DISTANCE, motion.pullStartRadius ?? BODY_RADIUS);
-  const slack = slackRadius * bodySize / (BLOB_CENTER * 2);
-  return tetherSpringDisplacement(offset, slack, { x, y }, rect);
+  const pixelsPerUnit = bodySize / (BLOB_CENTER * 2);
+  const slackRadius = Math.max(PULL_TAUT_DISTANCE - TENSION_EASE_DISTANCE / 2, motion.pullStartRadius ?? BODY_RADIUS);
+  return tetherSpringDisplacement(offset, slackRadius * pixelsPerUnit, TENSION_EASE_DISTANCE * pixelsPerUnit,
+    { x, y }, rect);
 }
 
 function stepAxis(position, speed, acceleration, limit, damping, elapsed) {

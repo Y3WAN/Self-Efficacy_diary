@@ -12,6 +12,8 @@ import { createMallangAudio, readMallangVolume, saveMallangVolume } from "../uti
 
 const WAX_MODE_KEY = "codemyworld.mallang.wax";
 const RETURNING_TIP_HIT_PADDING = 6;
+const GRAB_REST_SPEED = 0.001;
+const GRAB_REST_DISPLACEMENT = 0.04;
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 function readWaxMode() {
   try { return localStorage.getItem(WAX_MODE_KEY) === "true"; } catch { return false; }
@@ -91,12 +93,7 @@ export default function MallangPage() {
       if (disposed || !face.current || !character.current) return;
       const motion = r.motion;
       const reliefTip = r.pressFollowsTether ? motion?.pull : null;
-      const unitsPerPercent = motion ? 2 / motion.bodySize : 0;
-      const bodyOffset = motion && {
-        x: motion.position.x * motion.rect.width * unitsPerPercent,
-        y: motion.position.y * motion.rect.height * unitsPerPercent,
-      };
-      surface?.draw(motion?.pull, r.impactPaint, reliefTip, bodyOffset);
+      surface?.draw(motion?.pull, r.impactPaint, reliefTip);
       if (r.motion) {
         character.current.style.left = r.motion.position.x + "%";
         character.current.style.top = r.motion.position.y + "%";
@@ -210,12 +207,14 @@ export default function MallangPage() {
       const motion = r.motion;
       if (!motion) return false;
       const speed = Math.hypot(motion.vx, motion.vy);
-      if (motion.mode === "coast" && speed <= STOP_SPEED) motion.vx = motion.vy = 0;
-      if (speed > STOP_SPEED || motion.tetherMoving || (motion.mode === "coast" && motion.pull)) return true;
-      if (motion.mode !== "grab" || !motion.pull) return false;
+      if (motion.mode === "coast") {
+        if (speed <= STOP_SPEED) motion.vx = motion.vy = 0;
+        return speed > STOP_SPEED || !!motion.pull;
+      }
+      if (speed > GRAB_REST_SPEED || motion.tetherMoving) return true;
       const spring = springDisplacement(motion, motion.position.x * motion.rect.width / 100,
         motion.position.y * motion.rect.height / 100);
-      return Math.hypot(spring.x, spring.y) > .3;
+      return Math.hypot(spring.x, spring.y) > GRAB_REST_DISPLACEMENT;
     }
     function frame(now) {
       r.frame = null;
@@ -295,7 +294,8 @@ export default function MallangPage() {
       const now = performance.now();
       const motion = r.motion;
       if (motion?.mode !== "grab") advance(now);
-      const strength = material.release(now, !reduced());
+      const ripple = !reduced();
+      const strength = material.release(now, ripple, ripple ? surface?.releaseWaveAnchor() : null);
       if (!r.input.wax) audio.play("refill", strength);
       r.input = null;
       if (motion?.mode === "grab") {

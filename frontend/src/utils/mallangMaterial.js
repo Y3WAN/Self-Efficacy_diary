@@ -140,21 +140,21 @@ export function createMallangMaterial() {
     state.active = true;
   }
 
-  function wave(x, y, strength, now, delay = 150) {
+  function wave(x, y, strength, now, delay = 150, surfaceAnchor = null) {
     if (state.reducedMotion || strength < 0.08) return;
     if (waves.length >= MATERIAL.maxWaves) waves.shift();
-    waves.push({ x, y, strength: clamp(strength, 0, 1), start: now + delay });
+    waves.push({ x, y, strength: clamp(strength, 0, 1), start: now + delay, surfaceAnchor });
     state.active = true;
   }
 
-  function release(now, ripple = true) {
+  function release(now, ripple = true, surfaceAnchor = null) {
     const head = nodes.at(-1);
     const strength = head && head.leftAt === null ? depthOf(head, now) : 0;
     if (head && head.leftAt === null) {
       const rim = rimLoad(state.time);
       if (rim) releasedRim = { ...rim, time: now };
       head.depth = strength; head.leftAt = now;
-      if (ripple) wave(head.x, head.y, strength, now, pressRecoveryDuration(strength) * 0.4);
+      if (ripple) wave(head.x, head.y, strength, now, pressRecoveryDuration(strength) * 0.4, surfaceAnchor);
     }
     state.contact = null;
     state.active = true;

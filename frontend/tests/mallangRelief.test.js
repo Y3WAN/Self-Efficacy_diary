@@ -35,13 +35,14 @@ test("connected departed dents fill from the older end and disappear without mov
   assert(field.every(value => value === 0));
 });
 
-test("a moving body leaves the departed dent at its world position using reused buffers", () => {
+test("departed dents use local surface positions and reused buffers", () => {
   const relief = createMallangRelief(options), buffer = relief.height;
   const trail = [{ ...point(140, 100), leftAt: 0 }];
-  relief.update({ contact: point(160, 100), trail, now: 80, bodyX: 40, bodyY: 0 });
-  assert(at(buffer, 100, 100) < -10);
+  relief.update({ contact: point(160, 100), trail, now: 80 });
+  assert(at(buffer, 140, 100) < -10);
+  assert(at(buffer, 100, 100) >= 0);
   assert.equal(at(buffer, 160, 100), -15);
-  relief.update({ contact: null, trail, now: 900, bodyX: 40, bodyY: 0 });
+  relief.update({ contact: null, trail, now: 900 });
   assert.equal(relief.height, buffer);
   assert(buffer.every(Number.isFinite));
   assert(buffer.every(value => value === 0));

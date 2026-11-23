@@ -258,15 +258,15 @@ test("restored relief keeps the current outline, tip tracking and palette while 
   m.touch(100, 26, 0); run(m, 0, 1200);
   const tip = { x: 100, y: 100 - MAX_VISUAL_TETHER_DISTANCE, radius: PULL_RADIUS, edgeRadius: 108, blend: 1 };
   renderer.draw(tip, null, tip);
-  const trailingPoint = [60, -36];
-  const untouched = green(...trailingPoint);
   m.advance(1216);
-  renderer.draw(tip, null, tip, { x: 40, y: 0 });
-  assert(green(...trailingPoint) < untouched - 4, "the visible dent leaves a trail when the fully stretched body moves");
-  assert(renderer.trailActive);
-  run(m, 1216, 2100);
-  renderer.draw(tip, null, tip, { x: 40, y: 0 });
-  assert.equal(green(...trailingPoint), untouched);
+  renderer.draw(tip, null, tip);
+  assert(!renderer.trailActive, "a stationary local contact leaves no trail");
+  const movedTip = { ...tip, x: 140 };
+  m.move(124, 30, 1232); m.advance(1232);
+  renderer.draw(movedTip, null, movedTip);
+  assert(renderer.trailActive, "the stretched dent leaves a trail when it moves along the surface");
+  run(m, 1232, 2100);
+  renderer.draw(movedTip, null, movedTip);
   assert(!renderer.trailActive);
 
   assert.equal(calls.pixels,2);assert.equal(calls.encodes,0);assert(calls.clips>=15);
@@ -281,7 +281,7 @@ test("measured material workload has bounded memory under a prolonged input", (t
   assert(m.state.nodes.length<=72);assert(m.state.waves.length<=12);
 });
 
-test("the bare renderer displays expanding ripples without changing its silhouette and respects reduced motion", (t) => {
+test("the bare renderer displays surface-anchored ripples and respects reduced motion", (t) => {
   const previous = { document: globalThis.document, window: globalThis.window, Path2D: globalThis.Path2D };
   let pixels, clips = 0;
   const context = { createImageData: (w, h) => ({ width: w, data: new Uint8ClampedArray(w * h * 4) }),
@@ -310,4 +310,48 @@ test("the bare renderer displays expanding ripples without changing its silhouet
   assert.deepEqual(pixels.data, resting);
   assert.equal(material.state.waves.length, 0); assert.equal(material.state.active, false);
   assert(clips >= 5, "each wave frame is clipped to the current membrane path");
+
+  material.reset(); renderer.resetTrail();
+  material.touch(26, 100, 0); run(material, 0, 1200); renderer.draw();
+  const leftAnchor = renderer.releaseWaveAnchor();
+  assert.equal(leftAnchor.angle, Math.PI);
+  assert.equal(leftAnchor.outerFraction, 0);
+  material.release(1200, true, leftAnchor);
+  material.touch(150, 100, 1201);
+  const rightAnchor = renderer.releaseWaveAnchor();
+  assert.equal(rightAnchor.angle, 0, "a tap between frames must get its own anchor");
+  material.release(1201, true, rightAnchor);
+  const [leftWave, rightWave] = material.state.waves;
+  assert.equal(leftWave.surfaceAnchor, leftAnchor);
+  assert.equal(rightWave.surfaceAnchor, rightAnchor);
+  material.advance(leftWave.start + 300);
+  renderer.draw();
+  const innerPatch = () => Array.from({ length: 16 }, (_, row) =>
+    Array.from({ length: 16 }, (_, col) => green(48 + col * 2, 58 + row * 2)));
+  const beforeMove = innerPatch();
+  material.state.waves.length = 0;
+  renderer.draw();
+  assert.notDeepEqual(innerPatch(), beforeMove, "the test patch must contain visible waves");
+  material.state.waves.push(leftWave, rightWave);
+  const leftPull = { x: -60, y: 100, radius: PULL_RADIUS, edgeRadius: 108 };
+  renderer.draw(leftPull, { x: -1, y: 0 });
+  assert.deepEqual(innerPatch(), beforeMove, "pulling or squashing the rim cannot move an inner wave in local coordinates");
+
+  material.reset(); renderer.resetTrail();
+  material.touch(174, 100, 0); run(material, 0, 1200);
+  const rightPull = { x: 100 + MAX_VISUAL_TETHER_DISTANCE, y: 100, radius: PULL_RADIUS, edgeRadius: 108 };
+  renderer.draw(rightPull, null, rightPull);
+  const stretchedAnchor = renderer.releaseWaveAnchor();
+  assert(stretchedAnchor.outerFraction > 0, "a stretched release must attach to the outer surface");
+  material.release(1200, true, stretchedAnchor);
+  const [stretchedWave] = material.state.waves;
+  material.advance(stretchedWave.start + 400);
+  const impact = { x: 1, y: 0 };
+  renderer.draw(null, impact);
+  const contracted = Uint8ClampedArray.from(pixels.data);
+  const rim = membraneRadii(material, null, impact)[0];
+  const expectedCenter = MATERIAL.center + 61 + stretchedAnchor.outerFraction * (rim - 61);
+  material.state.waves[0] = { ...stretchedWave, x: expectedCenter, surfaceAnchor: null };
+  renderer.draw(null, impact);
+  assert.deepEqual(pixels.data, contracted, "the outer wave follows the neck back into the impacted contour");
 });

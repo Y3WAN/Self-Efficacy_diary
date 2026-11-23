@@ -50,9 +50,9 @@ export function createMallangRelief({ size, origin, step, maxDepth, waveSettings
     }
   }
 
-  function stamp(point, depth, offsetX = 0, offsetY = 0) {
+  function stamp(point, depth) {
     if (depth <= 0) return;
-    const x = point.x - offsetX, y = point.y - offsetY;
+    const { x, y } = point;
     const length = 19 + depth * 9, width = length * 1.18;
     const ux = point.ux ?? 1, uy = point.uy ?? 0;
     const extent = width * 1.85;
@@ -70,11 +70,11 @@ export function createMallangRelief({ size, origin, step, maxDepth, waveSettings
     }
   }
 
-  function update({ contact, trail, now, bodyX = 0, bodyY = 0, waves = [], bounds = null }) {
+  function update({ contact, trail, now, waves = [], bounds = null }) {
     depression.fill(0); shoulder.fill(0);
     for (const point of trail) {
       const remaining = 1 - smooth((now - point.leftAt) / pressRecoveryDuration(point.depth));
-      stamp(point, point.depth * remaining, bodyX, bodyY);
+      stamp(point, point.depth * remaining);
     }
     if (contact) stamp(contact, contact.depth);
     let down = 0, up = 0;

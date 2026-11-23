@@ -34,10 +34,12 @@ export function blendPullTip(target, progress) {
   return { x: target.x, y: target.y, radius: target.radius * blend, blend };
 }
 
-export function tetherSpringDisplacement(offset, slack, position, bounds) {
+export function tetherSpringDisplacement(offset, slack, easeDistance, position, bounds) {
   const distance = Math.hypot(offset.x, offset.y);
-  const tension = distance > slack ? 1 - slack / distance : 0;
-  // Visual appearance restarts on every grab. Physical tension depends only on the actual tether.
+  const extension = distance - slack;
+  if (extension <= 0) return { x: 0, y: 0 };
+  // Match the zero slope at slack and the spring's full slope at the end of the ramp.
+  const tension = (extension < easeDistance ? extension ** 2 / (2 * easeDistance) : extension - easeDistance / 2) / distance;
   const clamp = (value, limit) => Math.max(0, Math.min(limit, value));
   return {
     x: clamp(position.x + offset.x * tension, bounds.width) - position.x,

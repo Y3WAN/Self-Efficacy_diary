@@ -44,6 +44,17 @@ function contactRelief(load, tip) {
     length, width: length * 1.18 };
 }
 
+function waveAnchor(point, radii) {
+  const dx = point.x - MATERIAL.center, dy = point.y - MATERIAL.center;
+  const angle = Math.atan2(dy, dx);
+  const reach = Math.hypot(dx, dy);
+  const innerReach = Math.min(reach, INNER_DENT_LIMIT);
+  // The inner surface travels with the body as-is. The outer surface stretches with the rim.
+  const outerFraction = radii && reach > innerReach
+    ? Math.min(.96, (reach - innerReach) / (membraneRadiusAt(radii, angle) - innerReach)) : 0;
+  return { angle, innerReach, outerFraction };
+}
+
 function paintBarePixels(pixels, radii, height, flat, waveHeight) {
   const { center, radius: bodyRadius } = MATERIAL;
   const maxRadius = Math.max(...radii) + 2 * SHADE_STEP;
@@ -178,26 +189,29 @@ export function createMallangSurface(canvas, material, overlay = null) {
     surfaceWaves.length = 0;
   }
 
+  function releaseWaveAnchor() {
+    const { contact, shell } = material.state;
+    if (!contact || shell) return null;
+    if (lastContactPose?.startedAt === contact.startedAt) {
+      return waveAnchor(lastContactPose.relief, lastContactPose.radii);
+    }
+    // An input can begin and end between paints, even while an older dent is still visible.
+    const relief = contactRelief({ x: contact.x, y: contact.y, depth: material.contactDepth() }, null);
+    return relief && waveAnchor(relief);
+  }
+
   function mapWaves(radii) {
     surfaceWaves.length = 0;
     if (material.state.reducedMotion) return surfaceWaves;
     for (const wave of material.state.waves) {
       let source = waveOrigins.get(wave);
       if (!source) {
-        const releasedHere = !material.state.contact && lastContactPose &&
-          Math.hypot(wave.x - lastContactPose.x, wave.y - lastContactPose.y) < MATERIAL.spacing;
-        // Release rings originate at the visible dent, including a stretched
-        // neck. Other impulses retain their actual surface contact position.
-        const point = releasedHere ? lastContactPose.relief : wave;
-        const dx = point.x - MATERIAL.center, dy = point.y - MATERIAL.center;
-        const angle = Math.atan2(dy, dx);
-        source = { angle, fraction: Math.min(.96, Math.hypot(dx, dy) /
-          membraneRadiusAt(releasedHere ? lastContactPose.radii : radii, angle)),
-          x: point.x, y: point.y, strength: wave.strength, start: wave.start };
+        const anchor = wave.surfaceAnchor ?? waveAnchor(wave, radii);
+        source = { ...anchor, x: 0, y: 0, strength: wave.strength, start: wave.start };
         waveOrigins.set(wave, source);
       }
-      // A contracting neck carries its wave source back onto the membrane.
-      const reach = source.fraction * membraneRadiusAt(radii, source.angle);
+      const rim = membraneRadiusAt(radii, source.angle);
+      const reach = source.innerReach + source.outerFraction * (rim - source.innerReach);
       source.x = MATERIAL.center + Math.cos(source.angle) * reach;
       source.y = MATERIAL.center + Math.sin(source.angle) * reach;
       surfaceWaves.push(source);
@@ -205,13 +219,13 @@ export function createMallangSurface(canvas, material, overlay = null) {
     return surfaceWaves;
   }
 
-  function recordTrail(relief, now, bodyX, bodyY) {
+  function recordTrail(relief, now) {
     while (trailPoints.length && now - trailPoints[0].leftAt >= pressRecoveryDuration(trailPoints[0].depth)) trailPoints.shift();
     if (!material.state.contact || !relief) {
       trailHead = null;
       return;
     }
-    const next = { x: relief.x + bodyX, y: relief.y + bodyY, depth: relief.depth,
+    const next = { x: relief.x, y: relief.y, depth: relief.depth,
       ux: relief.ux, uy: relief.uy, time: now };
     if (!trailHead) {
       trailHead = next;
@@ -226,7 +240,7 @@ export function createMallangSurface(canvas, material, overlay = null) {
     }
     const steps = Math.min(MATERIAL.maxTrail, Math.ceil(distance / MATERIAL.spacing));
     const elapsed = Math.min(MAX_TRAIL_DEPARTURE_INTERVAL_MS, Math.max(0, now - trailHead.time));
-    // Sample the displayed dent in world space, including when the whole body moves.
+    // The canvas moves with the body, so only a change in the local dent adds to the trail.
     for (let step = 0; step < steps; step++) {
       const progress = step / steps;
       trailPoints.push({ x: trailHead.x + dx * progress, y: trailHead.y + dy * progress,
@@ -237,7 +251,7 @@ export function createMallangSurface(canvas, material, overlay = null) {
     trailHead = next;
   }
 
-  function draw(pull = null, impact = null, reliefTip = null, bodyOffset = null) {
+  function draw(pull = null, impact = null, reliefTip = null) {
     const { shell } = material.state;
     const load = material.rimLoad();
     const bodyRadii = membraneRadii(material, null, impact, load);
@@ -267,9 +281,8 @@ export function createMallangSurface(canvas, material, overlay = null) {
       if (lightContext) target.restore();
     } else {
       const relief = contactRelief(load, reliefTip);
-      const { time } = material.state;
-      const bodyX = bodyOffset?.x ?? 0, bodyY = bodyOffset?.y ?? 0;
-      recordTrail(relief, time, bodyX, bodyY);
+      const { contact, time } = material.state;
+      recordTrail(relief, time);
       waveBounds.left = waveBounds.top = Infinity;
       waveBounds.right = waveBounds.bottom = -Infinity;
       for (let index = 0; index < radii.length; index++) {
@@ -281,9 +294,9 @@ export function createMallangSurface(canvas, material, overlay = null) {
         waveBounds.top = Math.min(waveBounds.top, y - SHADE_STEP * 2);
         waveBounds.bottom = Math.max(waveBounds.bottom, y + SHADE_STEP * 2);
       }
-      const height = reliefField.update({ contact: relief, trail: trailPoints, now: time, bodyX, bodyY,
+      const height = reliefField.update({ contact: relief, trail: trailPoints, now: time,
         waves: mapWaves(radii), bounds: waveBounds });
-      lastContactPose = material.state.contact && relief ? { x: load.x, y: load.y, relief, radii } : null;
+      lastContactPose = contact && relief ? { startedAt: contact.startedAt, relief, radii } : null;
       paintBarePixels(barePixels, radii, height, flat, reliefField.waveHeight);
       shadeContext.putImageData(barePixels, 0, 0);
       const origin = VIEW_ORIGIN - SHADE_STEP / 2, extent = SHADE_GRID * SHADE_STEP;
@@ -294,7 +307,7 @@ export function createMallangSurface(canvas, material, overlay = null) {
     context.lineWidth = .7; context.stroke(path);
     return outline;
   }
-  return { draw, resetTrail, get trailActive() { return trailPoints.length > 0; },
+  return { draw, releaseWaveAnchor, resetTrail, get trailActive() { return trailPoints.length > 0; },
     setFlatStyle(value) { flat = value; },
     dispose() { clear(context); if (lightContext) clear(lightContext); } };
 }
