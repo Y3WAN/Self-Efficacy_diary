@@ -8,7 +8,6 @@ const MENU_ITEMS = [
   ["/dashboard", "chart", "대시보드"],
   ["/mallang", "mallang", "사이버 말랑이"],
   ["/profile", "user", "내 정보"],
-  ["/about", "info", "안내·출처"],
 ];
 
 export default function SideBar({ open, onClose }) {

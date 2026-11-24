@@ -69,10 +69,6 @@ export default function MainPage() {
           onRetry={missionQuery.refetch}
         />
         <ActivityHistory today={today} />
-        <Link to="/analysis" className="main-analysis-link">
-          <span>일기 분석 근거 보기</span>
-          <Icon name="arrowRight" />
-        </Link>
       </main>
     </div>
   );
