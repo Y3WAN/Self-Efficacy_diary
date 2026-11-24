@@ -20,7 +20,8 @@ export default function TrialPage() {
   const [submitted, setSubmitted] = useState("");
   const [token, setToken] = useState(null);
   const [result, setResult] = useState(null); // { reflection, mission }
-  const [missionResult, setMissionResult] = useState(null); // { won }
+  const [levelChange, setLevelChange] = useState(null); // { from, to, harder }
+  const [missionError, setMissionError] = useState("");
   const [missionBusy, setMissionBusy] = useState(false);
 
   const auth = (t) => ({ headers: { Authorization: `Bearer ${t}` } });
@@ -45,16 +46,20 @@ export default function TrialPage() {
     }
   };
 
-  const answerMission = async (won) => {
+  // 답에 따라 같은 일기·같은 원천으로 한 단계 어렵거나 쉬운 미션을 바로 받는다.
+  // 실제로 해 본 결과가 아니므로 완료·실패 처리(ELO 반영)는 하지 않는다.
+  const changeLevel = async (harder) => {
     if (!result?.mission || missionBusy) return;
+    const from = result.mission.level;
     setMissionBusy(true);
+    setMissionError("");
     try {
-      const path = won ? "complete" : "skip";
-      await api.post(`/api/missions/${result.mission.id}/${path}`, null, auth(token));
-    } catch {
-      // 체험 화면에서는 반영 실패해도 안내 문구는 그대로 보여 준다
+      const mission = (await api.post(`/api/missions/${result.mission.id}/retarget`, { harder }, auth(token))).data;
+      setResult((prev) => ({ ...prev, mission }));
+      setLevelChange({ from, to: mission.level, harder });
+    } catch (e) {
+      setMissionError(e.response?.status === 409 ? e.response.data.detail : "미션을 바꾸지 못했어요. 다시 눌러 주세요.");
     } finally {
-      setMissionResult({ won });
       setMissionBusy(false);
     }
   };
@@ -66,8 +71,11 @@ export default function TrialPage() {
     setSubmitted("");
     setToken(null);
     setResult(null);
-    setMissionResult(null);
+    setLevelChange(null);
+    setMissionError("");
   };
+
+  const level = result?.mission?.level;
 
   return (
     <div className="trial-page">
@@ -136,35 +144,39 @@ export default function TrialPage() {
               </div>
               <p className="trial-why">
                 💡 왜 해낸 것을 찾아 줄까요? 직접 해낸 경험은 자기효능감을 키우는
-                <b> 가장 강한 원천</b>이에요 (반두라, 1977)
+                <b> 가장 강한 힘</b>이에요 (반두라, 1977)
               </p>
 
               {result.mission && (
                 <div className="trial-mission">
-                  <p className="reflection-label">🎯 이어서 해 볼 작은 미션</p>
-                  <p className="trial-mission-content">{result.mission.content}</p>
-                  {result.mission.reason && <p className="reflection-mission-reason">{result.mission.reason}</p>}
-
-                  {!missionResult ? (
-                    <>
-                      <p className="trial-mission-question">이 미션, 할 수 있을 것 같나요?</p>
-                      <div className="trial-mission-actions">
-                        <button type="button" className="trial-btn-ok" disabled={missionBusy} onClick={() => answerMission(true)}>
-                          할 수 있겠어요 👍
-                        </button>
-                        <button type="button" className="trial-btn-hard" disabled={missionBusy} onClick={() => answerMission(false)}>
-                          어려울 것 같아요 😅
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="trial-mission-result">
-                      {missionResult.won
-                        ? "좋아요! 다음엔 조금 더 도전적인 미션을 드릴게요."
-                        : "괜찮아요! 다음엔 더 작고 쉬운 미션을 드릴게요."}
-                      <span className="trial-elo">답할 때마다 성공할 만한 수준으로 미션 난이도를 맞춰요</span>
+                  <p className="reflection-label">
+                    🎯 이어서 해 볼 작은 미션
+                    {level && <span className="trial-level">난이도 Lv.{level}/5</span>}
+                  </p>
+                  {levelChange && (
+                    <p className="trial-level-change" role="status">
+                      {levelChange.harder ? "💪 한 단계 어렵게" : "🌱 한 단계 쉽게"} 바꿨어요 (Lv.{levelChange.from} → Lv.{levelChange.to})
                     </p>
                   )}
+                  <p className={`trial-mission-content${missionBusy ? " trial-mission-content--busy" : ""}`}>
+                    {missionBusy ? "AI가 난이도를 바꾼 미션을 만들고 있어요…" : result.mission.content}
+                  </p>
+                  {!missionBusy && result.mission.reason && <p className="reflection-mission-reason">{result.mission.reason}</p>}
+
+                  <p className="trial-mission-question">이 미션, 할 수 있을 것 같나요?</p>
+                  <div className="trial-mission-actions">
+                    <button type="button" className="trial-btn-ok" disabled={missionBusy || level >= 5} onClick={() => changeLevel(true)}>
+                      할 수 있겠어요 👍
+                    </button>
+                    <button type="button" className="trial-btn-hard" disabled={missionBusy || level <= 1} onClick={() => changeLevel(false)}>
+                      어려울 것 같아요 😅
+                    </button>
+                  </div>
+                  {missionError && <p className="trial-mission-error">{missionError}</p>}
+                  <p className="trial-elo">
+                    답하면 바로 한 단계 어렵거나 쉬운 미션으로 바꿔 드려요.
+                    실제 앱에서는 미션을 해냈는지에 따라 ELO 점수로 난이도가 자동 조절돼요.
+                  </p>
                 </div>
               )}
             </>

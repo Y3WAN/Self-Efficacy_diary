@@ -8,11 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from app.db.session import get_db
-from app.db.models import Mission, User, Respect
+from app.db.models import Diary, Mission, User, Respect
 from app.core.deps import get_current_user
 from app.core.timeutil import KST
-from app.services.elo_service import LEVEL_GUIDES, apply_result, level_for_rating, target_level
-from app.services.mission_service import generate_mission_content, rank_mission_sources
+from app.api.auth import TRIAL_PREFIX
+from app.services.elo_service import (
+    BASE_RATING, LEVEL_GUIDES, LEVEL_RATINGS, apply_result, level_for_rating, target_level,
+)
+from app.services.mission_service import generate_mission_content, generate_mission_draft, rank_mission_sources
 from pydantic import BaseModel, Field, StringConstraints
 
 logger = logging.getLogger(__name__)
@@ -286,6 +289,50 @@ async def skip_mission(
     await db.commit()
     await db.refresh(mission)
     return _result_response(mission, before, after)
+
+
+class RetargetRequest(BaseModel):
+    harder: bool
+
+
+@router.post("/{mission_id}/retarget", response_model=MissionResponse)
+async def retarget_mission(
+    mission_id: int,
+    body: RetargetRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """부스 체험 전용: 같은 일기·같은 원천으로 한 단계 어렵거나 쉬운 미션으로 바꾼다.
+
+    '할 수 있겠어요/어려울 것 같아요'는 미션을 실제로 해 본 결과가 아니므로
+    완료·실패 처리나 ELO 갱신을 하지 않고, 진행 중인 미션의 내용과 난이도만 바꾼다.
+    """
+    if not current_user.username.startswith(TRIAL_PREFIX):
+        raise HTTPException(status_code=403, detail="Trial accounts only")
+    mission = await _get_active_mission(mission_id, current_user, db)
+
+    level = level_for_rating(mission.difficulty if mission.difficulty is not None else BASE_RATING)
+    new_level = max(1, min(5, level + (1 if body.harder else -1)))
+    if new_level == level:
+        raise HTTPException(status_code=409, detail="이미 가장 어려운 단계예요" if body.harder else "이미 가장 쉬운 단계예요")
+
+    diary_text = ""
+    if mission.diary_id is not None:
+        diary = await db.get(Diary, mission.diary_id)
+        diary_text = diary.content if diary else ""
+
+    content, reason = await generate_mission_draft(
+        mission.target_var, new_level, diary_text, [mission.content]
+    )
+    if not content:
+        raise HTTPException(status_code=502, detail="AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.")
+
+    mission.content = content
+    mission.reason = reason or None
+    mission.difficulty = LEVEL_RATINGS[new_level]
+    await db.commit()
+    await db.refresh(mission)
+    return MissionResponse.of(mission)
 
 
 @router.post("/community/{mission_id}/respect")

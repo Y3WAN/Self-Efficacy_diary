@@ -1,57 +1,93 @@
 import Icon from "./Icon";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { shiftRecordDate } from "../utils/recordDate";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-const DAY_OFFSETS = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+const SWIPE_MIN_PX = 50;
 
+function parts(date) {
+  const [year, month, day] = date.split("-").map(Number);
+  return { year, month, day };
+}
+
+function weekLabel(weekStart) {
+  const start = parts(weekStart);
+  const end = parts(shiftRecordDate(weekStart, 6));
+  if (start.year !== end.year) return `${start.year}년 ${start.month}월 ${start.day}일 – ${end.year}년 ${end.month}월 ${end.day}일`;
+  if (start.month !== end.month) return `${start.year}년 ${start.month}월 ${start.day}일 – ${end.month}월 ${end.day}일`;
+  return `${start.year}년 ${start.month}월 ${start.day}일 – ${end.day}일`;
+}
+
+// 한 주(일~토)만 보여 주는 달력. 이전·다음 버튼이나 좌우로 밀어서 주를 넘긴다.
+// 날짜를 누르면 /records/:date 로 가서, 그 화면에서 좌우로 밀며 지난 기록을 이어서 볼 수 있다.
 export default function DiaryCalendar({
-  month, selectedDate, today, writtenDates, missionDates, locationKey, onToday, onChangeMonth,
+  weekStart, selectedDate, today, writtenDates, missionDates, locationKey, onToday, onChangeWeek,
 }) {
   const [focusedDate, setFocusedDate] = useState(null);
-  const [year, monthNumber] = month.split("-").map(Number);
-  const firstDay = new Date(year, monthNumber - 1, 1).getDay();
-  const daysInMonth = new Date(year, monthNumber, 0).getDate();
-  const lastSelectableDay = month === today.slice(0, 7) ? Number(today.slice(-2)) : daysInMonth;
-  const tabDate = focusedDate?.startsWith(month) ? focusedDate : selectedDate;
+  const touchStart = useRef(null);
+  const days = Array.from({ length: 7 }, (_, index) => shiftRecordDate(weekStart, index));
+  const isCurrentWeek = days.includes(today);
+  const tabDate = focusedDate && days.includes(focusedDate) ? focusedDate : selectedDate;
 
-  function moveMonth(offset) {
-    const next = new Date(year, monthNumber - 1 + offset, 1);
+  function moveWeek(offset) {
+    if (offset > 0 && isCurrentWeek) return;
     setFocusedDate(null);
-    onChangeMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`);
+    onChangeWeek(offset);
   }
 
-  function moveFocus(event, day) {
-    const offset = DAY_OFFSETS[event.key];
+  function moveFocus(event, index) {
+    const offset = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
     if (!offset) return;
     event.preventDefault();
-    const nextDay = day + offset;
-    if (nextDay < 1 || nextDay > lastSelectableDay) return;
-    event.currentTarget.parentElement.querySelector(`[data-day="${nextDay}"]`)?.focus();
+    const next = days[index + offset];
+    if (!next || next > today) return;
+    event.currentTarget.parentElement.querySelector(`[data-date="${next}"]`)?.focus();
+  }
+
+  function onTouchStart(event) {
+    const touch = event.touches[0];
+    touchStart.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function onTouchEnd(event) {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy)) return;
+    moveWeek(dx < 0 ? 1 : -1); // 왼쪽으로 밀면 다음 주, 오른쪽으로 밀면 지난주
   }
 
   return (
     <>
       <div className="calendar-header">
-        <span className="calendar-month" aria-live="polite">{year}년 {monthNumber}월</span>
+        <span className="calendar-month" aria-live="polite">{weekLabel(weekStart)}</span>
         <div className="calendar-controls">
-          <button type="button" aria-label="이전 달" disabled={month === "1000-01"} onClick={() => moveMonth(-1)}><Icon name="chevronLeft" /></button>
+          <button type="button" aria-label="지난주" onClick={() => moveWeek(-1)}><Icon name="chevronLeft" /></button>
           <button type="button" className="calendar-today" onClick={() => {
             setFocusedDate(null);
             onToday();
           }}>오늘</button>
-          <button type="button" aria-label="다음 달" disabled={month === today.slice(0, 7)} onClick={() => moveMonth(1)}><Icon name="chevronRight" /></button>
+          <button type="button" aria-label="다음 주" disabled={isCurrentWeek} onClick={() => moveWeek(1)}><Icon name="chevronRight" /></button>
         </div>
       </div>
-      <div className="calendar-grid" role="group" aria-label="날짜별 기록 열기">
+      <div
+        className="calendar-grid calendar-grid--week"
+        role="group"
+        aria-label="날짜별 기록 열기 (좌우로 밀어서 주 이동)"
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         {WEEKDAYS.map((day) => <span key={day} className="calendar-weekday" aria-hidden="true">{day}</span>)}
-        {Array.from({ length: firstDay }, (_, index) => <span key={index} aria-hidden="true" />)}
-        {Array.from({ length: daysInMonth }, (_, index) => {
-          const day = index + 1;
-          if (day > lastSelectableDay) {
-            return <span key={day} className="calendar-day" aria-disabled="true">{day}</span>;
+        {days.map((date, index) => {
+          const { month, day } = parts(date);
+          const label = day === 1 || index === 0 ? `${month}/${day}` : day;
+          if (date > today) {
+            return <span key={date} className="calendar-day" aria-disabled="true">{label}</span>;
           }
-          const date = `${month}-${String(day).padStart(2, "0")}`;
           const hasDiary = writtenDates.has(date);
           const hasMission = missionDates.has(date);
           return (
@@ -59,16 +95,16 @@ export default function DiaryCalendar({
               key={date}
               to={`/records/${date}`}
               state={{ calendarKey: locationKey }}
-              data-day={day}
+              data-date={date}
               data-selected={date === selectedDate}
-              aria-label={`${year}년 ${monthNumber}월 ${day}일 기록${hasDiary ? ", 일기 있음" : ""}${hasMission ? ", 미션 기록 있음" : ""}`}
+              aria-label={`${month}월 ${day}일 기록${hasDiary ? ", 일기 있음" : ""}${hasMission ? ", 미션 기록 있음" : ""}`}
               aria-current={date === today ? "date" : undefined}
               tabIndex={tabDate === date ? 0 : -1}
               className="calendar-day"
               onFocus={() => setFocusedDate(date)}
-              onKeyDown={(event) => moveFocus(event, day)}
+              onKeyDown={(event) => moveFocus(event, index)}
             >
-              {day}
+              {label}
               <span className="calendar-marks" aria-hidden="true">
                 {hasDiary && <span className="calendar-mark calendar-mark--diary" />}
                 {hasMission && <span className="calendar-mark calendar-mark--mission" />}
@@ -78,6 +114,7 @@ export default function DiaryCalendar({
         })}
       </div>
       <div className="calendar-legend" aria-hidden="true">
+        <span className="calendar-swipe-hint">좌우로 밀어 지난주 보기</span>
         <span><span className="calendar-mark calendar-mark--diary" /> 일기</span>
         <span><span className="calendar-mark calendar-mark--mission" /> 미션 기록</span>
       </div>

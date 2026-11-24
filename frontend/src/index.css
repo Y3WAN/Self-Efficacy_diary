@@ -656,6 +656,9 @@ h1, .community-title, .diary-header h2 {
   align-items: center;
   gap: 6px;
 }
+.calendar-grid--week { touch-action: pan-y; }
+.calendar-grid--week .calendar-day { min-height: 52px; }
+.calendar-swipe-hint { margin-right: auto; color: var(--text-soft); }
 .calendar-legend {
   justify-content: flex-end;
   gap: 14px;
@@ -2408,8 +2411,17 @@ body:has(.mallang-page) { overflow-x: clip; }
 .trial-btn-ok { border: 1px solid var(--green-ink); background: var(--green-bg); color: var(--green-ink); }
 .trial-btn-hard { border: 1.5px solid var(--border); background: var(--card); color: var(--text); }
 .trial-mission-actions button:disabled { opacity: .6; cursor: wait; }
-.trial-mission-result { margin: 12px 0 0; padding: 10px 12px; background: var(--green-bg); border-radius: var(--radius-xs); color: var(--text); }
-.trial-elo { display: block; color: var(--text-muted); margin-top: 4px; }
+.trial-elo { display: block; color: var(--text-muted); margin: 10px 0 0; font-size: .9em; line-height: 1.5; }
+.trial-level {
+  margin-left: 8px; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  background: var(--green-bg); color: var(--green-ink); font-size: .85em; font-weight: 700;
+}
+.trial-level-change {
+  margin: 8px 0 0; padding: 8px 12px; border-radius: var(--radius-xs);
+  background: var(--green-bg); color: var(--green-ink); font-weight: 700;
+}
+.trial-mission-content--busy { color: var(--text-muted); }
+.trial-mission-error { margin: 8px 0 0; color: var(--warning-text); }
 .trial-next {
   margin-top: 6px; min-height: 52px; border: 1px solid var(--accent-line); border-radius: var(--radius-sm);
   background: var(--card); color: var(--accent-hover); font: inherit; font-weight: 700; cursor: pointer;
