@@ -4,10 +4,10 @@ import { useAuthStore } from "../store/auth";
 import client from "../api/client";
 
 const QUESTIONS = [
-  { key: "answer_m", label: "최근에 어렵거나 힘든 일을 스스로 해냈다고 느낀 적이 얼마나 있나요?" },
-  { key: "answer_v", label: "나와 비슷한 처지의 사람이 성공하는 모습을 보고 자극받은 적이 있나요?" },
-  { key: "answer_p", label: "가족, 친구 등 주변 사람들이 나를 믿어주거나 격려해준다고 느끼나요?" },
-  { key: "answer_a", label: "평소에 감정이 안정되고 컨디션이 괜찮다고 느끼나요?" },
+  { key: "answer_m", label: "요즘 어려운 일을 스스로 해낸 적이 있나요?" },
+  { key: "answer_v", label: "친구가 해내는 걸 보고 '나도 해 볼까?' 생각한 적이 있나요?" },
+  { key: "answer_p", label: "주변에서 '넌 할 수 있어'라고 말해 주나요?" },
+  { key: "answer_a", label: "요즘 마음과 몸이 편안한 편인가요?" },
 ];
 
 const OPTIONS = ["전혀", "별로", "보통", "자주", "항상"];

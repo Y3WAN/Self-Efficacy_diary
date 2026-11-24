@@ -11,7 +11,7 @@ const SOURCES = [
   ["프론트엔드", "React, Vite, Recharts, TanStack Query, Zustand, React Router (MIT License)"],
   ["백엔드", "FastAPI, SQLAlchemy, APScheduler, PostgreSQL"],
   ["글꼴", "물방울체 (유정연·스스로넷), 주아체 (우아한형제들)"],
-  ["왁뿌볼 효과음", <a href="https://www.youtube.com/shorts/WIzw3eDxDA0">VIVAASMR 쇼츠</a>],
+  ["말랑이 효과음", <a href="https://www.youtube.com/shorts/WIzw3eDxDA0">VIVAASMR 쇼츠</a>],
 ];
 
 const BRAND_COLORS = [
@@ -39,24 +39,24 @@ export default function AboutPage() {
         <div className="chart-card">
           <h2 className="chart-title">서비스 소개</h2>
           <div className="about-text">
-            <p>codemyworld는 일기를 쓰면 AI가 '나도 할 수 있다'는 자신감(자기효능감)을 키우는 4가지 경험을 찾아 주고, 지금 실력에 맞는 작은 미션을 주는 <b>나를 돌아보는 연습 도구</b>예요.</p>
+            <p>codemyworld는 일기 속에서 '나도 할 수 있다'는 자신감(자기효능감)을 키우는 경험을 찾아 주고, 내 수준에 맞는 <b>작은 미션</b>을 주는 일기 앱이에요. 미션이 막히면 도움을 받을 사람도 함께 알려 줘요.</p>
             <p className="notice-box">
-              <Icon name="warning" /> 이 서비스는 <b>전문 심리 검사나 상담을 대신하지 않아요.</b> 점수는 AI가 짐작한 값이라 틀릴 수 있어요.
+              <Icon name="warning" /> 이 서비스는 <b>전문 심리 검사나 상담을 대신하지 않아요.</b> AI가 찾은 내용은 틀릴 수 있어요.
               마음이 많이 힘들다면 청소년상담 1388(전화·문자·카카오톡)에 도움을 요청하세요.
             </p>
             <p>실명, 학교, 연락처 같은 개인정보는 일기에 쓰지 마세요. 일기 내용은 분석을 위해 AI 서버로 보내져요.</p>
           </div>
         </div>
-        <div className="chart-card">
-          <h2 className="chart-title">출처</h2>
+        <details className="chart-card about-more">
+          <summary className="chart-title">출처 보기</summary>
           <ul className="about-sources">
             {SOURCES.map(([k, v]) => (
               <li key={k}><span>{k}</span>{v}</li>
             ))}
           </ul>
-        </div>
-        <section className="chart-card design-guide" aria-labelledby="design-guide-title">
-          <h2 id="design-guide-title" className="chart-title">디자인 가이드</h2>
+        </details>
+        <details className="chart-card design-guide about-more">
+          <summary className="chart-title">디자인 가이드 (만든 사람용)</summary>
           <div>
             <h3>타이포그래피</h3>
             <ul className="design-guide-list">
@@ -107,7 +107,7 @@ export default function AboutPage() {
               완료 같은 상태는 색상과 문구를 함께 표시해요.
             </p>
           </div>
-        </section>
+        </details>
         {!token && <p className="auth-link"><Link to="/login">로그인으로 돌아가기</Link></p>}
       </main>
     </div>

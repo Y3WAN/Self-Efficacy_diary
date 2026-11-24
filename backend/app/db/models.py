@@ -108,6 +108,7 @@ class Mission(Base):
     status = Column(String(10), nullable=False, default="active")  # active / done / skipped / expired
     difficulty = Column(Integer, nullable=True)  # ELO 척도 난이도 (레거시 미션은 NULL)
     reason = Column(Text, nullable=True)  # 왜 이 미션인지 (사용자에게 보여 줌)
+    helper = Column(Text, nullable=True)  # 막히면 도와줄 사람과 방법 (조력자 한 줄)
     diary_id = Column(BigInteger, ForeignKey("diaries.id", ondelete="SET NULL"), nullable=True)  # 일기 직후 생성된 미션
     reflection = Column(Text, nullable=True)  # 완료·포기 시 남긴 한 줄 회고
     created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)

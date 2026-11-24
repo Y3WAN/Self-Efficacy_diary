@@ -63,7 +63,7 @@ function RadarMallang({ points = [] }) {
       className="radar-mallang"
       role="button"
       tabIndex={0}
-      aria-label="사말이 누르기"
+      aria-label="말랑이 누르기"
       onClick={(event) => pressRadarMallang(event.currentTarget)}
       onKeyDown={(event) => {
         if (event.key !== "Enter" && event.key !== " ") return;
@@ -98,15 +98,13 @@ function RadarMallang({ points = [] }) {
 
 function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
-  const { key, score, days } = payload[0]?.payload ?? {};
+  const { key, days } = payload[0]?.payload ?? {};
   const info = SOURCE_BY_KEY[key];
   if (!info) return null;
 
   return (
     <div className="chart-tooltip">
-      <strong>
-        {info.label} — {(score * 100).toFixed(0)}점
-      </strong>
+      <strong>{info.label}</strong>
       <p>{info.desc}</p>
       <p>
         {days ? `최근 7일 중 일기에 나온 날 ${days}일` : "최근 7일 일기에는 없어서 예전 기록으로 계산했어요"}

@@ -42,6 +42,7 @@ async def lifespan(app: FastAPI):
             "REFERENCES diaries(id) ON DELETE SET NULL"
         ))
         await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS reflection TEXT"))
+        await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS helper TEXT"))
 
     from app.jobs.catch_up import catch_up, midnight_job, morning_job, MORNING_HOUR
 

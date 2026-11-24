@@ -12,7 +12,6 @@ import RecordLayout from "./components/RecordLayout";
 import AppNavigationLayout from "./components/AppNavigationLayout";
 import DiaryEditorPage from "./pages/DiaryEditorPage";
 import ProfilePage from "./pages/ProfilePage";
-import FailureLogsPage from "./pages/FailureLogsPage";
 import CommunityPage from "./pages/CommunityPage";
 import PromptPage from "./pages/PromptPage";
 import MallangPage from "./pages/MallangPage";
@@ -48,7 +47,6 @@ export default function App() {
                 <Route path="records/:date" element={<RecordDayPage />} />
               </Route>
               <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/failure-logs" element={<FailureLogsPage />} />
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/prompt" element={<PromptPage />} />
               <Route path="/analysis" element={<AnalysisPage />} />

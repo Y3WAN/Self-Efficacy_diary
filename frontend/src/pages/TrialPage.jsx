@@ -9,9 +9,9 @@ import { todayKST } from "../utils/date";
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000" });
 
 const EXAMPLES = [
-  { icon: "📚", text: "수학 문제 풀다가 너무 어려워서 포기했다." },
-  { icon: "🎤", text: "발표하다가 말이 막혀서 창피했다. 그래도 끝까지 했다." },
-  { icon: "🏃", text: "줄넘기 100개 목표였는데 60개에서 멈췄다." },
+  { icon: "📚", text: "수학 숙제를 하다가 3번 문제에서 막혔다." },
+  { icon: "🎤", text: "발표 연습을 두 번 했는데 아직 조금 떨린다." },
+  { icon: "🏃", text: "오늘 줄넘기 60개를 했다. 목표는 100개다." },
 ];
 
 export default function TrialPage() {
@@ -86,7 +86,7 @@ export default function TrialPage() {
 
       {step === "input" && (
         <section className="trial-section">
-          <h1 className="trial-title">오늘 잘 안 된 일,<br />한 줄이면 충분해요</h1>
+          <h1 className="trial-title">오늘 있었던 일,<br />한 줄이면 충분해요</h1>
           <p className="trial-sub">AI가 그 안에서 <b>내가 해낸 것</b>을 찾아 드려요</p>
 
           <div className="trial-examples">
@@ -103,7 +103,7 @@ export default function TrialPage() {
             <input
               id="trial-line"
               className="trial-input"
-              placeholder="예: 운동 가려다 결국 안 갔다"
+              placeholder="예: 영어 단어 10개를 외웠다"
               maxLength={200}
               value={line}
               onChange={(e) => setLine(e.target.value)}
@@ -150,17 +150,22 @@ export default function TrialPage() {
                 <div className="trial-mission">
                   <p className="reflection-label">
                     🎯 이어서 해 볼 작은 미션
-                    {level && <span className="trial-level">난이도 Lv.{level}/5</span>}
+                    {level && (
+                      <span className="trial-level" aria-label={`난이도 5단계 중 ${level}단계`}>
+                        난이도 {"●".repeat(level)}{"○".repeat(5 - level)}
+                      </span>
+                    )}
                   </p>
                   {levelChange && (
                     <p className="trial-level-change" role="status">
-                      {levelChange.harder ? "💪 한 단계 어렵게" : "🌱 한 단계 쉽게"} 바꿨어요 (Lv.{levelChange.from} → Lv.{levelChange.to})
+                      {levelChange.harder ? "💪 한 단계 크게" : "🌱 한 단계 작게"} 바꿨어요
                     </p>
                   )}
                   <p className={`trial-mission-content${missionBusy ? " trial-mission-content--busy" : ""}`}>
                     {missionBusy ? "AI가 난이도를 바꾼 미션을 만들고 있어요…" : result.mission.content}
                   </p>
                   {!missionBusy && result.mission.reason && <p className="reflection-mission-reason">{result.mission.reason}</p>}
+                  {!missionBusy && result.mission.helper && <p className="mission-helper">🤝 막히면: {result.mission.helper}</p>}
 
                   <p className="trial-mission-question">이 미션, 할 수 있을 것 같나요?</p>
                   <div className="trial-mission-actions">

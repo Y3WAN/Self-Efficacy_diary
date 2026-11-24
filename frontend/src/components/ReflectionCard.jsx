@@ -38,6 +38,7 @@ export default function ReflectionCard({ reflection, mission, isPending, isError
           <p className="reflection-label"><Icon name="target" /> 이어서 해 볼 미션</p>
           <p className="reflection-mission-content">{mission.content}</p>
           {mission.reason && <p className="reflection-mission-reason">{mission.reason}</p>}
+          {mission.helper && <p className="mission-helper"><Icon name="user" /> 막히면: {mission.helper}</p>}
           <Link to="/" className="reflection-mission-link">오늘의 미션에서 보기 <Icon name="arrowRight" /></Link>
         </div>
       )}

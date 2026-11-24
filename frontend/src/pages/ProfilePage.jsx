@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import client from "../api/client";
 import GrowthChart from "../components/GrowthChart";
-import EloChart from "../components/EloChart";
 import { useConfirmLogout } from "../utils/useConfirmLogout";
 
 export default function ProfilePage() {
@@ -46,20 +45,14 @@ export default function ProfilePage() {
             <span className="profile-value">{user.diary_count}개</span>
           </div>
           <div className="profile-row">
-            <span className="profile-label">완료한 미션</span>
+            <span className="profile-label">해낸 미션</span>
             <span className="profile-value">{user.completed_missions_count}개</span>
           </div>
         </div>
 
         <section className="chart-card" aria-labelledby="growth-title">
-          <h2 id="growth-title" className="chart-title">자신감 성장 그래프</h2>
+          <h2 id="growth-title" className="chart-title">자신감 흐름</h2>
           <GrowthChart />
-        </section>
-
-        <section className="chart-card" aria-labelledby="elo-title">
-          <h2 id="elo-title" className="chart-title">미션 실력 점수</h2>
-          <p className="chart-sub">미션 결과에 따라 다음 미션 난이도가 조절돼요</p>
-          <EloChart />
         </section>
 
         <div className="profile-links">

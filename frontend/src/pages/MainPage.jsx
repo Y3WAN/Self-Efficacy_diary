@@ -31,7 +31,7 @@ function TodayCard({ diaries, today, isPending }) {
           {achievements.map((item) => <li key={item}><Icon name="check" /> {item}</li>)}
         </ul>
       ) : hasDiaries && (
-        <p className="today-card-sub">아직 AI 피드백이 없어요.</p>
+        <p className="today-card-sub">아직 해낸 것을 찾지 않았어요.</p>
       )}
       <span className="today-card-action">
         {hasDiaries ? "오늘 일기 열기" : "오늘 일기 쓰기"} <Icon name="arrowRight" />
@@ -69,10 +69,10 @@ export default function MainPage() {
         />
         <ActivityHistory today={today} />
         <section className="chart-card main-radar" aria-labelledby="main-radar-title">
-          <h2 id="main-radar-title" className="chart-title">나의 자신감 4가지 원천</h2>
+          <h2 id="main-radar-title" className="chart-title">요즘 나를 키운 경험</h2>
           <p className="chart-sub">최근 7일 동안의 변화</p>
           <RadarChartComponent />
-          <Link to="/analysis" className="chart-link">AI가 왜 이렇게 판단했는지 보기 <Icon name="arrowRight" /></Link>
+          <Link to="/analysis" className="chart-link">AI가 일기에서 찾은 문장 보기 <Icon name="arrowRight" /></Link>
         </section>
       </main>
     </div>

@@ -47,30 +47,43 @@ MISSION_SYSTEM = """당신은 학생의 일기에서 '진짜 문제'를 찾고, 
 - 행동은 하나. "~하고 ~해 보세요"처럼 여러 행동을 잇지 마세요.
 - 모호한 말("열심히", "조금", "생각해 보세요", "계획을 세워 보세요") 금지.
 - [기존 미션 목록]과 겹치지 않을 것.
-- 학생에게 말하듯 자연스러운 한 문장, 20자 이상 60자 이하, 반드시 '~보세요'로 끝내세요.
+- 학생에게 말하듯 자연스러운 한 문장, 20자 이상 50자 이하, 반드시 '~보세요'로 끝내세요.
   '적어 해 보세요'처럼 동사 뒤에 '해'를 덧붙이지 마세요.
+- 숫자(개수·시간·횟수)는 하나만 넣으세요. "20개씩 5번, 1분 쉬고 30분"처럼 숫자를 여러 개 넣지 마세요.
 
-reason (왜 이 미션인지)
-- 일기에서 찾은 문제와, 이 미션이 그 문제를 어떻게 푸는지를 한 문장으로. 70자 이하, 존댓말.
+reason (이 미션을 하면 무엇이 좋아지는지)
+- 이 미션을 하면 무엇이 쉬워지거나 풀리는지를 긍정형 한 문장으로. 50자 이하, 존댓말, '~요'로 끝내기.
+- "~하지 못한 게 문제라", "~가 부족해서"처럼 학생의 부족함을 짚는 말로 시작하지 마세요.
 - 원천 기호(M·V·P·A), 점수, 난이도 숫자는 쓰지 마세요.
+
+helper (막히면 도와줄 사람과 방법)
+- 미션을 하다 막혔을 때 도움을 받을 수 있는 사람(친구, 선생님, 가족, 같은 반 친구, 학원 선생님 등)과
+  물어볼 내용을 한 문장으로. 35자 이하, '~보세요'로 끝내기.
+- 일기에 나온 사람이 있으면 그 사람을 쓰고, 없으면 친구·선생님·가족 중에서 고르세요.
+  동생·형·누나처럼 있는지 모르는 사람은 지어내지 마세요.
+- [지금 시각]이 밤이면 '내일 물어보기'나 '메시지 한 통'처럼 지금 할 수 있는 방법으로.
 
 올바른 예시 (형식만 참고하고, 문장을 그대로 베끼지 마세요)
 - 일기 "방 청소하려고 했는데 너무 어질러져서 손도 못 댔다" / M / Lv2
   problem: 방 전체를 한 번에 치우려니 어디서 시작할지 몰랐다
   content: 책상 위만 타이머 10분을 맞추고 치워 보세요.
-  reason: 한꺼번에 하려다 시작을 못 한 게 문제라, 한 곳만 정해 시작해 보는 미션이에요.
+  reason: 한 곳만 정하면 시작하기가 훨씬 쉬워져요.
+  helper: 버릴지 고민되는 물건은 가족에게 물어보세요.
 - 일기 "영어 듣기 평가에서 거의 못 알아들었다" / V / Lv2
   problem: 빠른 영어를 들을 때 쓸 방법을 모른다
-  content: 영어 듣기 공부법 하나를 찾아서 오늘 써 볼 방법을 한 줄로 적어 보세요.
-  reason: 들을 때 쓸 방법이 없는 게 문제라, 먼저 해 본 사람의 방법을 가져오는 미션이에요.
+  content: 영어 듣기 공부법 하나를 찾아서 써 볼 방법을 한 줄로 적어 보세요.
+  reason: 먼저 해 본 사람의 방법을 가져오면 다음 듣기가 덜 막막해져요.
+  helper: 영어 잘하는 친구에게 어떻게 듣는지 물어보세요.
 - 일기 "조별 과제 회의에서 내 의견을 말 못 하고 넘어갔다" / P / Lv3
   problem: 말할 내용을 미리 정리하지 않아 끼어들 때를 놓쳤다
   content: 다음 회의에서 말할 의견 한 줄을 조원 단톡방에 미리 올려 보세요.
-  reason: 말할 때를 놓친 게 문제라, 의견을 먼저 글로 전해 두는 미션이에요.
+  reason: 의견을 먼저 글로 전해 두면 회의에서 말 꺼내기가 쉬워져요.
+  helper: 친한 조원에게 내 의견이 어떤지 먼저 물어보세요.
 - 일기 "시험 성적이 생각보다 낮아서 저녁 내내 짜증이 났다" / A / Lv1
   problem: 짜증이 풀리지 않아 다른 일을 시작하지 못했다
   content: 지금 짜증 나는 이유를 보내지 않을 메모에 세 줄로 적어 보세요.
-  reason: 짜증이 계속 남아 있는 게 문제라, 감정을 꺼내 놓고 정리하는 미션이에요.
+  reason: 감정을 꺼내 적으면 마음이 정리되고 다음 일을 시작하기 쉬워져요.
+  helper: 내일 믿을 만한 친구나 선생님에게 이야기해 보세요.
 
 잘못된 예시 (절대 금지)
 - "피아노 곡을 처음부터 다시 쳐 보세요" → 실패한 일을 반복할 뿐, 틀리는 마디는 그대로
@@ -80,7 +93,7 @@ reason (왜 이 미션인지)
 - "10분 동안 깊게 호흡해 보세요" (싸운 일기에) → 일기의 문제와 상관없는 일반 미션
 - 일기에 없는 문제를 지어낸 미션
 
-JSON만 반환: {"problem": "일기에서 찾은 진짜 문제", "content": "미션 내용", "reason": "왜 이 미션인지"}"""
+JSON만 반환: {"problem": "일기에서 찾은 진짜 문제", "content": "미션 내용", "reason": "이 미션을 하면 좋아지는 점", "helper": "막히면 도와줄 사람과 방법"}"""
 
 
 def _fix_tone(content: str) -> str:
@@ -108,8 +121,8 @@ async def generate_mission_draft(
     existing_contents: list[str],
     custom_prompt: str = "",
     recent_reflections: str = "",
-) -> tuple[str, str]:
-    """미션 내용과 '왜 이 미션인지'를 함께 만든다. 실패하면 ("", "")."""
+) -> tuple[str, str, str]:
+    """미션 내용, '왜 이 미션인지', '막히면 도와줄 사람'을 함께 만든다. 실패하면 ("", "", "")."""
     current_block = "\n".join(f"- {content}" for content in existing_contents) or "없음"
     user_prompt = (
         f"타겟 원천: {target_var}\n"
@@ -127,12 +140,13 @@ async def generate_mission_draft(
         {"role": "user", "content": user_prompt},
     ])
     if not isinstance(data, dict):
-        return "", ""
+        return "", "", ""
     problem = str(data.get("problem", "") or "").strip()
     content = _fix_tone(str(data.get("content", "") or "").strip())
     reason = str(data.get("reason", "") or "").strip()[:120]
+    helper = str(data.get("helper", "") or "").strip()[:80]
     logger.info("Mission draft target=%s level=%s problem=%s", target_var, level, problem[:80])
-    return content, reason
+    return content, reason, helper
 
 
 async def generate_mission_content(
@@ -142,7 +156,7 @@ async def generate_mission_content(
     existing_contents: list[str],
     custom_prompt: str = "",
 ) -> str:
-    content, _ = await generate_mission_draft(target_var, level, diary_text, existing_contents, custom_prompt)
+    content, _, _ = await generate_mission_draft(target_var, level, diary_text, existing_contents, custom_prompt)
     return content
 
 
@@ -268,7 +282,7 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
     for i in range(min(slots_left, len(available_vars))):
         target_var = available_vars[i]
         try:
-            content, reason = await generate_mission_draft(
+            content, reason, helper = await generate_mission_draft(
                 target_var, level, diary_text, generated_contents, custom_prompt, recent_reflections
             )
             if not content:
@@ -277,6 +291,7 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
                 user_id=user_id,
                 content=content,
                 reason=reason or None,
+                helper=helper or None,
                 target_var=target_var,
                 status="active",
                 difficulty=LEVEL_RATINGS[level],

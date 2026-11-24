@@ -1,7 +1,7 @@
 import Icon from "./Icon";
 import {
   ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend,
+  ResponsiveContainer,
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import client from "../api/client";
@@ -20,10 +20,8 @@ const CustomTooltip = ({ active, payload }) => {
   const p = payload[0].payload;
   return (
     <div className="chart-tooltip">
-      <strong>{p.date}</strong>
-      <p>그날 점수 {toPct(p.score)}점</p>
-      <p><b>흐름 점수 {toPct(p.ema)}점</b></p>
-      <p>AI 확신 {toPct(p.confidence)}%</p>
+      <strong>{p.date.slice(5).replace("-", "/")}</strong>
+      <p>이날 일기에서 찾은 자신감</p>
     </div>
   );
 };
@@ -44,20 +42,22 @@ export default function GrowthChart() {
         <ComposedChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--divider)" />
           <XAxis dataKey="date" tick={{ fill: "var(--text-muted)" }} tickFormatter={(v) => v.slice(5).replace("-", "/")} />
-          <YAxis domain={[0, 1]} tick={{ fill: "var(--text-muted)" }} tickFormatter={(v) => toPct(v)} />
+          <YAxis domain={[0, 1]} tick={false} axisLine={false} width={24} />
           <Tooltip content={<CustomTooltip />} />
-          <Legend />
-          <Scatter name="그날 점수" dataKey="score" fill="var(--text-soft)" />
+          <Scatter name="그날" dataKey="score" fill="var(--text-soft)" />
           <Line
-            name="변화 흐름" type="monotone" dataKey="ema" stroke="var(--accent)"
+            name="흐름" type="monotone" dataKey="ema" stroke="var(--accent)"
             strokeWidth={2.5} dot={false} activeDot={{ r: 5 }}
           />
         </ComposedChart>
       </ResponsiveContainer>
       {data.length > 1 && (
         <p className="elo-calibration">
-          {data.length}일 동안 변화 {toPct(first.ema)} <Icon name="arrowRight" /> {toPct(last.ema)}점
-          {" "}<span className={diff >= 0 ? "elo-up" : "elo-down"}><Icon name={diff >= 0 ? "arrowUp" : "arrowDown"} label={diff >= 0 ? "상승" : "하락"} /> {Math.abs(diff)}</span>
+          {diff >= 3
+            ? <><Icon name="sprout" /> {data.length}일 전보다 자신감이 자랐어요.</>
+            : diff <= -3
+              ? "요즘 조금 지쳤나 봐요. 작은 미션부터 천천히 해 봐요."
+              : "요즘 자신감은 비슷하게 이어지고 있어요."}
         </p>
       )}
     </>

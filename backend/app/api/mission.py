@@ -28,6 +28,7 @@ class MissionResponse(BaseModel):
     difficulty: Optional[int] = None
     level: Optional[int] = None
     reason: Optional[str] = None
+    helper: Optional[str] = None
     diary_id: Optional[int] = None
     reflection: Optional[str] = None
     created_at: datetime
@@ -246,7 +247,7 @@ async def retarget_mission(
         diary = await db.get(Diary, mission.diary_id)
         diary_text = diary.content if diary else ""
 
-    content, reason = await generate_mission_draft(
+    content, reason, helper = await generate_mission_draft(
         mission.target_var, new_level, diary_text, [mission.content]
     )
     if not content:
@@ -254,6 +255,7 @@ async def retarget_mission(
 
     mission.content = content
     mission.reason = reason or None
+    mission.helper = helper or None
     mission.difficulty = LEVEL_RATINGS[new_level]
     await db.commit()
     await db.refresh(mission)

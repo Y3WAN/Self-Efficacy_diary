@@ -4,8 +4,8 @@ import Icon from "./Icon";
 import { useAuthStore } from "../store/auth";
 
 const TABS = [
-  { to: "/", icon: "home", label: "메인화면", relatedPaths: ["/records/:date", "/analysis", "/failure-logs"] },
-  { to: "/mallang", icon: "mallang", label: "사이버 말랑이", relatedPaths: [] },
+  { to: "/", icon: "home", label: "메인화면", relatedPaths: ["/records/:date", "/analysis"] },
+  { to: "/mallang", icon: "mallang", label: "마음 쉬기", relatedPaths: [] },
   { to: "/profile", icon: "user", label: "내 정보", relatedPaths: ["/prompt", "/community"] },
 ];
 

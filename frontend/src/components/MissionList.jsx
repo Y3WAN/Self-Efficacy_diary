@@ -4,31 +4,23 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import client from "../api/client";
 
-const CELEBRATIONS = [
-  { icon: "sparkle", message: "미션 완료! 오늘도 한 걸음 성장했어요." },
-  { icon: "flame", message: "대단해요! 작은 실천이 큰 변화를 만들어요." },
-  { icon: "star", message: "완벽해요! 이 기세로 계속 나아가요." },
-  { icon: "trophy", message: "해냈어요! 오늘의 나, 정말 잘했어요." },
-];
-
-const SKIP_MESSAGE = { icon: "sprout", message: "괜찮아요! 다음 미션은 조금 더 가볍게 준비할게요." };
-
+// 점수 대신 담백한 한마디. 해낸 미션을 그대로 짚어 준다.
 function ResultModal({ result, onClose }) {
-  const [c] = useState(() =>
-    result.skipped ? SKIP_MESSAGE : CELEBRATIONS[Math.floor(Math.random() * CELEBRATIONS.length)]
-  );
-  const delta = result.elo_after - result.elo_before;
   return (
     <div className="celebration-overlay" onClick={onClose}>
       <div className="celebration-card" onClick={(e) => e.stopPropagation()}>
-        <Icon name={c.icon} className="celebration-icon" />
-        <p className="celebration-message">{c.message}</p>
-        <p className="celebration-elo">
-          실력 점수 {result.elo_after}
-          <span className={delta >= 0 ? "elo-up" : "elo-down"}>
-            {" "}<Icon name={delta >= 0 ? "arrowUp" : "arrowDown"} label={delta >= 0 ? "상승" : "하락"} /> {Math.abs(delta)}
-          </span>
-        </p>
+        <Icon name={result.skipped ? "sprout" : "sparkle"} className="celebration-icon" />
+        {result.skipped ? (
+          <>
+            <p className="celebration-message">괜찮아요. 다음 미션은 더 작게 준비할게요.</p>
+            {result.helper && <p className="celebration-helper"><Icon name="user" /> 도움이 필요하면: {result.helper}</p>}
+          </>
+        ) : (
+          <>
+            <p className="celebration-message">해냈어요.</p>
+            <p className="celebration-helper">"{result.content}"</p>
+          </>
+        )}
         <button className="celebration-btn" onClick={onClose}>확인</button>
       </div>
     </div>
@@ -86,6 +78,7 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
                 <div className="mission-body">
                   <p className="mission-content">{mission.content}</p>
                   {mission.reason && <p className="mission-reason"><Icon name="bulb" /> {mission.reason}</p>}
+                  {mission.helper && <p className="mission-helper"><Icon name="user" /> 막히면: {mission.helper}</p>}
                 </div>
                 {pending?.id === mission.id ? (
                   <form
@@ -111,7 +104,7 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
                     />
                     <div className="mission-actions">
                       <button type="submit" className="mission-done-btn" disabled={updateMission.isPending}>
-                        {pending.action === "complete" ? "완료 기록" : "어려워요 기록"}
+                        기록하기
                       </button>
                       <button
                         type="button"
@@ -127,7 +120,7 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
                       className="mission-done-btn"
                       disabled={updateMission.isPending}
                       onClick={() => openFeedback(mission.id, "complete")}
-                    >완료</button>
+                    >해냈어요</button>
                     <button
                       className="mission-skip-btn"
                       disabled={updateMission.isPending}
