@@ -113,7 +113,7 @@ body { background: var(--bg); min-height: 100dvh;
 }
 
 h1, .diary-header h2, .community-title,
-.section-title, .mission-title, .today-card-title, .chart-title, .experiment-output h2 {
+.section-title, .mission-title, .today-card-title, .chart-title {
   color: var(--text);
   font-weight: 700;
   line-height: 1.2;

@@ -75,7 +75,6 @@ export default function MainPage() {
           <p className="chart-sub">최근 7일 추세 · 일기에 근거가 있었던 날만 반영 · 미션 대상 선택에 쓰여요</p>
           <RadarChartComponent />
           <Link to="/analysis" className="chart-link">AI가 왜 이렇게 판단했는지 보기 <Icon name="arrowRight" /></Link>
-          <Link to="/mission-experiment" className="chart-link">점수를 바꿔 미션 비교하기 <Icon name="arrowRight" /></Link>
           <p className="notice-text">점수는 AI의 추정이며 심리 진단이 아니에요. <Link to="/about">안내·출처</Link></p>
         </section>
       </main>

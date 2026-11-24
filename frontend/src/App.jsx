@@ -16,7 +16,6 @@ import CommunityPage from "./pages/CommunityPage";
 import PromptPage from "./pages/PromptPage";
 import MallangPage from "./pages/MallangPage";
 import AnalysisPage from "./pages/AnalysisPage";
-import MissionExperimentPage from "./pages/MissionExperimentPage";
 import AboutPage from "./pages/AboutPage";
 import TrialPage from "./pages/TrialPage";
 import { installButtonRipple } from "./utils/buttonRipple";
@@ -48,7 +47,6 @@ export default function App() {
           <Route path="/diary/:date" element={<RequireAuth><DiaryEditorPage /></RequireAuth>} />
           {/* 대시보드 탭은 없앰: 4원천 분석은 메인, 성장·ELO 그래프는 내 정보로 옮김 */}
           <Route path="/dashboard" element={<Navigate to="/profile" replace />} />
-          <Route path="/mission-experiment" element={<RequireAuth><MissionExperimentPage /></RequireAuth>} />
           <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
           <Route path="/failure-logs" element={<RequireAuth><FailureLogsPage /></RequireAuth>} />
           <Route path="/community" element={<RequireAuth><CommunityPage /></RequireAuth>} />

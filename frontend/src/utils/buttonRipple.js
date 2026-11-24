@@ -3,7 +3,7 @@ import { FULL_PRESS_MS, TAP_DEPTH, pressDepth, pressRecoveryDuration, smoothStep
 import { createPressTrail } from "./pressTrail";
 
 const NAVIGATION_LINK = "a:is([data-ripple-navigation], .auth-btn, .calendar-day, .chart-link," +
-  " .experiment-back, .main-analysis-link, .reflection-mission-link)[href^='/']:not([href^='//'])";
+  " .main-analysis-link, .reflection-mission-link)[href^='/']:not([href^='//'])";
 // Record slide links use the same visuals but keep the carousel's native swipe/click handling.
 const RIPPLE_CONTROL = "button:not(.mallang-body), a:is(.activity-write, .activity-diary), " + NAVIGATION_LINK;
 const DISABLED_CONTROL = ":disabled, [aria-disabled='true'], [inert]";
