@@ -14,6 +14,9 @@ const WAX_MODE_KEY = "codemyworld.mallang.wax";
 const RETURNING_TIP_HIT_PADDING = 6;
 const GRAB_REST_SPEED = 0.001;
 const GRAB_REST_DISPLACEMENT = 0.04;
+const FACE_SAMPLE_DISTANCE = 6;
+const FACE_SLOPE_PULL = 3.8;
+const FACE_DEPTH_OFFSET = 0.22;
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 function readWaxMode() {
   try { return localStorage.getItem(WAX_MODE_KEY) === "true"; } catch { return false; }
@@ -21,15 +24,52 @@ function readWaxMode() {
 
 function MallangFace() {
   return <svg aria-hidden="true" viewBox="0 0 200 200">
-    <ellipse cx="63" cy="115" rx="19" ry="10" fill="#db789b" opacity=".3" />
-    <ellipse cx="137" cy="115" rx="19" ry="10" fill="#db789b" opacity=".3" />
-    <circle cx="86" cy="94" r="6.2" fill="#492032" />
-    <circle cx="114" cy="94" r="6.2" fill="#492032" />
-    <circle cx="84" cy="92" r="1.8" fill="#fff6fb" />
-    <circle cx="112" cy="92" r="1.8" fill="#fff6fb" />
-    <path d="M90 113 Q89 122 96 121 Q100 121 100 115 Q100 122 105 121 Q112 122 110 113"
+    <ellipse data-surface-point="63 115" cx="63" cy="115" rx="19" ry="10" fill="#db789b" opacity=".3" />
+    <ellipse data-surface-point="137 115" cx="137" cy="115" rx="19" ry="10" fill="#db789b" opacity=".3" />
+    <g data-surface-point="86 94">
+      <circle cx="86" cy="94" r="6.2" fill="#492032" />
+      <circle cx="84" cy="92" r="1.8" fill="#fff6fb" />
+    </g>
+    <g data-surface-point="114 94">
+      <circle cx="114" cy="94" r="6.2" fill="#492032" />
+      <circle cx="112" cy="92" r="1.8" fill="#fff6fb" />
+    </g>
+    <path data-surface-point="100 117" d="M90 113 Q89 122 96 121 Q100 121 100 115 Q100 122 105 121 Q112 122 110 113"
       stroke="#91465f" strokeWidth="2.5" fill="none" strokeLinecap="round" />
   </svg>;
+}
+
+function projectFacePoint(sample, x, y) {
+  const distance = FACE_SAMPLE_DISTANCE;
+  const height = sample(x, y);
+  const slopeX = (sample(x + distance, y) - sample(x - distance, y)) / (2 * distance);
+  const slopeY = (sample(x, y + distance) - sample(x, y - distance)) / (2 * distance);
+  const pull = FACE_SLOPE_PULL / Math.hypot(1, slopeX, slopeY);
+  return { x: x - slopeX * pull, y: y - slopeY * pull - height * FACE_DEPTH_OFFSET, height };
+}
+
+function paintFace(parts, sample) {
+  for (const part of parts) {
+    const { element, x, y } = part;
+    const distance = FACE_SAMPLE_DISTANCE;
+    const center = projectFacePoint(sample, x, y);
+    const left = projectFacePoint(sample, x - distance, y), right = projectFacePoint(sample, x + distance, y);
+    const top = projectFacePoint(sample, x, y - distance), bottom = projectFacePoint(sample, x, y + distance);
+    // Each mark bends with its own patch of material, including the slope around the mark.
+    const a = (right.x - left.x) / (2 * distance), b = (right.y - left.y) / (2 * distance);
+    const c = (bottom.x - top.x) / (2 * distance), d = (bottom.y - top.y) / (2 * distance);
+    const values = [a, b, c, d, center.x - a * x - c * y, center.y - b * x - d * y]
+      .map((value) => value.toFixed(3)).join(" ");
+    if (part.transform !== values) {
+      element.setAttribute("transform", "matrix(" + values + ")");
+      part.transform = values;
+    }
+    const brightness = clamp(1 + center.height * 0.017, 0.74, 1).toFixed(3);
+    if (part.brightness !== brightness) {
+      element.style.filter = brightness === "1.000" ? "" : "brightness(" + brightness + ")";
+      part.brightness = brightness;
+    }
+  }
 }
 
 export default function MallangPage() {
@@ -52,6 +92,10 @@ export default function MallangPage() {
     runtime.current = r;
     const material = r.material;
     const surface = createMallangSurface(canvas.current, material, overlay.current);
+    const faceParts = Array.from(face.current.querySelectorAll("[data-surface-point]"), (element) => {
+      const [x, y] = element.dataset.surfacePoint.split(" ").map(Number);
+      return { element, x, y };
+    });
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     const reduced = () => media.matches;
     let disposed = false;
@@ -98,12 +142,9 @@ export default function MallangPage() {
         character.current.style.left = r.motion.position.x + "%";
         character.current.style.top = r.motion.position.y + "%";
       }
-      const hx = (material.sample(106, 100) - material.sample(94, 100)) / 12;
-      const hy = (material.sample(100, 106) - material.sample(100, 94)) / 12;
-      const h = material.sample(100, 100);
-      face.current.style.transform = "translate(" + clamp(-hx * 1.3, -1.5, 1.5) + "px," +
-        clamp(h * 0.11 - hy, -2, 2) + "px) scale(" + (1 + clamp(hx * 0.018, -.025, .025)) +
-        "," + (1 + clamp(h * 0.0015, -.025, .025)) + ")";
+      const sampleFaceHeight = material.state.reducedMotion ? () => 0
+        : material.state.shell ? material.sample : surface?.sampleHeight ?? material.sample;
+      paintFace(faceParts, sampleFaceHeight);
       for (const node of shellElement.current?.querySelectorAll("[data-piece-id]") ?? []) {
         const piece = r.shell.pieces.find((p) => String(p.id) === node.dataset.pieceId);
         if (!piece?.depth) continue;

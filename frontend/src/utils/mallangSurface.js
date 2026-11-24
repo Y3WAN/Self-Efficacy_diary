@@ -307,7 +307,8 @@ export function createMallangSurface(canvas, material, overlay = null) {
     context.lineWidth = .7; context.stroke(path);
     return outline;
   }
-  return { draw, releaseWaveAnchor, resetTrail, get trailActive() { return trailPoints.length > 0; },
+  return { draw, releaseWaveAnchor, resetTrail, sampleHeight: reliefField.sample,
+    get trailActive() { return trailPoints.length > 0; },
     setFlatStyle(value) { flat = value; },
     dispose() { clear(context); if (lightContext) clear(lightContext); } };
 }

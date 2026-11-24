@@ -92,5 +92,15 @@ export function createMallangRelief({ size, origin, step, maxDepth, waveSettings
     return height;
   }
 
-  return { height, waveHeight, update };
+  function sample(x, y) {
+    const gridX = Math.max(0, Math.min(size - 1, (x - origin) / step));
+    const gridY = Math.max(0, Math.min(size - 1, (y - origin) / step));
+    const col = Math.min(size - 2, Math.floor(gridX)), row = Math.min(size - 2, Math.floor(gridY));
+    const u = gridX - col, v = gridY - row, index = row * size + col;
+    const top = height[index] * (1 - u) + height[index + 1] * u;
+    const bottom = height[index + size] * (1 - u) + height[index + size + 1] * u;
+    return top * (1 - v) + bottom * v;
+  }
+
+  return { height, waveHeight, update, sample };
 }
