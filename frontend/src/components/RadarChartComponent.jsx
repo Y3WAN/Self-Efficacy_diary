@@ -3,21 +3,14 @@ import {
   ResponsiveContainer, Tooltip,
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import client from "../api/client";
-
-const SOURCE_DESC = {
-  "성취(M)": { label: "성취경험(M)", desc: "과제를 직접 수행하고 성공했던 경험" },
-  "대리(V)": { label: "대리경험(V)", desc: "나와 비슷한 사람이 해내는 걸 보며 자극받은 경험" },
-  "지지(P)": { label: "사회적 설득(P)", desc: "주변에서 '넌 할 수 있어'라는 격려와 지지를 받은 경험" },
-  "정서(A)": { label: "정서·신체(A)", desc: "감정이 안정되고 몸 컨디션이 좋았던 상태" },
-};
+import { SOURCES, SOURCE_BY_KEY } from "../utils/sources";
 
 function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
-  const subject = payload[0]?.payload?.subject;
-  const score = payload[0]?.value;
-  const days = payload[0]?.payload?.days;
-  const info = SOURCE_DESC[subject];
+  const { key, score, days } = payload[0]?.payload ?? {};
+  const info = SOURCE_BY_KEY[key];
   if (!info) return null;
 
   return (
@@ -33,6 +26,34 @@ function CustomTooltip({ active, payload }) {
   );
 }
 
+// 해낸 경험: 같은 화면의 '오늘의 미션'으로 스크롤하고 잠깐 강조
+function spotlightMissions() {
+  const el = document.querySelector(".mission-list");
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.remove("is-spotlight");
+  void el.offsetWidth; // 연속 클릭해도 애니메이션 다시 재생
+  el.classList.add("is-spotlight");
+  setTimeout(() => el.classList.remove("is-spotlight"), 2400);
+}
+
+// 축 글자를 누르면 그 원천을 키울 수 있는 화면으로 이동
+function SourceTick({ x, y, payload, textAnchor, onPick }) {
+  const s = SOURCES.find((src) => src.label === payload.value);
+  const go = () => s && onPick(s);
+  return (
+    <text
+      x={x} y={y} textAnchor={textAnchor} dominantBaseline="central"
+      className="radar-tick" role="link" tabIndex={0}
+      aria-label={`${payload.value} 관련 화면으로 이동`}
+      onClick={go}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } }}
+    >
+      {payload.value}
+    </text>
+  );
+}
+
 function useRadar() {
   return useQuery({
     queryKey: ["dashboard", "radar"],
@@ -42,29 +63,36 @@ function useRadar() {
 
 export default function RadarChartComponent() {
   const { data: radar, isLoading } = useRadar();
+  const navigate = useNavigate();
 
   if (isLoading) return <div className="chart-empty">불러오는 중...</div>;
   if (!radar) return <div className="chart-empty">최근 분석 데이터가 없어요.</div>;
 
-  const chartData = [
-    { subject: "성취(M)", score: radar.score_m, days: radar.days_m },
-    { subject: "대리(V)", score: radar.score_v, days: radar.days_v },
-    { subject: "지지(P)", score: radar.score_p, days: radar.days_p },
-    { subject: "정서(A)", score: radar.score_a, days: radar.days_a },
-  ];
+  const chartData = SOURCES.map((s) => ({
+    key: s.key,
+    subject: s.label,
+    score: radar[`score_${s.key}`],
+    days: radar[`days_${s.key}`],
+  }));
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <RadarChart data={chartData}>
-        <PolarGrid stroke="var(--divider)" />
-        <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--text-muted)" }} />
-        <PolarRadiusAxis domain={[0, 1]} tick={false} axisLine={false} />
-        <Radar
-          dataKey="score" stroke="var(--accent)" fill="var(--accent)"
-          fillOpacity={0.22} strokeWidth={2}
-        />
-        <Tooltip content={<CustomTooltip />} />
-      </RadarChart>
-    </ResponsiveContainer>
+    <>
+      <ResponsiveContainer width="100%" height={220}>
+        <RadarChart data={chartData}>
+          <PolarGrid stroke="var(--divider)" />
+          <PolarAngleAxis
+            dataKey="subject"
+            tick={(props) => <SourceTick {...props} onPick={(s) => (s.link === "mission" ? spotlightMissions() : navigate(s.link))} />}
+          />
+          <PolarRadiusAxis domain={[0, 1]} tick={false} axisLine={false} />
+          <Radar
+            dataKey="score" stroke="var(--accent)" fill="var(--accent)"
+            fillOpacity={0.22} strokeWidth={2}
+          />
+          <Tooltip content={<CustomTooltip />} />
+        </RadarChart>
+      </ResponsiveContainer>
+      <p className="chart-sub radar-hint">글자를 누르면 그 경험을 키울 수 있는 곳으로 이동해요</p>
+    </>
   );
 }

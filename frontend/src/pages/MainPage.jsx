@@ -71,7 +71,7 @@ export default function MainPage() {
         />
         <ActivityHistory today={today} />
         <section className="chart-card main-radar" aria-labelledby="main-radar-title">
-          <h2 id="main-radar-title" className="chart-title">4원천 분석</h2>
+          <h2 id="main-radar-title" className="chart-title">나의 자신감 4가지 원천</h2>
           <p className="chart-sub">최근 7일 추세 · 일기에 근거가 있었던 날만 반영 · 미션 대상 선택에 쓰여요</p>
           <RadarChartComponent />
           <Link to="/analysis" className="chart-link">AI가 왜 이렇게 판단했는지 보기 <Icon name="arrowRight" /></Link>

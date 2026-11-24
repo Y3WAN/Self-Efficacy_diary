@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../api/client";
 import AppBar from "../components/AppBar";
@@ -18,6 +20,13 @@ export default function CommunityPage() {
     queryFn: ({ signal }) => api.get("/api/missions/community/feed", { signal }).then((r) => r.data),
     refetchInterval: 30000,
   });
+  // 메인 그래프 '응원받은 경험'에서 오면 내가 받은 응원을 강조
+  const [params] = useSearchParams();
+  const cheerFocus = params.get("focus") === "cheer";
+  useEffect(() => {
+    if (!cheerFocus || !feed.length) return;
+    document.querySelector(".community-card--cheer")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [cheerFocus, feed.length]);
   const refreshFeed = () => queryClient.invalidateQueries({ queryKey: ["community-feed"] });
 
   const respectMutation = useMutation({
@@ -37,7 +46,9 @@ export default function CommunityPage() {
       <AppBar />
       <main className="community-container">
         <h2 className="community-title">함께 해낸 미션</h2>
-        <p className="community-subtitle">서로의 실천을 보고 응원을 보내요.</p>
+        <p className="community-subtitle">
+          {cheerFocus ? "내 미션에 다른 사람들이 보낸 응원을 확인해 보세요." : "서로의 실천을 보고 응원을 보내요."}
+        </p>
 
         {isLoading && <p className="community-empty">불러오는 중이에요.</p>}
         {isError && <button className="respect-btn" onClick={() => refetch()}>다시 불러오기</button>}
@@ -47,7 +58,7 @@ export default function CommunityPage() {
 
         <ul className="community-feed">
           {feed.map((item) => (
-            <li key={item.id} className="community-card">
+            <li key={item.id} className={`community-card${cheerFocus && item.is_own ? " community-card--cheer" : ""}`}>
               <div className="community-card-header">
                 <strong className="community-author">{item.is_own ? "나" : item.display_name ?? "다른 사용자"}</strong>
                 <time className="community-time" dateTime={item.completed_at}>{timeAgo(item.completed_at)}</time>

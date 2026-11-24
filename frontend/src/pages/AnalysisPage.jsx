@@ -3,13 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import AppBar from "../components/AppBar";
 import client from "../api/client";
-
-const SOURCES = [
-  { key: "m", label: "성취경험", code: "M", weight: 0.4 },
-  { key: "v", label: "대리경험", code: "V", weight: 0.2 },
-  { key: "p", label: "사회적 설득", code: "P", weight: 0.2 },
-  { key: "a", label: "정서·신체", code: "A", weight: 0.2 },
-];
+import { SOURCES } from "../utils/sources";
 
 const pct = (v) => Math.round(v * 100);
 
@@ -39,7 +33,7 @@ function AnalysisCard({ a, defaultOpen }) {
         <p className="analysis-note analysis-note--warn">
           {a.evidence_sources
             ? "확신도가 30% 미만이라 성장 그래프에 반영하지 않았어요. (일기가 짧으면 판단 근거가 부족해요)"
-            : "일기에서 4원천의 근거를 찾지 못해 성장 그래프에 반영하지 않았어요."}
+            : "일기에서 4가지 경험의 근거를 찾지 못해 성장 그래프에 반영하지 않았어요."}
         </p>
       )}
 
@@ -52,7 +46,7 @@ function AnalysisCard({ a, defaultOpen }) {
             return (
               <div key={s.key} className={`analysis-row${hasEvidence ? "" : " analysis-row--none"}`}>
                 <div className="analysis-row-top">
-                  <span className="analysis-label">{s.label}({s.code}) <em>×{s.weight}</em></span>
+                  <span className="analysis-label">{s.label} <em>×{s.weight}</em></span>
                   <span className="analysis-val">{hasEvidence ? pct(score) : "근거 없음"}</span>
                 </div>
                 <div className="analysis-bar"><div style={{ width: hasEvidence ? `${pct(score)}%` : 0 }} /></div>
@@ -85,12 +79,12 @@ export default function AnalysisPage() {
         <header className="page-heading">
           <h1>AI 분석 근거</h1>
           <p>
-            AI가 일기에서 반두라의 자기효능감 4원천을 0~100점으로 평가한 근거예요.
+            AI가 일기를 읽고 자신감을 키우는 4가지 경험(해낸 경험 · 보고 배운 경험 · 응원받은 경험 · 마음·몸 상태)을 0~100점으로 평가한 근거예요.
           </p>
         </header>
         <div className="chart-card">
           <p className="analysis-formula">
-            종합 점수 = 근거가 있는 원천만 가중 평균 (성취 0.4 · 대리 0.2 · 설득 0.2 · 정서 0.2, 합이 1이 되게 조정)
+            종합 점수 = 근거가 있는 원천만 가중 평균 (해낸 경험 0.4 · 보고 배움 0.2 · 응원받음 0.2 · 마음·몸 0.2, 합이 1이 되게 조정)
             · 근거 없는 원천은 "보통(50점)"이 아니라 계산에서 빼요 · 확신도 30% 미만은 그래프에서 제외
           </p>
         </div>

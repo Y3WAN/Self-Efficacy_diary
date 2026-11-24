@@ -2463,3 +2463,24 @@ body:has(.mallang-page) { overflow-x: clip; }
 @media (prefers-reduced-motion: reduce) {
   .sidebar, .grade-btn, .trial-example { transition: none; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   4원천 축 링크 · 이동한 곳 강조
+═══════════════════════════════════════════════════════ */
+.radar-tick {
+  fill: var(--blue-ink);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.radar-tick:hover, .radar-tick:focus-visible { fill: var(--accent-hover); outline: none; }
+.radar-hint { text-align: center; }
+.mission-list.is-spotlight { animation: spotlight 2.4s ease-out; }
+@keyframes spotlight {
+  0%, 60% { box-shadow: 0 0 0 4px var(--accent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.community-card--cheer { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .mission-list.is-spotlight { animation: none; outline: 3px solid var(--accent); }
+}
