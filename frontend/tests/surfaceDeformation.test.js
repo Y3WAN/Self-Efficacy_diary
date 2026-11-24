@@ -93,6 +93,24 @@ test("faded and empty trails remove all pressure shading", () => {
   }
 });
 
+test("button dents get wider and darker under pressure without a second shaded ring", () => {
+  const press = (depth) => buildDentField([{ x: .5, y: .5, depth }], 128, 44, 48);
+  const deep = press(1), shallow = press(.22);
+  function scan(field) {
+    const row = Math.floor(field.rows / 2);
+    return Array.from({ length: field.columns }, (_, col) =>
+      field.shade[(row * field.columns + col) * 4 + 3]);
+  }
+  const strong = scan(deep), light = scan(shallow);
+  const mid = Math.floor(deep.columns / 2);
+  assert(strong[mid] > light[mid] && light[mid] > 0);
+  assert(strong.filter(value => value > 2).length > light.filter(value => value > 2).length);
+  for (const edge of [strong.slice(mid), strong.slice(0, mid).reverse()]) {
+    assert(edge.every((value, i) => i === 0 || value <= edge[i - 1]));
+    assert.equal(edge.at(-1), 0);
+  }
+});
+
 test("the filter never clips a pulled tip outside the fixed depth grid", () => {
   const previousDocument = globalThis.document;
   const elements = [];

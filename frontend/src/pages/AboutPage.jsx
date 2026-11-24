@@ -15,15 +15,19 @@ const SOURCES = [
 ];
 
 const BRAND_COLORS = [
-  { name: "브랜드 핑크", token: "--accent", hex: "#934361" },
-  { name: "밝은 핑크", token: "--accent-soft", hex: "#F7E3EC" },
-  { name: "페이지 배경", token: "--bg", hex: "#FBF6F7" },
-  { name: "기본 글자", token: "--text", hex: "#302B31" },
+  { name: "강조색", token: "--accent" },
+  { name: "밝은 강조색", token: "--accent-soft" },
+  { name: "페이지 배경", token: "--bg" },
+  { name: "기본 글자", token: "--text" },
 ];
 
 export default function AboutPage() {
   const { token } = useAuthStore();
   const [isSampleSelected, setIsSampleSelected] = useState(false);
+  const themeColors = getComputedStyle(document.documentElement);
+  const palette = BRAND_COLORS.map(({ name, token }) => ({
+    name, token, value: themeColors.getPropertyValue(token).trim(),
+  }));
 
   return (
     <div className="main-page">
@@ -69,11 +73,11 @@ export default function AboutPage() {
           <div>
             <h3>브랜드 컬러</h3>
             <ul className="design-guide-list">
-              {BRAND_COLORS.map(({ name, token, hex }) => (
+              {palette.map(({ name, token, value }) => (
                 <li key={token}>
                   <span className="design-guide-swatch" style={{ "--guide-swatch": "var(" + token + ")" }} aria-hidden="true" />
                   <span>{name}</span>
-                  <code className="design-guide-meta">{hex}</code>
+                  <code className="design-guide-meta">{value}</code>
                 </li>
               ))}
             </ul>

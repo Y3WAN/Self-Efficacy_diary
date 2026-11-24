@@ -2,13 +2,18 @@ import { useState, useEffect, useId, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import AppBar from "../components/AppBar";
 import WaxShell from "../components/WaxShell";
+import Icon from "../components/Icon";
+import MallangFace from "../components/MallangFace";
+import MallangCustomizer from "../components/MallangCustomizer";
+import { applySavedMallangTheme, readMallangCustomization, saveMallangCustomization } from "../utils/mallangCustomization";
 import { bareSurfaceContact, createMallangMaterial, materialContact, membraneRadii, membraneRadiusAt } from "../utils/mallangMaterial";
 import { createMallangSurface } from "../utils/mallangSurface";
+import { getMallangPalette } from "../utils/mallangTheme";
 import { createWaxShell, fractureWaxShell, waxKeyboardPoint } from "../utils/waxShell";
 import { pressRadiusRatio } from "../utils/surfacePress";
 import { BLOB_CENTER, BODY_RADIUS, PULL_RADIUS, STOP_SPEED, advanceMotion, beginPull, positionFromPoint,
   pullTarget, springDisplacement, updatePull } from "../utils/mallangMotion";
-import { createMallangAudio, readMallangVolume, saveMallangVolume } from "../utils/mallangAudio";
+import { createMallangAudio } from "../utils/mallangAudio";
 
 const WAX_MODE_KEY = "codemyworld.mallang.wax";
 const RETURNING_TIP_HIT_PADDING = 6;
@@ -29,23 +34,6 @@ function pointerSpeedAt(motion, now) {
 
 function readWaxMode() {
   try { return localStorage.getItem(WAX_MODE_KEY) === "true"; } catch { return false; }
-}
-
-function MallangFace() {
-  return <svg aria-hidden="true" viewBox="0 0 200 200">
-    <ellipse data-surface-point="63 115" cx="63" cy="115" rx="19" ry="10" fill="#db789b" opacity=".3" />
-    <ellipse data-surface-point="137 115" cx="137" cy="115" rx="19" ry="10" fill="#db789b" opacity=".3" />
-    <g data-surface-point="86 94">
-      <circle cx="86" cy="94" r="6.2" fill="#492032" />
-      <circle cx="84" cy="92" r="1.8" fill="#fff6fb" />
-    </g>
-    <g data-surface-point="114 94">
-      <circle cx="114" cy="94" r="6.2" fill="#492032" />
-      <circle cx="112" cy="92" r="1.8" fill="#fff6fb" />
-    </g>
-    <path data-surface-point="100 117" d="M90 113 Q89 122 96 121 Q100 121 100 115 Q100 122 105 121 Q112 122 110 113"
-      stroke="#91465f" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-  </svg>;
 }
 
 function projectFacePoint(sample, x, y) {
@@ -89,18 +77,21 @@ export default function MallangPage() {
   const [isWaxMode, setIsWaxMode] = useState(readWaxMode);
   const [waxShell, setWaxShell] = useState(() => createWaxShell(BLOB_CENTER, BODY_RADIUS));
   const initial = useRef({ shell: waxShell, mode: isWaxMode });
-  const [volume, setVolume] = useState(readMallangVolume);
+  const [look, setLook] = useState(readMallangCustomization);
+  const [customizing, setCustomizing] = useState(false);
   const canvas = useRef(null), overlay = useRef(null), character = useRef(null), bounds = useRef(null);
   const face = useRef(null), shellElement = useRef(null), control = useRef(null), controller = useRef(null);
   const inspect = useRef(null);
-  const volumeId = useId();
+  const customizeButton = useRef(null);
+  const customizerId = useId();
 
   useEffect(() => {
     const r = { material: createMallangMaterial(), audio, shell: initial.current.shell,
       mode: initial.current.mode, frame: null, motion: null, input: null, pressFollowsTether: false, records: [], costs: [], frames: 0 };
     runtime.current = r;
     const material = r.material;
-    const surface = createMallangSurface(canvas.current, material, overlay.current);
+    const palette = getMallangPalette(readMallangCustomization().theme);
+    const surface = createMallangSurface(canvas.current, material, overlay.current, palette);
     const faceParts = Array.from(face.current.querySelectorAll("[data-surface-point]"), (element) => {
       const [x, y] = element.dataset.surfacePoint.split(" ").map(Number);
       return { element, x, y };
@@ -412,8 +403,12 @@ export default function MallangPage() {
     };
   }, [audio]);
 
-  useEffect(() => { audio.setVolume(volume); }, [audio, volume]);
-  useEffect(() => { runtime.current?.surface?.setFlatStyle(appearance === "2d"); runtime.current?.paint(); }, [appearance]);
+  useEffect(applySavedMallangTheme, []);
+  useEffect(() => {
+    runtime.current?.surface?.setFlatStyle(appearance === "2d");
+    runtime.current?.surface?.setPalette(getMallangPalette(look.theme));
+    runtime.current?.paint();
+  }, [appearance, look.theme]);
 
   function toggle() {
     const enabled = !isWaxMode;
@@ -421,10 +416,18 @@ export default function MallangPage() {
     controller.current.mode(enabled); setIsWaxMode(enabled);
     try { localStorage.setItem(WAX_MODE_KEY, String(enabled)); } catch { /* Current visit remains usable. */ }
   }
+  function updateLook(change) {
+    setLook(saveMallangCustomization({ ...look, ...change }));
+  }
+  function closeCustomizer() {
+    setCustomizing(false);
+    customizeButton.current?.focus();
+  }
+
   const busy = isWaxMode && !waxShell.pieces.length && waxShell.chips.length > 0;
   return <div className={`mallang-page mallang-page--${appearance}`}>
     <AppBar />
-    <main className="mallang-content">
+    <main className={customizing ? "mallang-content mallang-content--customizing" : "mallang-content"}>
       {import.meta.env.DEV && params.has("inspect") && <output ref={inspect} id="mallang-inspect" hidden />}
       <h1>사이버 말랑이</h1>
       <p id="mallang-help" aria-live="polite">{isWaxMode
@@ -437,43 +440,44 @@ export default function MallangPage() {
         </button>
         {isWaxMode && <button type="button" className="mallang-wax-reset" disabled={!waxShell.fractures}
           onClick={() => controller.current.reset()}>껍질 복원</button>}
-        <div className="mallang-range-control">
-          <label htmlFor={volumeId}>효과음</label>
-          <input id={volumeId} type="range" min="0" max="100" step="1" value={volume}
-            aria-valuetext={volume === 0 ? "음소거" : volume + "%"}
-            onChange={(event) => { const value = event.currentTarget.valueAsNumber; setVolume(value); saveMallangVolume(value); }} />
-          <output htmlFor={volumeId}>{volume}%</output>
-        </div>
         {import.meta.env.DEV && params.has("style") && <div className="mallang-style-preview">
           {["original", "2d"].map((style) => <button key={style} type="button" aria-pressed={appearance === style}
             onClick={() => { const next = new URLSearchParams(params); next.set("style", style); setParams(next, { replace: true }); }}>
             {style === "2d" ? "2D" : "기본"}</button>)}
         </div>}
+        <button ref={customizeButton} type="button" className="mallang-customize-toggle"
+          aria-label="사말이 꾸미기" aria-expanded={customizing} aria-controls={customizing ? customizerId : undefined}
+          onClick={() => setCustomizing((open) => !open)}>
+          <Icon name="pencil" />
+        </button>
       </div>
-      <section className="mallang-room" aria-label="말랑이 놀이터" onPointerDown={(e) => controller.current.down(e)}>
-        <div ref={bounds} className="mallang-bounds">
-          <div ref={character} className="mallang-character" style={{ left: "50%", top: "50%" }}>
-            {isWaxMode && waxShell.pieces.length > 0 && <span className="mallang-ground-shadow" aria-hidden="true" />}
-            <div className="mallang-deformation">
-              <canvas ref={canvas} className="mallang-material-canvas" aria-hidden="true" />
-              <button ref={control} type="button" draggable={false} className="mallang-body"
-                aria-label={isWaxMode && waxShell.pieces.length ? "왁스 껍질 길게 누르기" : "말랑이 누르기"}
-                aria-disabled={busy || undefined} aria-describedby="mallang-help"
-                onPointerMove={(e) => controller.current.move(e)}
-                onPointerUp={(e) => controller.current.end(e)} onPointerCancel={(e) => controller.current.end(e)}
-                onLostPointerCapture={(e) => controller.current.end(e)}
-                onKeyDown={(e) => controller.current.keyDown(e)} onKeyUp={(e) => controller.current.end(e)}
-                onClick={() => audio.prepare()}
-                onBlur={() => controller.current.cancel({ type: "control-blur" })}>
-                <span ref={face} className="mallang-face"><MallangFace /></span>
-              </button>
-              {isWaxMode && <WaxShell shell={waxShell} center={100} radius={94}
-                shellRef={shellElement} onChipEnd={(id) => controller.current?.chip(id)} />}
-              <canvas ref={overlay} className="mallang-material-canvas mallang-material-light" aria-hidden="true" />
+      <div className="mallang-play-area">
+        <section className="mallang-room" aria-label="말랑이 놀이터" onPointerDown={(e) => controller.current.down(e)}>
+          <div ref={bounds} className="mallang-bounds">
+            <div ref={character} className="mallang-character" style={{ left: "50%", top: "50%" }}>
+              {isWaxMode && waxShell.pieces.length > 0 && <span className="mallang-ground-shadow" aria-hidden="true" />}
+              <div className="mallang-deformation">
+                <canvas ref={canvas} className="mallang-material-canvas" aria-hidden="true" />
+                <button ref={control} type="button" draggable={false} className="mallang-body"
+                  aria-label={isWaxMode && waxShell.pieces.length ? "왁스 껍질 길게 누르기" : "말랑이 누르기"}
+                  aria-disabled={busy || undefined} aria-describedby="mallang-help"
+                  onPointerMove={(e) => controller.current.move(e)}
+                  onPointerUp={(e) => controller.current.end(e)} onPointerCancel={(e) => controller.current.end(e)}
+                  onLostPointerCapture={(e) => controller.current.end(e)}
+                  onKeyDown={(e) => controller.current.keyDown(e)} onKeyUp={(e) => controller.current.end(e)}
+                  onClick={() => audio.prepare()}
+                  onBlur={() => controller.current.cancel({ type: "control-blur" })}>
+                  <span ref={face} className="mallang-face"><MallangFace look={look} /></span>
+                </button>
+                {isWaxMode && <WaxShell shell={waxShell} center={100} radius={94} themeId={look.theme}
+                  shellRef={shellElement} onChipEnd={(id) => controller.current?.chip(id)} />}
+                <canvas ref={overlay} className="mallang-material-canvas mallang-material-light" aria-hidden="true" />
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+        {customizing && <MallangCustomizer id={customizerId} look={look} onChange={updateLook} onClose={closeCustomizer} />}
+      </div>
     </main>
   </div>;
 }

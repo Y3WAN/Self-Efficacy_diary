@@ -7,17 +7,21 @@ import { setImmediate } from "node:timers/promises";
 // Node does not load MP3 imports; only asset URLs are substituted, leaving the audio implementation intact.
 const source = (await readFile(new URL("../src/utils/mallangAudio.js", import.meta.url), "utf8"))
   .replace(/^import (\w+) from "([^"]+\.mp3)";$/gm, (_, name, url) => `const ${name} = ${JSON.stringify(url)};`);
-const { createMallangAudio, readMallangVolume, saveMallangVolume } =
+const { createMallangAudio } =
   await import("data:text/javascript;base64," + Buffer.from(source).toString("base64"));
 
 function audioHarness(t, options = {}) {
-  const contexts = [], starts = [], fetches = [], warnings = [], storage = new Map();
+  const contexts = [], starts = [], fetches = [], warnings = [], gains = [], storage = new Map();
   const automation = () => ({ value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {},
     setValueCurveAtTime() {}, setTargetAtTime(value) { this.value = value; } });
   class Context {
     constructor() { this.state = options.suspended ? "suspended" : "running";
       this.currentTime = 0; this.sampleRate = 1000; this.destination = {}; contexts.push(this); }
-    createGain() { return { gain: automation(), connect() {}, disconnect() {} }; }
+    createGain() {
+      const gain = automation();
+      gains.push(gain);
+      return { gain, connect() {}, disconnect() {} };
+    }
     createDynamicsCompressor() { return { threshold: {}, attack: {}, connect() {} }; }
     createBuffer(_, length) { return { duration: length / this.sampleRate, getChannelData: () => new Float32Array(length) }; }
     createBiquadFilter() { return { frequency: {}, Q: {}, connect() {}, disconnect() {} }; }
@@ -42,25 +46,14 @@ function audioHarness(t, options = {}) {
   t.after(() => { for (const [key, descriptor] of originals) {
     if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key];
   } });
-  return { contexts, starts, fetches, warnings, storage, options, flush: async () => { await setImmediate(); await setImmediate(); } };
+  return { contexts, starts, fetches, warnings, gains, storage, options, flush: async () => { await setImmediate(); await setImmediate(); } };
 }
 
-test("volume defaults, clamping, invalid values and blocked storage are handled", (t) => {
-  const h = audioHarness(t);
-  assert.equal(readMallangVolume(), 60);
-  for (const [stored, expected] of [["-5", 0], ["150", 100], ["30.8", 31], ["bad", 60]]) {
-    h.storage.set("codemyworld.mallang.volume", stored); assert.equal(readMallangVolume(), expected);
-  }
-  saveMallangVolume(42); assert.equal(readMallangVolume(), 42);
-  h.options.storageDenied = true;
-  assert.equal(readMallangVolume(), 60); assert.doesNotThrow(() => saveMallangVolume(30));
-});
-
-test("mute avoids creating an audio context and ordinary cues share one context", async (t) => {
+test("effects use the fixed 60% gain even when a previous visit saved mute", async (t) => {
   const h = audioHarness(t), audio = createMallangAudio();
-  audio.setVolume(0); audio.play("press"); await h.flush();
-  assert.equal(h.contexts.length, 0); assert.equal(h.starts.length, 0);
-  audio.setVolume(60);
+  h.storage.set("codemyworld.mallang.volume", "0");
+  audio.prepare();
+  assert.equal(h.gains[0].value, .6 ** 1.4);
   for (const name of ["press", "refill", "stretch", "retract", "wall"]) audio.play(name, 0.8);
   await h.flush(); assert.equal(h.contexts.length, 1); assert(h.starts.length > 5);
   audio.close(); assert.equal(h.contexts[0].state, "closed");

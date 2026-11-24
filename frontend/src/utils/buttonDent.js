@@ -1,4 +1,6 @@
 import { buildDentField } from "./dentField.js";
+import { readMallangCustomization } from "./mallangCustomization.js";
+import { getMallangPalette } from "./mallangTheme.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const FILTER_ID = "button-surface-dent";
@@ -13,7 +15,10 @@ function svgElement(name, attributes) {
 
 export function createButtonDent({ id = FILTER_ID, maxPull = 6, surfaceRadius = null, detailId = null, detailPull = 3.5 } = {}) {
   const trailCanvas = document.createElement("canvas");
-  if (!trailCanvas.getContext("2d")) return null;
+  const shadeCanvas = document.createElement("canvas");
+  const context = trailCanvas.getContext("2d");
+  const shadeContext = shadeCanvas.getContext("2d");
+  if (!context || !shadeContext) return null;
 
   const svg = svgElement("svg", { width: 0, height: 0, "aria-hidden": "true" });
   svg.style.position = "absolute";
@@ -34,9 +39,9 @@ export function createButtonDent({ id = FILTER_ID, maxPull = 6, surfaceRadius = 
   const clippedShade = svgElement("feComposite", {
     in: "shade", in2: "deformed", operator: "in", result: "clipped-shade",
   });
-  const shadedSurface = svgElement("feMerge", {});
-  shadedSurface.append(svgElement("feMergeNode", { in: "deformed" }),
-    svgElement("feMergeNode", { in: "clipped-shade" }));
+  const shadedSurface = svgElement("feBlend", {
+    in: "clipped-shade", in2: "deformed", mode: surfaceRadius === null ? "multiply" : "normal",
+  });
   // Composite the shadow after deformation so the groove cannot distort its own shading.
   filter.append(svgElement("feFlood", { "flood-color": "#808080", result: "neutral" }),
     dent, merge, displacement, shade, clippedShade, shadedSurface);
@@ -60,7 +65,8 @@ export function createButtonDent({ id = FILTER_ID, maxPull = 6, surfaceRadius = 
   document.body.append(svg);
 
   let pull = 0;
-  const shadeCanvas = document.createElement("canvas");
+  let pixels;
+  let shadePixels;
 
   function position(x, y, width, height, diameter, depth = 0) {
     trace([{ x: x / width, y: y / height, depth }], width, height, diameter);
@@ -71,14 +77,14 @@ export function createButtonDent({ id = FILTER_ID, maxPull = 6, surfaceRadius = 
       setDepth(0);
       return;
     }
-    const field = buildDentField(points, width, height, diameter, surfaceRadius, protectedCircle);
-    trailCanvas.width = shadeCanvas.width = field.columns;
-    trailCanvas.height = shadeCanvas.height = field.rows;
-    const context = trailCanvas.getContext("2d");
-    const shadeContext = shadeCanvas.getContext("2d");
-    if (!context || !shadeContext) return;
-    const pixels = context.createImageData(field.columns, field.rows);
-    const shadePixels = shadeContext.createImageData(field.columns, field.rows);
+    const { groove } = getMallangPalette(readMallangCustomization().theme);
+    const field = buildDentField(points, width, height, diameter, surfaceRadius, protectedCircle, groove);
+    if (!pixels || trailCanvas.width !== field.columns || trailCanvas.height !== field.rows) {
+      trailCanvas.width = shadeCanvas.width = field.columns;
+      trailCanvas.height = shadeCanvas.height = field.rows;
+      pixels = context.createImageData(field.columns, field.rows);
+      shadePixels = shadeContext.createImageData(field.columns, field.rows);
+    }
     pixels.data.set(field.displacement);
     shadePixels.data.set(field.shade);
     context.putImageData(pixels, 0, 0);

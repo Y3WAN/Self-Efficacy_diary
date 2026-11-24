@@ -2,31 +2,12 @@ import largeWaxClip from "../assets/wax-audio/large.mp3";
 import mediumWaxClip from "../assets/wax-audio/medium.mp3";
 import smallWaxClip from "../assets/wax-audio/small.mp3";
 
-const VOLUME_KEY = "codemyworld.mallang.volume";
-const DEFAULT_VOLUME = 60;
+const EFFECTS_VOLUME = .6;
 const SILENCE = 0.0001;
 const MAX_CUE_WAIT_MS = 180;
 const MIN_CUE_GAP_SECONDS = 0.035;
 
 const WAX_CLIPS = { waxLarge: largeWaxClip, waxMedium: mediumWaxClip, waxSmall: smallWaxClip };
-
-export function readMallangVolume() {
-  try {
-    const stored = localStorage.getItem(VOLUME_KEY);
-    if (stored === null || !Number.isFinite(Number(stored))) return DEFAULT_VOLUME;
-    return Math.round(Math.min(100, Math.max(0, Number(stored))));
-  } catch {
-    return DEFAULT_VOLUME;
-  }
-}
-
-export function saveMallangVolume(percent) {
-  try {
-    localStorage.setItem(VOLUME_KEY, String(percent));
-  } catch {
-    // Playback can still use the slider value for this visit.
-  }
-}
 
 function vary(amount) {
   return 1 + (Math.random() * 2 - 1) * amount;
@@ -146,7 +127,6 @@ export function createMallangAudio() {
   let context = null;
   let master;
   let voice;
-  let volume = DEFAULT_VOLUME / 100;
   let nextOnset = 0;
   let generation = 0;
   let loadingController = null;
@@ -174,7 +154,7 @@ export function createMallangAudio() {
 
   function unlock() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (volume === 0 || !AudioContext) return null;
+    if (!AudioContext) return null;
     if (!context) {
       try {
         context = new AudioContext();
@@ -183,7 +163,7 @@ export function createMallangAudio() {
       }
       master = context.createGain();
       loadingController = new AbortController();
-      master.gain.value = volume ** 1.4;
+      master.gain.value = EFFECTS_VOLUME ** 1.4;
       const compressor = context.createDynamicsCompressor();
       compressor.threshold.value = -14;
       compressor.attack.value = 0.003;
@@ -244,10 +224,10 @@ export function createMallangAudio() {
       const requestedAt = performance.now();
       const requestedGeneration = generation;
       unlock()?.then(async (active) => {
-        if (!active || active !== context || !volume) return;
+        if (!active || active !== context) return;
         const isWax = Object.hasOwn(WAX_CLIPS, name);
         const clip = isWax ? await loadWaxClip(active, name) : null;
-        if ((isWax && !clip) || requestedGeneration !== generation || active !== context || !volume ||
+        if ((isWax && !clip) || requestedGeneration !== generation || active !== context ||
           performance.now() - requestedAt > MAX_CUE_WAIT_MS) return;
         if (active.currentTime - (lastCue.get(name) ?? -Infinity) < (isWax ? 0.075 : 0.09)) return;
         if (nextOnset - active.currentTime > 0.15) return;
@@ -257,11 +237,6 @@ export function createMallangAudio() {
         if (clip) playWaxClip(active, clip, start, strength);
         else playSound(voice, name, start, strength);
       });
-    },
-    setVolume(percent) {
-      volume = Math.max(0, Math.min(100, percent)) / 100;
-      if (!volume) stop();
-      if (context) master.gain.setTargetAtTime(volume ** 1.4, context.currentTime, 0.012);
     },
     stop,
     close() {

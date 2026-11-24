@@ -1,10 +1,12 @@
 import { roundDentPath } from "./dentPath.js";
+import { getMallangPalette } from "./mallangTheme.js";
 
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
 const smooth = (value) => { const t = clamp01(value); return t * t * (3 - 2 * t); };
 
 // A fixed grid and one smooth height field keep lighting and distortion in agreement.
-export function buildDentField(points, width, height, diameter, surfaceRadius = null, protectedCircle = null) {
+export function buildDentField(points, width, height, diameter, surfaceRadius = null, protectedCircle = null,
+  shadeColor = getMallangPalette().groove) {
   const margin = 24;
   const left = -margin;
   const top = -margin;
@@ -16,6 +18,8 @@ export function buildDentField(points, width, height, diameter, surfaceRadius = 
   const stepX = fieldWidth / columns;
   const stepY = fieldHeight / rows;
   const radius = Math.max(1, diameter / 2);
+  const isButton = surfaceRadius === null;
+  const minimumRadius = isButton ? .5 : .68;
   const samples = roundDentPath(points, width, height, Math.max(3, radius * 0.12))
     .map((point) => ({ ...point, depth: clamp01(point.depth) }));
   const segments = samples.map((end, index) => {
@@ -50,7 +54,7 @@ export function buildDentField(points, width, height, diameter, surfaceRadius = 
         const { start, dx, dy, lengthSquared, depthChange } = segment;
         const t = lengthSquared ? clamp01(((x - start.x) * dx + (y - start.y) * dy) / lengthSquared) : 0;
         const pressure = start.depth + depthChange * t;
-        const localRadius = radius * (0.68 + 0.32 * Math.sqrt(pressure));
+        const localRadius = radius * (minimumRadius + (1 - minimumRadius) * Math.sqrt(pressure));
         const q = ((x - start.x - dx * t) ** 2 + (y - start.y - dy * t) ** 2) / localRadius ** 2;
         depth = Math.max(depth, pressure * Math.max(0, 1 - q) ** 3);
       }
@@ -100,6 +104,15 @@ export function buildDentField(points, width, height, diameter, surfaceRadius = 
       displacement[pixel + 1] = 128 + 72 * normalY * edge;
       displacement[pixel + 2] = 128;
       displacement[pixel + 3] = 255;
+      if (isButton) {
+        // Like a dragged Mallang groove, the deepest part casts the strongest shade.
+        // Taking the slope here would draw a bright rim and a second dark line.
+        shade[pixel] = shadeColor[0];
+        shade[pixel + 1] = shadeColor[1];
+        shade[pixel + 2] = shadeColor[2];
+        shade[pixel + 3] = 255 * edge * depths[index] * .6;
+        continue;
+      }
       const lighting = (normalX + normalY) * 0.707;
       const light = smooth((lighting - 0.04) / 0.55);
       shade[pixel] = 147 + 108 * light;

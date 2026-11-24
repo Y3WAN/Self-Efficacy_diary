@@ -1,11 +1,29 @@
-import { useId } from "react";
+import { useId, useMemo } from "react";
+import { getMallangTheme, tintMallangColor } from "../utils/mallangTheme";
 
-export default function WaxShell({ shell, center, radius, shellRef, onChipEnd }) {
+const waxColors = {
+  edge: "#ce6c98",
+  light: "#f6c8dc",
+  middle: "#eba8c6",
+  rim: "#d77da8",
+  dark: "#b9588a",
+  gloss: "#fff4fa",
+  dent: "#64264c",
+  dentRim: "#8f3f70",
+  dentGloss: "#fff0f7",
+  pieceLine: "#f9c7dd",
+  chipLine: "#ffdaea",
+};
+
+export default function WaxShell({ shell, center, radius, shellRef, onChipEnd, themeId }) {
   const id = useId();
+  const colors = useMemo(() => {
+    const theme = getMallangTheme(themeId);
+    return Object.fromEntries(Object.entries(waxColors).map(([name, hex]) => [name, tintMallangColor(hex, theme)]));
+  }, [themeId]);
   if (!shell.pieces.length && !shell.chips.length) return null;
 
   const glossPoint = { x: center - radius * 0.33, y: center - radius * 0.49 };
-  const waxEdge = "#ce6c98";
   const waxFill = `url(#${id}-wax)`;
 
   return (
@@ -17,21 +35,21 @@ export default function WaxShell({ shell, center, radius, shellRef, onChipEnd })
       <defs>
         <radialGradient id={`${id}-wax`} gradientUnits="userSpaceOnUse"
           cx={center - radius * 0.3} cy={center - radius * 0.44} r={radius * 1.42}>
-          <stop offset="0" stopColor="#f6c8dc" />
-          <stop offset=".38" stopColor="#eba8c6" />
-          <stop offset=".78" stopColor="#d77da8" />
-          <stop offset="1" stopColor="#b9588a" />
+          <stop offset="0" stopColor={colors.light} />
+          <stop offset=".38" stopColor={colors.middle} />
+          <stop offset=".78" stopColor={colors.rim} />
+          <stop offset="1" stopColor={colors.dark} />
         </radialGradient>
         <radialGradient id={`${id}-gloss`}>
-          <stop offset="0" stopColor="#fff4fa" stopOpacity=".88" />
-          <stop offset=".5" stopColor="#fff4fa" stopOpacity=".52" />
-          <stop offset="1" stopColor="#fff4fa" stopOpacity="0" />
+          <stop offset="0" stopColor={colors.gloss} stopOpacity=".88" />
+          <stop offset=".5" stopColor={colors.gloss} stopOpacity=".52" />
+          <stop offset="1" stopColor={colors.gloss} stopOpacity="0" />
         </radialGradient>
         <radialGradient id={`${id}-dent`} cx="42%" cy="40%">
-          <stop offset="0" stopColor="#64264c" stopOpacity=".69" />
-          <stop offset=".57" stopColor="#8f3f70" stopOpacity=".22" />
-          <stop offset=".91" stopColor="#fff0f7" stopOpacity=".45" />
-          <stop offset="1" stopColor="#fff0f7" stopOpacity="0" />
+          <stop offset="0" stopColor={colors.dent} stopOpacity=".69" />
+          <stop offset=".57" stopColor={colors.dentRim} stopOpacity=".22" />
+          <stop offset=".91" stopColor={colors.dentGloss} stopOpacity=".45" />
+          <stop offset="1" stopColor={colors.dentGloss} stopOpacity="0" />
         </radialGradient>
         <clipPath id={`${id}-surface`}>
           {shell.pieces.map((piece) => <path key={piece.id} d={piece.path} transform={piece.transform} />)}
@@ -44,8 +62,8 @@ export default function WaxShell({ shell, center, radius, shellRef, onChipEnd })
         {shell.pieces.map((piece) => (
           <g key={piece.id} data-piece-id={piece.id} className="mallang-wax-piece">
           <g transform={piece.transform}>
-            <path d={piece.path} transform="translate(0 1.8)" fill={waxEdge} />
-            <path d={piece.path} fill={waxFill} stroke="#f9c7dd" strokeWidth={piece.depth ? 0.65 : 0} strokeLinejoin="round" />
+            <path d={piece.path} transform="translate(0 1.8)" fill={colors.edge} />
+            <path d={piece.path} fill={waxFill} stroke={colors.pieceLine} strokeWidth={piece.depth ? 0.65 : 0} strokeLinejoin="round" />
           </g>
           </g>
         ))}
@@ -58,8 +76,8 @@ export default function WaxShell({ shell, center, radius, shellRef, onChipEnd })
         {shell.chips.map((chip) => (
           <g className="mallang-wax-chip" key={chip.id} style={{ "--wax-fade": chip.fadeMs + "ms" }}
             onAnimationEnd={() => onChipEnd(chip.id)}>
-            <path d={chip.path} transform="translate(0 2.6)" fill={waxEdge} />
-            <path d={chip.path} fill={waxFill} stroke="#ffdaea" strokeWidth="1.5" strokeLinejoin="round" />
+            <path d={chip.path} transform="translate(0 2.6)" fill={colors.edge} />
+            <path d={chip.path} fill={waxFill} stroke={colors.chipLine} strokeWidth="1.5" strokeLinejoin="round" />
           </g>
         ))}
       </g>

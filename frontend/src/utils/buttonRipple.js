@@ -12,6 +12,8 @@ const MAX_RIPPLE_DIAMETER = 132;
 const MAX_DENT_DIAMETER = 72;
 const RIPPLE_EASING = "cubic-bezier(.2, .65, .3, 1)";
 
+const contactDepth = (elapsed) => Math.max(TAP_DEPTH, pressDepth(elapsed));
+
 function isPlainActivation(event) {
   return event.button === 0 && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
 }
@@ -89,15 +91,24 @@ export function installButtonRipple(root) {
     };
   }
 
+  function prepareIndentation({ x, y, width, height }) {
+    const diameter = Math.min(MAX_DENT_DIAMETER, Math.min(width, height) * 1.12);
+    dent ??= createButtonDent({ maxPull: 4 });
+    surface = { width, height, diameter };
+    const now = performance.now();
+    trail.move(x, y, TAP_DEPTH, now);
+    return now;
+  }
+
   function drawIndentation(depth, recovery = 0) {
-    if (press) press.depth = depth;
-    if (!surface) return;
+    if (!surface || !dent) return;
     const { width, height, diameter } = surface;
     const points = trail.samples(performance.now(), depth)
       .map((point) => ({ ...point, x: point.x / width, y: point.y / height }));
     const deepest = Math.max(depth, ...points.map((point) => point.depth));
-    dent?.trace(points, width, height,
+    dent.trace(points, width, height,
       diameter * (0.42 + deepest * 0.58) * (1 - recovery * 0.25));
+    anchor.classList.add("button-surface-deforming");
   }
 
   function animateSurface(duration, draw, onFinish, shouldContinue = () => true) {
@@ -113,7 +124,7 @@ export function installButtonRipple(root) {
   }
 
   function animatePress() {
-    animateSurface(Infinity, () => drawIndentation(pressDepth(performance.now() - press.startedAt)),
+    animateSurface(Infinity, () => drawIndentation(contactDepth(performance.now() - press.startedAt)),
       undefined, () => performance.now() - press.startedAt < FULL_PRESS_MS || trail.hasTail(performance.now()));
   }
 
@@ -124,18 +135,7 @@ export function installButtonRipple(root) {
     const point = placeRipple(control, event);
     if (!point) return;
 
-    const { x, y, width, height } = point;
-    const diameter = Math.min(MAX_DENT_DIAMETER, Math.min(width, height) * 1.12);
-    dent ??= createButtonDent({ maxPull: 3 });
-    if (dent) {
-      dent.position(x, y, width, height, diameter);
-      control.classList.add("button-surface-deforming");
-    }
-
-    surface = { width, height, diameter };
-    const now = performance.now();
-    trail.move(x, y, 0, now);
-    press = { pointerId: event.pointerId, startedAt: now, depth: 0 };
+    press = { pointerId: event.pointerId, startedAt: prepareIndentation(point) };
     animatePress();
   }
 
@@ -148,7 +148,7 @@ export function installButtonRipple(root) {
     layer.style.setProperty("--ripple-x", x / width * 100 + "%");
     layer.style.setProperty("--ripple-y", y / height * 100 + "%");
     const now = performance.now();
-    trail.move(x, y, pressDepth(now - press.startedAt), now);
+    trail.move(x, y, contactDepth(now - press.startedAt), now);
     if (surfaceFrame === null) animatePress();
     if (event.clientX < left || event.clientX > left + width ||
         event.clientY < top || event.clientY > top + height) releasePress(false);
@@ -158,9 +158,7 @@ export function installButtonRipple(root) {
     if (press && anchor?.contains(event.target)) event.preventDefault();
   }
 
-  function releasePress(showRipple) {
-    const depth = pressDepth(Math.max(0, performance.now() - press.startedAt));
-    press = undefined;
+  function recoverIndentation(depth) {
     const duration = pressRecoveryDuration(depth);
     animateSurface(duration, (elapsed) => {
       const progress = smoothStep(elapsed / duration);
@@ -169,6 +167,12 @@ export function installButtonRipple(root) {
       anchor?.classList.remove("button-surface-deforming");
       if (!rippleAnimation) clearRipple();
     });
+  }
+
+  function releasePress(showRipple) {
+    const depth = contactDepth(Math.max(0, performance.now() - press.startedAt));
+    press = undefined;
+    recoverIndentation(depth);
     if (showRipple) playRelease(depth);
   }
 
@@ -191,10 +195,12 @@ export function installButtonRipple(root) {
 
     const isKeyboardClick = event.detail === 0;
     if (isKeyboardClick || anchor !== control || !rippleAnimation) {
-      if (!placeRipple(control, isKeyboardClick ? null : event)) return;
-      playRelease(0);
+      const point = placeRipple(control, isKeyboardClick ? null : event);
+      if (!point) return;
+      prepareIndentation(point);
+      recoverIndentation(TAP_DEPTH);
+      playRelease(TAP_DEPTH);
     }
-
   }
 
   function reset() {

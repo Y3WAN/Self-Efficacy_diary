@@ -4,6 +4,7 @@ import { MAX_VISUAL_TETHER_DISTANCE } from "./mallangMotion.js";
 import { PULL_RIM_EASE_DISTANCE, softLimitDistance } from "./mallangPull.js";
 import { smoothStep } from "./surfacePress.js";
 import { createMallangRelief, trailDepthAt, trailProfileAt } from "./mallangRelief.js";
+import { getMallangPalette, rgbColor } from "./mallangTheme.js";
 
 const VIEW_ORIGIN = -100;
 const VIEW_SIZE = 400;
@@ -85,7 +86,7 @@ function waveAnchor(point, radii) {
   return { angle, innerReach, outerFraction };
 }
 
-function createBareSamples() {
+function createBareSamples({ skin, skinEdge, skinLight }) {
   const size = SHADE_GRID ** 2;
   const distances = new Float64Array(size), angles = new Float64Array(size);
   const colors = new Float64Array(size * 3);
@@ -100,16 +101,18 @@ function createBareSamples() {
     const edge = smooth((distance / bodyRadius - .35) / .69) ** 1.55;
     const ambient = Math.min(1, Math.max(-.42, (-dx - dy) / (bodyRadius * Math.SQRT2))) * (1 - .40 * edge);
     const color = index * 3;
-    colors[color] = 253 - 12 * edge;
-    colors[color + 1] = 207 - 42 * edge + 13 * ambient;
-    colors[color + 2] = 233 - 27 * edge + 8 * ambient;
+    for (let channel = 0; channel < 3; channel++) {
+      const base = skin[channel];
+      colors[color + channel] = base + (skinEdge[channel] - base) * edge + (skinLight[channel] - base) * ambient;
+    }
   }
   return { distances, angles, colors };
 }
 
-function paintBarePixels(pixels, radii, reliefField, samples, flat, grooveOnly) {
+function paintBarePixels(pixels, radii, reliefField, samples, flat, grooveOnly, palette) {
   const { height, waveHeight, grooveDepth } = reliefField;
   const { distances, angles, colors } = samples;
+  const { flat: flatColor, groove, gloss } = palette;
   const maxRadius = Math.max(...radii) + 2 * SHADE_STEP;
   const data = pixels.data;
   for (let row = 0; row < SHADE_GRID; row++) for (let col = 0; col < SHADE_GRID; col++) {
@@ -139,20 +142,20 @@ function paintBarePixels(pixels, radii, reliefField, samples, flat, grooveOnly) 
       sheen = Math.max(0, Math.min(MAX_RIPPLE_SHEEN, waveLight * RIPPLE_SHEEN_GAIN));
     }
     const color = index * 3;
-    let red = flat ? 255 : colors[color];
-    let green = flat ? 206 : colors[color + 1];
-    let blue = flat ? 223 : colors[color + 2];
-    red += (177 - red) * shadow;
-    green += (79 - green) * shadow;
-    blue += (127 - blue) * shadow;
-    red += (255 - red) * sheen;
-    green += (246 - green) * sheen;
-    blue += (252 - blue) * sheen;
+    let red = flat ? flatColor[0] : colors[color];
+    let green = flat ? flatColor[1] : colors[color + 1];
+    let blue = flat ? flatColor[2] : colors[color + 2];
+    red += (groove[0] - red) * shadow;
+    green += (groove[1] - green) * shadow;
+    blue += (groove[2] - blue) * shadow;
+    red += (gloss[0] - red) * sheen;
+    green += (gloss[1] - green) * sheen;
+    blue += (gloss[2] - blue) * sheen;
     data[p] = red; data[p + 1] = green; data[p + 2] = blue; data[p + 3] = 255;
   }
 }
 
-function paintWaxPixels(pixels, material, radii, slopeX, slopeY) {
+function paintWaxPixels(pixels, material, radii, slopeX, slopeY, { gloss, waxShade }) {
   const { height, coverage } = material.state;
   const n = MATERIAL.grid, step = MATERIAL.extent / (n - 1);
   for (let row = 0; row < n; row++) for (let col = 0; col < n; col++) {
@@ -178,16 +181,35 @@ function paintWaxPixels(pixels, material, radii, slopeX, slopeY) {
     const hy = edge ? material.sample(sx, sy, slopeY) : slopeY[i];
     const h = edge ? material.sample(sx, sy) : height[i];
     const lighting = (hx * .62 + hy * .78) / Math.sqrt(1 + hx * hx + hy * hy);
-    const bright = lighting > 0;
-    pixels.data[p] = bright ? 255 : 122;
-    pixels.data[p + 1] = bright ? 246 : 51;
-    pixels.data[p + 2] = bright ? 252 : 88;
+    const tone = lighting > 0 ? gloss : waxShade;
+    pixels.data[p] = tone[0];
+    pixels.data[p + 1] = tone[1];
+    pixels.data[p + 2] = tone[2];
     pixels.data[p + 3] = Math.min(165, Math.abs(lighting) * 220 + Math.max(0, -h) * 1.1) *
       smooth((radius - distance) / 5);
   }
 }
 
-export function createMallangSurface(canvas, material, overlay = null) {
+function createSurfacePaint(context, palette) {
+  const gradient = context.createRadialGradient(62, 43, 8, 95, 100, 145);
+  gradient.addColorStop(0, rgbColor(palette.waxLight));
+  gradient.addColorStop(.44, rgbColor(palette.waxMid));
+  gradient.addColorStop(.8, rgbColor(palette.waxRim));
+  gradient.addColorStop(1, rgbColor(palette.waxDark));
+  const sheen = context.createRadialGradient(61, 49, 3, 61, 49, 61);
+  sheen.addColorStop(0, rgbColor(palette.waxSheen, .58));
+  sheen.addColorStop(1, rgbColor(palette.waxSheen, 0));
+  return {
+    gradient, sheen,
+    shadow: rgbColor(palette.castShadow, .15),
+    fill: rgbColor(palette.edgeFill),
+    waxFlat: rgbColor(palette.waxFlat),
+    waxStroke: rgbColor(palette.edgeStroke, .24),
+    bareStroke: rgbColor(palette.edgeStroke, .10),
+  };
+}
+
+export function createMallangSurface(canvas, material, overlay = null, palette = getMallangPalette()) {
   const context = canvas.getContext("2d");
   if (!context) return null;
   const shadeCanvas = document.createElement("canvas");
@@ -195,7 +217,7 @@ export function createMallangSurface(canvas, material, overlay = null) {
   const shadeContext = shadeCanvas.getContext("2d");
   if (!shadeContext) return null;
   const barePixels = shadeContext.createImageData(SHADE_GRID, SHADE_GRID);
-  const bareSamples = createBareSamples();
+  let bareSamples = createBareSamples(palette);
   const reliefField = createMallangRelief({ size: SHADE_GRID, origin: VIEW_ORIGIN,
     step: SHADE_STEP, maxDepth: MATERIAL.maxDent,
     waveSettings: { speed: MATERIAL.waveSpeed, width: MATERIAL.waveWidth, travel: MATERIAL.waveTravel } });
@@ -215,11 +237,7 @@ export function createMallangSurface(canvas, material, overlay = null) {
   canvas.width = canvas.height = Math.round(VIEW_SIZE * dpr);
   const lightContext = overlay?.getContext("2d");
   if (overlay) overlay.width = overlay.height = canvas.width;
-  const gradient = context.createRadialGradient(62, 43, 8, 95, 100, 145);
-  gradient.addColorStop(0, "#ffe8f2"); gradient.addColorStop(.44, "#f6ccdf");
-  gradient.addColorStop(.8, "#e7a5c4"); gradient.addColorStop(1, "#c97da6");
-  const sheen = context.createRadialGradient(61, 49, 3, 61, 49, 61);
-  sheen.addColorStop(0, "rgba(255,249,253,.58)"); sheen.addColorStop(1, "rgba(255,249,253,0)");
+  let paint = createSurfacePaint(context, palette);
   let outline = "", path, renderedRadii = null, flat = false;
 
   function clear(target) {
@@ -228,7 +246,7 @@ export function createMallangSurface(canvas, material, overlay = null) {
   }
 
   function drawWaxLighting(target, radii) {
-    paintWaxPixels(fieldPixels, material, radii, slopeX, slopeY);
+    paintWaxPixels(fieldPixels, material, radii, slopeX, slopeY, palette);
     shadeContext.putImageData(fieldPixels, 0, 0);
     target.drawImage(shadeCanvas, 0, 0, MATERIAL.grid, MATERIAL.grid,
       MATERIAL.origin, MATERIAL.origin, MATERIAL.extent, MATERIAL.extent);
@@ -430,18 +448,18 @@ export function createMallangSurface(canvas, material, overlay = null) {
     if (!shell) {
       context.save();
       // Cast the soft shadow from the current contour, including the drawn-out end.
-      context.shadowColor = "rgba(117,50,91,.15)";
+      context.shadowColor = paint.shadow;
       context.shadowBlur = 17 * dpr;
       context.shadowOffsetY = 6 * dpr;
-      context.fillStyle = "#f6c0df";
+      context.fillStyle = paint.fill;
       context.fill(path);
       context.restore();
     }
     context.save(); context.clip(path);
     if (shell) {
-      context.fillStyle = flat ? "#ffcedf" : gradient;
+      context.fillStyle = flat ? paint.waxFlat : paint.gradient;
       context.fillRect(VIEW_ORIGIN, VIEW_ORIGIN, VIEW_SIZE, VIEW_SIZE);
-      if (!flat) { context.fillStyle = sheen; context.fillRect(VIEW_ORIGIN, VIEW_ORIGIN, VIEW_SIZE, VIEW_SIZE); }
+      if (!flat) { context.fillStyle = paint.sheen; context.fillRect(VIEW_ORIGIN, VIEW_ORIGIN, VIEW_SIZE, VIEW_SIZE); }
       const target = lightContext ?? context;
       if (lightContext) { target.save(); target.clip(path); }
       drawWaxLighting(target, radii);
@@ -463,13 +481,13 @@ export function createMallangSurface(canvas, material, overlay = null) {
       const grooveOnly = trailPoints.length > 0 || retraction?.remaining > 0 ||
         !!(contact && (stretched || (lastContactPose?.startedAt === contact.startedAt && lastContactPose.grooveOnly)));
       lastContactPose = contact && relief ? { startedAt: contact.startedAt, time, relief, radii, stretched, grooveOnly } : null;
-      paintBarePixels(barePixels, radii, reliefField, bareSamples, flat, grooveOnly);
+      paintBarePixels(barePixels, radii, reliefField, bareSamples, flat, grooveOnly, palette);
       shadeContext.putImageData(barePixels, 0, 0);
       const origin = VIEW_ORIGIN - SHADE_STEP / 2, extent = SHADE_GRID * SHADE_STEP;
       context.drawImage(shadeCanvas, origin, origin, extent, extent);
     }
     context.restore();
-    context.strokeStyle = shell ? "rgba(179,91,133,.24)" : "rgba(179,91,133,.10)";
+    context.strokeStyle = shell ? paint.waxStroke : paint.bareStroke;
     context.lineWidth = .7; context.stroke(path);
     return outline;
   }
@@ -480,5 +498,11 @@ export function createMallangSurface(canvas, material, overlay = null) {
       return !!lastContactPose?.stretched && lastContactPose.startedAt === material.state.contact?.startedAt;
     },
     setFlatStyle(value) { flat = value; },
+    setPalette(nextPalette) {
+      if (palette === nextPalette) return;
+      palette = nextPalette;
+      bareSamples = createBareSamples(palette);
+      paint = createSurfacePaint(context, palette);
+    },
     dispose() { clear(context); if (lightContext) clear(lightContext); } };
 }
