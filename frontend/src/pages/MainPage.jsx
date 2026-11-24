@@ -75,7 +75,6 @@ export default function MainPage() {
           <p className="chart-sub">최근 7일 동안의 변화</p>
           <RadarChartComponent />
           <Link to="/analysis" className="chart-link">AI가 왜 이렇게 판단했는지 보기 <Icon name="arrowRight" /></Link>
-          <p className="notice-text">점수는 AI가 짐작한 값이라 틀릴 수 있고, 전문 심리 검사가 아니에요. <Link to="/about">안내·출처</Link></p>
         </section>
       </main>
     </div>
