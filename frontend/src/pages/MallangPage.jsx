@@ -14,10 +14,19 @@ const WAX_MODE_KEY = "codemyworld.mallang.wax";
 const RETURNING_TIP_HIT_PADDING = 6;
 const GRAB_REST_SPEED = 0.001;
 const GRAB_REST_DISPLACEMENT = 0.04;
+const POINTER_SPEED_WINDOW_MS = 40;
+const POINTER_SPEED_SMOOTHING_MS = 24;
+const POINTER_SPEED_DECAY_MS = 60;
 const FACE_SAMPLE_DISTANCE = 6;
 const FACE_SLOPE_PULL = 3.8;
 const FACE_DEPTH_OFFSET = 0.22;
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+function pointerSpeedAt(motion, now) {
+  return motion ? motion.pointerSpeed *
+    Math.exp(-Math.max(0, now - motion.pointerMovedAt) / POINTER_SPEED_DECAY_MS) : 0;
+}
+
 function readWaxMode() {
   try { return localStorage.getItem(WAX_MODE_KEY) === "true"; } catch { return false; }
 }
@@ -125,19 +134,19 @@ export default function MallangPage() {
     }
     function hit(raw) {
       const pull = r.motion?.pull;
-      const radii = membraneRadii(material, pull, r.impactPaint);
       const dx = raw.x - BLOB_CENTER, dy = raw.y - BLOB_CENTER;
       const angle = Math.atan2(dy, dx);
+      const radius = surface?.radiusAt(angle) ?? membraneRadiusAt(membraneRadii(material, pull, r.impactPaint), angle);
       // A returning tip moves between the displayed frame and the incoming press.
       const nearReturningTip = pull && r.motion.mode === "coast" &&
         Math.hypot(raw.x - pull.x, raw.y - pull.y) <= RETURNING_TIP_HIT_PADDING;
-      return nearReturningTip || Math.hypot(dx, dy) <= membraneRadiusAt(radii, angle);
+      return nearReturningTip || Math.hypot(dx, dy) <= radius;
     }
     function paint() {
       if (disposed || !face.current || !character.current) return;
       const motion = r.motion;
       const reliefTip = r.pressFollowsTether ? motion?.pull : null;
-      surface?.draw(motion?.pull, r.impactPaint, reliefTip);
+      surface?.draw(motion?.pull, r.impactPaint, reliefTip, pointerSpeedAt(motion, material.state.time));
       if (r.motion) {
         character.current.style.left = r.motion.position.x + "%";
         character.current.style.top = r.motion.position.y + "%";
@@ -301,6 +310,7 @@ export default function MallangPage() {
         const body = character.current.getBoundingClientRect();
         const motion = { mode: "grab", vx: previousMotion?.vx ?? 0, vy: previousMotion?.vy ?? 0,
           position: previousMotion?.position, pointer: { x: event.clientX, y: event.clientY },
+          pointerSpeed: 0, pointerMovedAt: now,
           lastFrame: now, pull: previousMotion?.pull ?? null, pullStartRadius: contactPoint(raw).radius,
           tetherPoint: wasReturning ? previousMotion.tetherPoint : null,
           tetherSpeed: wasReturning ? previousMotion.tetherSpeed : null };
@@ -314,8 +324,15 @@ export default function MallangPage() {
     function move(event) {
       if (r.input?.id !== event.pointerId) return;
       const now = performance.now();
-      if (r.motion?.mode === "grab") {
-        r.motion.pointer = { x: event.clientX, y: event.clientY };
+      const motion = r.motion;
+      if (motion?.mode === "grab") {
+        const dx = event.clientX - motion.pointer.x, dy = event.clientY - motion.pointer.y;
+        const elapsed = Math.max(1, now - motion.pointerMovedAt);
+        const speed = 1000 * Math.hypot(dx, dy) / Math.min(elapsed, POINTER_SPEED_WINDOW_MS);
+        const weight = Math.exp(-elapsed / POINTER_SPEED_SMOOTHING_MS);
+        motion.pointerSpeed = motion.pointerSpeed * weight + speed * (1 - weight);
+        motion.pointerMovedAt = now;
+        motion.pointer = { x: event.clientX, y: event.clientY };
       } else {
         const raw = point(event.clientX, event.clientY);
         if (Math.hypot(raw.x - BLOB_CENTER, raw.y - BLOB_CENTER) > 96) {
@@ -335,7 +352,8 @@ export default function MallangPage() {
       const now = performance.now();
       const motion = r.motion;
       if (motion?.mode !== "grab") advance(now);
-      const ripple = !reduced();
+      surface?.setReleaseSpeed(motion?.mode === "grab" ? pointerSpeedAt(motion, now) : 0);
+      const ripple = !reduced() && !surface?.hasStretchedContact;
       const strength = material.release(now, ripple, ripple ? surface?.releaseWaveAnchor() : null);
       if (!r.input.wax) audio.play("refill", strength);
       r.input = null;

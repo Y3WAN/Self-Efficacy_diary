@@ -14,7 +14,7 @@ test("the restored dent has a depressed center and raised shoulders without accu
   assert(at(field, 134, 100) > 0);
   assert(Math.abs(field.reduce((sum, value) => sum + value, 0)) < .01);
   const previous = Float32Array.from(field);
-  relief.update({ contact, trail: Array.from({ length: 72 }, () => ({ ...contact, leftAt: 0 })), now: 0 });
+  relief.update({ contact, trail: Array.from({ length: 72 }, () => ({ ...contact, recoveryStartedAt: 0 })), now: 0 });
   assert.deepEqual(field, previous, "overlap cannot deepen a held groove indefinitely");
   assert.equal(at(field, 170, 100), 0);
 });
@@ -22,27 +22,40 @@ test("the restored dent has a depressed center and raised shoulders without accu
 test("connected departed dents fill from the older end and disappear without moving the head", () => {
   const relief = createMallangRelief(options);
   const trail = Array.from({ length: 21 }, (_, index) => ({
-    ...point(40 + index * 2, 100), leftAt: index * 16,
+    ...point(40 + index * 2, 100), recoveryStartedAt: index * 16,
   }));
-  const field = relief.update({ contact: point(140, 100), trail, now: 450 });
+  const field = relief.update({ contact: point(140, 100), trail, now: 740 });
   assert(at(field, 42, 100) > at(field, 78, 100), "older departure has filled further");
   for (let x = 48; x <= 76; x += 2) assert(at(field, x, 100) < -1, "the groove stays connected");
   assert.equal(at(field, 140, 100), -15);
-  relief.update({ contact: point(140, 100), trail, now: 1100 });
+  relief.update({ contact: point(140, 100), trail, now: 1800 });
   assert.equal(at(field, 60, 100), 0);
   assert.equal(at(field, 140, 100), -15);
-  relief.update({ contact: null, trail: [], now: 1200 });
+  relief.update({ contact: null, trail: [], now: 1816 });
   assert(field.every(value => value === 0));
+});
+
+test("a departed dent and its shoulder get narrower before the center starts to fill", () => {
+  const relief = createMallangRelief(options);
+  const trail = [{ ...point(100, 100), recoveryStartedAt: 0 }];
+  function outerRow(now, includes) {
+    const field = relief.update({ contact: null, trail, now });
+    return field.findLastIndex((height, index) => index % options.size === 100 && includes(height)) / options.size;
+  }
+  assert(outerRow(500, height => height < -.1) < outerRow(0, height => height < -.1));
+  assert(outerRow(500, height => height > .1) < outerRow(0, height => height > .1));
+  relief.update({ contact: null, trail, now: 500 });
+  assert.equal(relief.sample(100, 100), -15);
 });
 
 test("departed dents use local surface positions and reused buffers", () => {
   const relief = createMallangRelief(options), buffer = relief.height;
-  const trail = [{ ...point(140, 100), leftAt: 0 }];
+  const trail = [{ ...point(140, 100), recoveryStartedAt: 0 }];
   relief.update({ contact: point(160, 100), trail, now: 80 });
   assert(at(buffer, 140, 100) < -10);
   assert(at(buffer, 100, 100) >= 0);
   assert.equal(at(buffer, 160, 100), -15);
-  relief.update({ contact: null, trail, now: 900 });
+  relief.update({ contact: null, trail, now: 1400 });
   assert.equal(relief.height, buffer);
   assert(buffer.every(Number.isFinite));
   assert(buffer.every(value => value === 0));

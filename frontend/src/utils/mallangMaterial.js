@@ -1,6 +1,7 @@
 // Material coordinates: a 200-unit body; time: milliseconds; height: visual units.
 import { MAX_TETHER_DISTANCE, pullExtension, softLimitDistance } from "./mallangPull.js";
 import { FULL_PRESS_MS, TAP_DEPTH, pressDepth, pressRecoveryDuration, smoothStep } from "./surfacePress.js";
+import { trailProfileAt } from "./mallangRelief.js";
 
 export const MATERIAL = Object.freeze({
   radius: 94, center: 100, grid: 57, extent: 224, origin: -12,
@@ -17,6 +18,16 @@ const N = MATERIAL.grid, STEP = MATERIAL.extent / (N - 1);
 const BARE_TRAIL_DEPTH_RATIO = .3;
 const MAX_BARE_TRAIL_INTERVAL_MS = 64;
 const PULL_SHOULDER_FALLOFF = 6;
+const TRAIL_BLEND_SAMPLES = 3;
+const TRAIL_FRONT_BLEND_DISTANCE = 8;
+const TRAIL_FRONT_GUARD_RADIUS = 40;
+const TRAIL_FRONT_GUARD_FALLOFF = 24;
+const TRAIL_EDGE_CHORD = .42;
+const MEMBRANE_SAMPLES = 96;
+const MEMBRANE_DIRECTIONS = Array.from({ length: MEMBRANE_SAMPLES }, (_, index) => {
+  const angle = index / MEMBRANE_SAMPLES * Math.PI * 2;
+  return { x: Math.cos(angle), y: Math.sin(angle) };
+});
 
 export function outwardWeight(distance) {
   return smooth((distance - MATERIAL.rimFadeStart) / (MATERIAL.rimFadeEnd - MATERIAL.rimFadeStart));
@@ -74,7 +85,8 @@ export function createMallangMaterial() {
     if (!contact) {
       if (!releasedRim) return null;
       const recovery = smooth((now - releasedRim.time) / pressRecoveryDuration(releasedRim.depth));
-      return { x: releasedRim.x, y: releasedRim.y, depth: releasedRim.depth * (1 - recovery) };
+      return { x: releasedRim.x, y: releasedRim.y, depth: releasedRim.depth * (1 - recovery),
+        releasedAt: releasedRim.time };
     }
     const depth = depthOf(nodes.at(-1), now);
     if (!contact.rimStart) return { x: contact.x, y: contact.y, depth };
@@ -323,7 +335,7 @@ export function createMallangMaterial() {
 
 // A smooth radial envelope carries the press and the stretched surface.
 export function membraneRadii(material, pull = null, impact = null, load = material.rimLoad()) {
-  const radii = new Float32Array(96);
+  const radii = new Float32Array(MEMBRANE_DIRECTIONS.length);
   const { center, radius, rimExpansion } = MATERIAL;
   const dx = load ? load.x - center : 0, dy = load ? load.y - center : 0;
   const pressAngle = Math.atan2(dy, dx);
@@ -353,6 +365,100 @@ export function membraneRadii(material, pull = null, impact = null, load = mater
     }
   }
   return radii;
+}
+
+export function widenMembraneForTrail(radii, trail, now, shadePadding, front = null) {
+  if (!trail.length) return radii;
+  const count = radii.length;
+  const required = new Float32Array(count);
+  const innerRadius = Math.min(...radii);
+  for (const point of trail) {
+    const { x, y, depth, length, width, shoulderExtent, scale, rimSupport } = trailProfileAt(point, now);
+    const padding = shadePadding * scale;
+    const outerLength = length * shoulderExtent + padding;
+    const outerWidth = width * shoulderExtent + padding;
+    const dx = x - MATERIAL.center, dy = y - MATERIAL.center;
+    const distance = Math.hypot(dx, dy);
+    if (!depth || distance + outerWidth <= innerRadius) continue;
+
+    // Intersect each ray with the same ellipse that bounds the groove's shading.
+    const { ux, uy } = point;
+    const along = (dx * ux + dy * uy) / outerLength;
+    const across = (dy * ux - dx * uy) / outerWidth;
+    for (let i = 0; i < count; i++) {
+      const ray = MEMBRANE_DIRECTIONS[i];
+      if (distance + outerWidth <= radii[i] || ray.x * dx + ray.y * dy <= 0) continue;
+      const u = (ray.x * ux + ray.y * uy) / outerLength;
+      const v = (ray.y * ux - ray.x * uy) / outerWidth;
+      const projection = u * along + v * across;
+      const rayLengthSquared = u * u + v * v;
+      const discriminant = rayLengthSquared - (u * across - v * along) ** 2;
+      if (projection <= 0 || discriminant <= 0) continue;
+      const reach = (projection + Math.sqrt(discriminant)) / rayLengthSquared;
+      // Only the faint edge of the shoulder reaches a grazing ray.
+      const edge = smooth(Math.sqrt(discriminant / rayLengthSquared) / TRAIL_EDGE_CHORD);
+      const excess = Math.max(0, reach - radii[i]);
+      required[i] = Math.max(required[i], excess * edge * rimSupport);
+    }
+  }
+  if (!required.some(Boolean)) return radii;
+
+  // Rounding the shoulders cannot extend farther than the pull or the groove itself.
+  const maxReach = radii.reduce((reach, radius, i) => Math.max(reach, radius + required[i]), 0);
+  const envelope = required.map((excess, i) =>
+    Math.max(excess, required[(i + count - 1) % count], required[(i + 1) % count]));
+  return radii.map((radius, i) => {
+    let expansion = 0, totalWeight = 0;
+    for (let offset = -TRAIL_BLEND_SAMPLES; offset <= TRAIL_BLEND_SAMPLES; offset++) {
+      const weight = TRAIL_BLEND_SAMPLES + 1 - Math.abs(offset);
+      expansion += envelope[(i + offset + count) % count] * weight;
+      totalWeight += weight;
+    }
+    let rounded = expansion / totalWeight;
+    if (front) {
+      const ray = MEMBRANE_DIRECTIONS[i];
+      const x = MATERIAL.center + ray.x * radius - front.x;
+      const y = MATERIAL.center + ray.y * radius - front.y;
+      const ahead = smooth((x * front.dx + y * front.dy) / TRAIL_FRONT_BLEND_DISTANCE);
+      // Protect the rounded front from smoothing spread while still covering an older groove.
+      const nearTip = 1 - smooth((Math.hypot(x, y) - TRAIL_FRONT_GUARD_RADIUS) / TRAIL_FRONT_GUARD_FALLOFF);
+      rounded *= 1 - ahead * nearTip;
+    }
+    return Math.min(maxReach, radius + Math.max(required[i], rounded));
+  });
+}
+
+export function retractMembraneCap(startRadii, bodyRadii, cap, progress) {
+  if (progress === 0) return startRadii;
+  const count = startRadii.length;
+  const cx = cap.startX - MATERIAL.center, cy = cap.startY - MATERIAL.center;
+  const tipX = cap.x - MATERIAL.center, tipY = cap.y - MATERIAL.center;
+  const points = Array.from(startRadii, (radius, i) => {
+    const ray = MEMBRANE_DIRECTIONS[i];
+    const body = bodyRadii[i];
+    const attachment = smooth((radius - MATERIAL.radius) / 28);
+    const shoulder = radius + (body - radius) * progress;
+    // The end moves and scales around its own center. The shoulder joins it to the body.
+    const x = tipX + (ray.x * radius - cx) * cap.scale;
+    const y = tipY + (ray.y * radius - cy) * cap.scale;
+    return { x: ray.x * shoulder * (1 - attachment) + x * attachment,
+      y: ray.y * shoulder * (1 - attachment) + y * attachment };
+  });
+
+  // Moving the cap changes the bearing of its vertices. Intersect the resulting
+  // contour with the body's rays again so it shares the canvas clip and hit shape.
+  return bodyRadii.map((radius, index) => {
+    const ray = MEMBRANE_DIRECTIONS[index];
+    for (let i = 0; i < count; i++) {
+      const a = points[i], b = points[(i + 1) % count];
+      const sideA = ray.x * a.y - ray.y * a.x, sideB = ray.x * b.y - ray.y * b.x;
+      if (sideA === sideB || sideA * sideB > 0) continue;
+      const t = sideA / (sideA - sideB);
+      const x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t;
+      radius = Math.max(radius, x * ray.x + y * ray.y);
+    }
+    return radius;
+  });
 }
 
 export function membraneRadiusAt(radii, angle) {

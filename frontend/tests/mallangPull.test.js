@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { blendPullTip, pullStretchProgress, tetherSpringDisplacement } from "../src/utils/mallangPull.js";
-import { advanceMotion, beginPull, PULL_RADIUS, pulledCircle, pullTarget, springDisplacement, updatePull } from "../src/utils/mallangMotion.js";
+import { advanceMotion, beginPull, MAX_VISUAL_TETHER_DISTANCE, PULL_RADIUS, pulledCircle, pullTarget, springDisplacement, updatePull } from "../src/utils/mallangMotion.js";
 
 function motionAt(now = 0, hasMoved = false) {
   return { mode: "grab", rect: { left: 0, top: 0, width: 800, height: 600 }, bodySize: 200,
@@ -126,10 +126,11 @@ test("the visible tip can keep following after body tension reaches its cap", ()
   const taut = motionAt();
   const extended = motionAt();
   taut.pointer.x = 528;
-  extended.pointer.x = 558;
+  extended.pointer.x = 900;
   beginPull(taut);
   beginPull(extended);
-  assert(extended.pull.x - taut.pull.x >= 29);
+  assert(extended.pull.x > taut.pull.x);
+  assert.equal(extended.pull.x - 100, MAX_VISUAL_TETHER_DISTANCE);
   assert.deepEqual(springDisplacement(extended, 400, 300), springDisplacement(taut, 400, 300));
 });
 

@@ -6,11 +6,13 @@ const CATCH_SPRING_TIME_MS = 40;
 const TIP_FOLLOW_TIME_MS = 8;
 const TIP_LIMIT_EASE_RANGE = 12;
 const TENSION_EASE_DISTANCE = 8;
-export const MAX_VISUAL_TETHER_DISTANCE = 166;
-const TIP_RETURN_TIME_MS = 70;
+export const MAX_VISUAL_TETHER_DISTANCE = 154;
+const TIP_RETURN_TIME_MS = 90;
 const TIP_MERGE_RADIUS_RATIO = 0.55;
 const DRAG_MASS = 1.6;
-const DRAG_DAMPING = 0.95;
+const DRAG_DAMPING = 1.05;
+const MAX_ADDITIONAL_DRAG_DAMPING = .45;
+const DRAG_FULL_DAMPING_SPEED = .00125;
 const CATCH_DAMPING = 1.2;
 const WALL_BOUNCE = 0.5;
 const COAST_FRICTION = 0.0052;
@@ -157,7 +159,11 @@ export function advanceMotion(motion, timestamp) {
     const length = Math.hypot(spring.x, spring.y);
     const accelerationScale = motion.target ? stiffness
       : stiffness * maxAcceleration / Math.hypot(maxAcceleration, length * stiffness);
-    const springDamping = motion.target ? CATCH_DAMPING : DRAG_DAMPING * clamp(length / (bodySize * 0.04), 0, 1);
+    // Let the body start moving freely, then restrain its sustained drag speed.
+    const speed = Math.hypot(motion.vx, motion.vy);
+    const speedBlend = clamp(speed / (bodySize * DRAG_FULL_DAMPING_SPEED), 0, 1);
+    const dragDamping = DRAG_DAMPING + MAX_ADDITIONAL_DRAG_DAMPING * speedBlend;
+    const springDamping = motion.target ? CATCH_DAMPING : dragDamping * clamp(length / (bodySize * 0.04), 0, 1);
     const damping = COAST_FRICTION + frequency * springDamping;
     const horizontal = stepAxis(x, motion.vx, spring.x * accelerationScale, rect.width, damping, step);
     const vertical = stepAxis(y, motion.vy, spring.y * accelerationScale, rect.height, damping, step);
