@@ -52,13 +52,13 @@ export default function ProfilePage() {
         </div>
 
         <section className="chart-card" aria-labelledby="growth-title">
-          <h2 id="growth-title" className="chart-title">자기효능감 성장 그래프</h2>
-          <p className="chart-sub">일별 점수와 확신도 가중 EMA 추세선 (AI가 확실한 날일수록 추세를 더 움직여요)</p>
+          <h2 id="growth-title" className="chart-title">자신감 성장 그래프</h2>
+          <p className="chart-sub">날마다 달라지는 나의 자신감 변화</p>
           <GrowthChart />
         </section>
 
         <section className="chart-card" aria-labelledby="elo-title">
-          <h2 id="elo-title" className="chart-title">성장 지수 (ELO)</h2>
+          <h2 id="elo-title" className="chart-title">미션 실력 점수</h2>
           <p className="chart-sub">미션 결과에 따라 다음 미션 난이도가 조절돼요</p>
           <EloChart />
         </section>

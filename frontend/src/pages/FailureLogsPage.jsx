@@ -15,7 +15,7 @@ export default function FailureLogsPage() {
     <div className="failure-logs-page">
       <div className="diary-header">
         <button onClick={() => navigate(-1)}><Icon name="arrowLeft" /> 뒤로</button>
-        <h2>실패 로그</h2>
+        <h2>실패 기록</h2>
       </div>
 
       <div className="profile-content">

@@ -2069,13 +2069,6 @@ body:has(.mallang-page) { overflow-x: clip; }
   line-height: 1.6;
 }
 .notice-text a { color: var(--blue-ink); }
-.analysis-formula {
-  color: var(--text-muted);
-  background: var(--bg-sky);
-  border-radius: var(--radius-xs);
-  padding: 8px 10px;
-  line-height: 1.5;
-}
 .analysis-card { padding: var(--card-padding); }
 .analysis-head {
   width: 100%;
@@ -2110,7 +2103,6 @@ body:has(.mallang-page) { overflow-x: clip; }
 .analysis-body { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; }
 .analysis-row-top { display: flex; justify-content: space-between; }
 .analysis-label { font-weight: 600; }
-.analysis-label em { font-style: normal; color: var(--text-soft); font-weight: 400; }
 .analysis-val { font-weight: 700; color: var(--text); }
 .analysis-bar {
   height: 6px;

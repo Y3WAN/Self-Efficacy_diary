@@ -20,7 +20,7 @@ const CustomTooltip = ({ active, payload }) => {
   return (
     <div className="chart-tooltip">
       <p>
-        {p.start ? "시작 점수" : `${p.result ? "완료" : "어려워요"} · 예상 성공률 ${pct(p.expected)}`}
+        {p.start ? "시작 점수" : `${p.result ? "완료" : "어려워요"} · 해낼 확률(예상) ${pct(p.expected)}`}
       </p>
       <strong>{p.rating}</strong>
     </div>
@@ -44,7 +44,7 @@ export default function EloChart() {
       <div className="elo-stats">
         <div className="elo-stat">
           <span className="elo-stat-value">{data.rating}</span>
-          <span className="elo-stat-label">현재 성장 지수</span>
+          <span className="elo-stat-label">지금 실력 점수</span>
         </div>
         <div className="elo-stat">
           <span className="elo-stat-value">Lv{data.next_level}</span>
@@ -52,11 +52,11 @@ export default function EloChart() {
         </div>
         <div className="elo-stat">
           <span className="elo-stat-value">{pct(data.next_expected)}</span>
-          <span className="elo-stat-label">예상 성공률</span>
+          <span className="elo-stat-label">해낼 확률(예상)</span>
         </div>
       </div>
       {data.games === 0 ? (
-        <div className="chart-empty">미션을 완료하면 성장 지수가 기록돼요!</div>
+        <div className="chart-empty">미션을 완료하면 실력 점수가 기록돼요!</div>
       ) : (
         <>
           <ResponsiveContainer width="100%" height={200}>
@@ -73,7 +73,7 @@ export default function EloChart() {
             </LineChart>
           </ResponsiveContainer>
           <p className="elo-calibration">
-            미션 {data.games}개 · 예측 성공률 {pct(data.avg_expected)} / 실제 성공률 {pct(data.actual_rate)}
+            미션 {data.games}개 · 예상한 성공 확률 {pct(data.avg_expected)} / 실제로 해낸 비율 {pct(data.actual_rate)}
           </p>
         </>
       )}

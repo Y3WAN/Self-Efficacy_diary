@@ -24,7 +24,7 @@ function ResultModal({ result, onClose }) {
         <Icon name={c.icon} className="celebration-icon" />
         <p className="celebration-message">{c.message}</p>
         <p className="celebration-elo">
-          성장 지수 {result.elo_after}
+          실력 점수 {result.elo_after}
           <span className={delta >= 0 ? "elo-up" : "elo-down"}>
             {" "}<Icon name={delta >= 0 ? "arrowUp" : "arrowDown"} label={delta >= 0 ? "상승" : "하락"} /> {Math.abs(delta)}
           </span>
@@ -61,7 +61,7 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
     },
     onError: async (error) => {
       if (error.response?.status === 409) {
-        toast.error("이미 처리된 미션이에요.");
+        toast.error("이미 완료 또는 어려워요를 누른 미션이에요.");
         await qc.invalidateQueries({ queryKey: ["missions"] });
       } else {
         toast.error("미션 상태를 저장하지 못했어요.");
@@ -97,7 +97,7 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
                   >
                     <label htmlFor={`mission-note-${mission.id}`}>
                       {pending.action === "complete" ? "해 보니 어땠어요?" : "어떤 점이 어려웠어요?"}
-                      <span className="mission-feedback-optional"> (선택 · 다음 미션에 반영돼요)</span>
+                      <span className="mission-feedback-optional"> (안 써도 돼요 · 다음 미션 만들 때 참고해요)</span>
                     </label>
                     <textarea
                       id={`mission-note-${mission.id}`}

@@ -72,10 +72,10 @@ export default function MainPage() {
         <ActivityHistory today={today} />
         <section className="chart-card main-radar" aria-labelledby="main-radar-title">
           <h2 id="main-radar-title" className="chart-title">나의 자신감 4가지 원천</h2>
-          <p className="chart-sub">최근 7일 추세 · 일기에 근거가 있었던 날만 반영 · 미션 대상 선택에 쓰여요</p>
+          <p className="chart-sub">최근 7일 동안의 변화</p>
           <RadarChartComponent />
           <Link to="/analysis" className="chart-link">AI가 왜 이렇게 판단했는지 보기 <Icon name="arrowRight" /></Link>
-          <p className="notice-text">점수는 AI의 추정이며 심리 진단이 아니에요. <Link to="/about">안내·출처</Link></p>
+          <p className="notice-text">점수는 AI가 짐작한 값이라 틀릴 수 있고, 전문 심리 검사가 아니에요. <Link to="/about">안내·출처</Link></p>
         </section>
       </main>
     </div>

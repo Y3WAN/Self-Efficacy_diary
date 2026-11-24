@@ -143,8 +143,8 @@ export default function TrialPage() {
                 {result.reflection.message && <p className="reflection-message">{result.reflection.message}</p>}
               </div>
               <p className="trial-why">
-                💡 왜 해낸 것을 찾아 줄까요? 직접 해낸 경험은 자기효능감을 키우는
-                <b> 가장 강한 힘</b>이에요 (반두라, 1977)
+                💡 왜 해낸 것을 찾아 줄까요? 직접 해낸 경험은 '나도 할 수 있다'는 자신감을 키우는
+                <b> 가장 강한 힘</b>이에요 (심리학자 반두라, 1977)
               </p>
 
               {result.mission && (
@@ -175,7 +175,7 @@ export default function TrialPage() {
                   {missionError && <p className="trial-mission-error">{missionError}</p>}
                   <p className="trial-elo">
                     답하면 바로 한 단계 어렵거나 쉬운 미션으로 바꿔 드려요.
-                    실제 앱에서는 미션을 해냈는지에 따라 ELO 점수로 난이도가 자동 조절돼요.
+                    실제 앱에서는 미션을 해냈는지에 따라 다음 미션 난이도가 저절로 바뀌어요.
                   </p>
                 </div>
               )}
@@ -189,7 +189,7 @@ export default function TrialPage() {
       )}
 
       <footer className="trial-footer">
-        심리 진단 도구가 아닙니다 · <Link to="/about">안내·출처</Link> · <Link to="/login">로그인</Link>
+        전문 심리 검사가 아니에요 · <Link to="/about">안내·출처</Link> · <Link to="/login">로그인</Link>
       </footer>
     </div>
   );

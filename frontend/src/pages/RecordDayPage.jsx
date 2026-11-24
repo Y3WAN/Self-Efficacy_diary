@@ -17,7 +17,7 @@ const FLICK_THRESHOLD = 40;
 const FLICK_MAX_MS = 280;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const dayDifference = (start, end) => (Date.parse(end) - Date.parse(start)) / MS_PER_DAY;
-const MISSION_STATUS = { done: "완료", skipped: "어려웠어요", expired: "기간 종료" };
+const MISSION_STATUS = { done: "완료", skipped: "어려웠어요", expired: "기한 지남" };
 const DAY_LABEL = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "UTC", year: "numeric", month: "long", day: "numeric", weekday: "long",
 });

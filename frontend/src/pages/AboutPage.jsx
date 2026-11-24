@@ -35,12 +35,12 @@ export default function AboutPage() {
         <div className="chart-card">
           <h2 className="chart-title">서비스 소개</h2>
           <div className="about-text">
-            <p>codemyworld는 일기를 쓰면 AI가 자기효능감의 4가지 원천을 분석하고, 지금 실력에 맞는 작은 미션을 주는 <b>학습용 자기 성찰 도구</b>예요.</p>
+            <p>codemyworld는 일기를 쓰면 AI가 '나도 할 수 있다'는 자신감(자기효능감)을 키우는 4가지 경험을 찾아 주고, 지금 실력에 맞는 작은 미션을 주는 <b>나를 돌아보는 연습 도구</b>예요.</p>
             <p className="notice-box">
-              <Icon name="warning" /> 이 서비스는 <b>심리 진단·상담 도구가 아니에요.</b> 점수는 AI의 추정이며 틀릴 수 있어요.
+              <Icon name="warning" /> 이 서비스는 <b>전문 심리 검사나 상담을 대신하지 않아요.</b> 점수는 AI가 짐작한 값이라 틀릴 수 있어요.
               마음이 많이 힘들다면 청소년상담 1388(전화·문자·카카오톡)에 도움을 요청하세요.
             </p>
-            <p>실명, 학교, 연락처 같은 개인정보는 일기에 쓰지 마세요. 일기 내용은 분석을 위해 AI API로 전송돼요.</p>
+            <p>실명, 학교, 연락처 같은 개인정보는 일기에 쓰지 마세요. 일기 내용은 분석을 위해 AI 서버로 보내져요.</p>
           </div>
         </div>
         <div className="chart-card">

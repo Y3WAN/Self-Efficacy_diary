@@ -20,7 +20,7 @@ function CustomTooltip({ active, payload }) {
       </strong>
       <p>{info.desc}</p>
       <p>
-        {days ? `최근 7일 중 근거 있는 날 ${days}일` : "최근 7일 근거 없음 · 이전 기록 기준"}
+        {days ? `최근 7일 중 일기에 나온 날 ${days}일` : "최근 7일 일기에는 없어서 예전 기록으로 계산했어요"}
       </p>
     </div>
   );
@@ -66,7 +66,7 @@ export default function RadarChartComponent() {
   const navigate = useNavigate();
 
   if (isLoading) return <div className="chart-empty">불러오는 중...</div>;
-  if (!radar) return <div className="chart-empty">최근 분석 데이터가 없어요.</div>;
+  if (!radar) return <div className="chart-empty">아직 분석된 일기가 없어요.</div>;
 
   const chartData = SOURCES.map((s) => ({
     key: s.key,
