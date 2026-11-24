@@ -71,7 +71,7 @@ export default function MissionExperimentPage() {
     <div className="main-page">
       <AppBar />
       <main className="main-content mission-experiment">
-        <Link to="/dashboard" className="experiment-back"><Icon name="arrowLeft" /> 대시보드</Link>
+        <Link to="/" className="experiment-back"><Icon name="arrowLeft" /> 메인화면</Link>
         <section className="chart-card experiment-intro">
           <span className="experiment-tag">실험용 데이터</span>
           <h1>미션 비교 실험</h1>

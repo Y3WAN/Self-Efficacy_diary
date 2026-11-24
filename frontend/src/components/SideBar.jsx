@@ -5,7 +5,6 @@ import { useConfirmLogout } from "../utils/useConfirmLogout";
 
 const MENU_ITEMS = [
   ["/", "home", "메인화면"],
-  ["/dashboard", "chart", "대시보드"],
   ["/mallang", "mallang", "사이버 말랑이"],
   ["/profile", "user", "내 정보"],
 ];

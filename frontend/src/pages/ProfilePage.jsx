@@ -2,6 +2,8 @@ import Icon from "../components/Icon";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import client from "../api/client";
+import GrowthChart from "../components/GrowthChart";
+import EloChart from "../components/EloChart";
 import { useConfirmLogout } from "../utils/useConfirmLogout";
 
 export default function ProfilePage() {
@@ -47,13 +49,19 @@ export default function ProfilePage() {
             <span className="profile-label">완료한 미션</span>
             <span className="profile-value">{user.completed_missions_count}개</span>
           </div>
-          <div className="profile-row profile-row--points">
-            <span className="profile-label">포인트</span>
-            <span className="profile-value profile-points">
-              {(user.points ?? 0).toLocaleString()} P
-            </span>
-          </div>
         </div>
+
+        <section className="chart-card" aria-labelledby="growth-title">
+          <h2 id="growth-title" className="chart-title">자기효능감 성장 그래프</h2>
+          <p className="chart-sub">일별 점수와 확신도 가중 EMA 추세선 (AI가 확실한 날일수록 추세를 더 움직여요)</p>
+          <GrowthChart />
+        </section>
+
+        <section className="chart-card" aria-labelledby="elo-title">
+          <h2 id="elo-title" className="chart-title">성장 지수 (ELO)</h2>
+          <p className="chart-sub">미션 결과에 따라 다음 미션 난이도가 조절돼요</p>
+          <EloChart />
+        </section>
 
         <div className="profile-links">
           <Link to="/prompt" className="main-analysis-link">

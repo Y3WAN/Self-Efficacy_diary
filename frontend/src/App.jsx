@@ -10,7 +10,6 @@ import MainPage from "./pages/MainPage";
 import RecordDayPage from "./pages/RecordDayPage";
 import RecordLayout from "./components/RecordLayout";
 import DiaryEditorPage from "./pages/DiaryEditorPage";
-import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import FailureLogsPage from "./pages/FailureLogsPage";
 import CommunityPage from "./pages/CommunityPage";
@@ -47,7 +46,8 @@ export default function App() {
             <Route path="records/:date" element={<RecordDayPage />} />
           </Route>
           <Route path="/diary/:date" element={<RequireAuth><DiaryEditorPage /></RequireAuth>} />
-          <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
+          {/* 대시보드 탭은 없앰: 4원천 분석은 메인, 성장·ELO 그래프는 내 정보로 옮김 */}
+          <Route path="/dashboard" element={<Navigate to="/profile" replace />} />
           <Route path="/mission-experiment" element={<RequireAuth><MissionExperimentPage /></RequireAuth>} />
           <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
           <Route path="/failure-logs" element={<RequireAuth><FailureLogsPage /></RequireAuth>} />
