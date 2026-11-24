@@ -28,7 +28,6 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <h1 className="auth-title"><BrandMark /></h1>
-        <p className="auth-sub">오늘의 나를 기록해요</p>
         <form onSubmit={handleSubmit} className="auth-form">
           <label className="auth-field">
             <span>아이디</span>
@@ -57,7 +56,7 @@ export default function LoginPage() {
         <Link to="/try" className="auth-btn auth-btn--trial">✨ 가입 없이 1분 체험하기</Link>
         <p className="auth-trial-note">체험 기록은 행사 후 모두 삭제돼요</p>
         <p className="auth-link">
-          처음이신가요? <Link to="/signup">회원가입</Link>
+          <Link to="/signup">회원가입</Link>
         </p>
       </div>
     </div>

@@ -424,16 +424,13 @@ export default function MallangPage() {
     customizeButton.current?.focus();
   }
 
-  const busy = isWaxMode && !waxShell.pieces.length && waxShell.chips.length > 0;
+  const isShellBroken = isWaxMode && waxShell.pieces.length === 0;
+  const busy = isShellBroken && waxShell.chips.length > 0;
   return <div className={`mallang-page mallang-page--${appearance}`}>
     <AppBar />
     <main className={customizing ? "mallang-content mallang-content--customizing" : "mallang-content"}>
       {import.meta.env.DEV && params.has("inspect") && <output ref={inspect} id="mallang-inspect" hidden />}
       <h1>사이버 말랑이</h1>
-      <p id="mallang-help" aria-live="polite">{isWaxMode
-        ? waxShell.pieces.length ? "왁스를 길게 누르고 문질러 보세요. 다시 누르면 더 잘게 갈라져요."
-          : busy ? "마지막 왁스 조각이 부스러지고 있어요." : "껍질 안의 말랑이가 나왔어요. 자유롭게 만져 보세요."
-        : "길게 누르고 문질러 보세요. 가장자리에서 바깥으로 잡아당길 수도 있어요."}</p>
       <div className="mallang-controls">
         <button type="button" role="switch" aria-checked={isWaxMode} className="mallang-wax-toggle" onClick={toggle}>
           왁뿌볼<span className="mallang-wax-track" aria-hidden="true" />
@@ -451,6 +448,9 @@ export default function MallangPage() {
           <Icon name="pencil" />
         </button>
       </div>
+      <p className="mallang-status" role="status">
+        {isShellBroken && (busy ? "마지막 왁스 조각이 부스러지고 있어요." : "말랑이가 나왔어요.")}
+      </p>
       <div className="mallang-play-area">
         <section className="mallang-room" aria-label="말랑이 놀이터" onPointerDown={(e) => controller.current.down(e)}>
           <div ref={bounds} className="mallang-bounds">
@@ -460,7 +460,7 @@ export default function MallangPage() {
                 <canvas ref={canvas} className="mallang-material-canvas" aria-hidden="true" />
                 <button ref={control} type="button" draggable={false} className="mallang-body"
                   aria-label={isWaxMode && waxShell.pieces.length ? "왁스 껍질 길게 누르기" : "말랑이 누르기"}
-                  aria-disabled={busy || undefined} aria-describedby="mallang-help"
+                  aria-disabled={busy || undefined}
                   onPointerMove={(e) => controller.current.move(e)}
                   onPointerUp={(e) => controller.current.end(e)} onPointerCancel={(e) => controller.current.end(e)}
                   onLostPointerCapture={(e) => controller.current.end(e)}

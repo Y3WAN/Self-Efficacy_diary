@@ -46,9 +46,6 @@ export default function CommunityPage() {
       <AppBar />
       <main className="community-container">
         <h2 className="community-title">함께 해낸 미션</h2>
-        <p className="community-subtitle">
-          {cheerFocus ? "내 미션에 다른 사람들이 보낸 응원을 확인해 보세요." : "서로 해낸 미션을 보고 응원을 보내요."}
-        </p>
 
         {isLoading && <p className="community-empty">불러오는 중이에요.</p>}
         {isError && <button className="respect-btn" onClick={() => refetch()}>다시 불러오기</button>}

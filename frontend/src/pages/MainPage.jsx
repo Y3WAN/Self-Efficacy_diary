@@ -30,10 +30,8 @@ function TodayCard({ diaries, today, isPending }) {
         <ul className="reflection-achievements">
           {achievements.map((item) => <li key={item}><Icon name="check" /> {item}</li>)}
         </ul>
-      ) : (
-        <p className="today-card-sub">
-          {hasDiaries ? "일기를 열어 AI 반응을 받아 보세요." : "잘 안 된 하루여도 괜찮아요. AI가 그 안에서 오늘 해낸 것을 찾아 드려요."}
-        </p>
+      ) : hasDiaries && (
+        <p className="today-card-sub">아직 AI 피드백이 없어요.</p>
       )}
       <span className="today-card-action">
         {hasDiaries ? "오늘 일기 열기" : "오늘 일기 쓰기"} <Icon name="arrowRight" />

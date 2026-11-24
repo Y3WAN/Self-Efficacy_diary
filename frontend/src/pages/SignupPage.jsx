@@ -44,7 +44,6 @@ export default function SignupPage() {
     <div className="auth-page">
       <div className="auth-card auth-card--signup">
         <h1 className="auth-title">회원가입</h1>
-        <p className="auth-sub">나의 성장 여정을 시작해요</p>
         <form onSubmit={handleSubmit} className="auth-form">
           <label className="auth-field">
             <span>아이디</span>
@@ -98,7 +97,7 @@ export default function SignupPage() {
           <button className="auth-btn" type="submit">시작하기</button>
         </form>
         <p className="auth-link">
-          이미 계정이 있나요? <Link to="/login">로그인</Link>
+          <Link to="/login">로그인</Link>
         </p>
       </div>
     </div>

@@ -25,7 +25,6 @@ export default function FailureLogsPage() {
           <div className="failure-log-empty">
             <Icon name="trophy" className="failure-log-empty-icon" />
             <p>기록된 실패가 없어요.</p>
-            <p className="failure-log-empty-sub">실패도 성장의 발판이에요. 솔직하게 기록해보세요!</p>
           </div>
         ) : (
           <ul className="failure-log-list">

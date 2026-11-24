@@ -89,7 +89,6 @@ export default function TrialPage() {
           <h1 className="trial-title">오늘 잘 안 된 일,<br />한 줄이면 충분해요</h1>
           <p className="trial-sub">AI가 그 안에서 <b>내가 해낸 것</b>을 찾아 드려요</p>
 
-          <p className="trial-label">예시를 눌러 바로 시작</p>
           <div className="trial-examples">
             {EXAMPLES.map((ex) => (
               <button key={ex.text} type="button" className="trial-example" onClick={() => submit(ex.text)}>
@@ -174,7 +173,6 @@ export default function TrialPage() {
                   </div>
                   {missionError && <p className="trial-mission-error">{missionError}</p>}
                   <p className="trial-elo">
-                    답하면 바로 한 단계 어렵거나 쉬운 미션으로 바꿔 드려요.
                     실제 앱에서는 미션을 해냈는지에 따라 다음 미션 난이도가 저절로 바뀌어요.
                   </p>
                 </div>

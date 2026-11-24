@@ -12,11 +12,10 @@ function parts(date) {
 }
 
 function weekLabel(weekStart) {
-  const start = parts(weekStart);
-  const end = parts(shiftRecordDate(weekStart, 6));
-  if (start.year !== end.year) return `${start.year}년 ${start.month}월 ${start.day}일 – ${end.year}년 ${end.month}월 ${end.day}일`;
-  if (start.month !== end.month) return `${start.year}년 ${start.month}월 ${start.day}일 – ${end.month}월 ${end.day}일`;
-  return `${start.year}년 ${start.month}월 ${start.day}일 – ${end.day}일`;
+  // 토요일 기준으로 계산하면 매월 1일이 포함된 주가 그달의 첫 주가 된다.
+  const { year, month, day } = parts(shiftRecordDate(weekStart, 6));
+  const weekOfMonth = Math.ceil(day / 7);
+  return `${year}년 ${month}월 ${weekOfMonth}째 주`;
 }
 
 // 한 주(일~토)만 보여 주는 달력. 이전·다음 버튼이나 좌우로 밀어서 주를 넘긴다.
@@ -64,7 +63,7 @@ export default function DiaryCalendar({
   return (
     <>
       <div className="calendar-header">
-        <span className="calendar-month" aria-live="polite">{weekLabel(weekStart)}</span>
+        <span className="calendar-week-label" aria-live="polite">{weekLabel(weekStart)}</span>
         <div className="calendar-controls">
           <button type="button" aria-label="지난주" onClick={() => moveWeek(-1)}><Icon name="chevronLeft" /></button>
           <button type="button" className="calendar-today" onClick={() => {
@@ -84,9 +83,8 @@ export default function DiaryCalendar({
         {WEEKDAYS.map((day) => <span key={day} className="calendar-weekday" aria-hidden="true">{day}</span>)}
         {days.map((date, index) => {
           const { month, day } = parts(date);
-          const label = day === 1 || index === 0 ? `${month}/${day}` : day;
           if (date > today) {
-            return <span key={date} className="calendar-day" aria-disabled="true">{label}</span>;
+            return <span key={date} className="calendar-day" aria-disabled="true">{day}</span>;
           }
           const hasDiary = writtenDates.has(date);
           const hasMission = missionDates.has(date);
@@ -104,7 +102,7 @@ export default function DiaryCalendar({
               onFocus={() => setFocusedDate(date)}
               onKeyDown={(event) => moveFocus(event, index)}
             >
-              {label}
+              {day}
               <span className="calendar-marks" aria-hidden="true">
                 {hasDiary && <span className="calendar-mark calendar-mark--diary" />}
                 {hasMission && <span className="calendar-mark calendar-mark--mission" />}
@@ -114,7 +112,6 @@ export default function DiaryCalendar({
         })}
       </div>
       <div className="calendar-legend" aria-hidden="true">
-        <span className="calendar-swipe-hint">좌우로 밀어 지난주 보기</span>
         <span><span className="calendar-mark calendar-mark--diary" /> 일기</span>
         <span><span className="calendar-mark calendar-mark--mission" /> 미션 기록</span>
       </div>

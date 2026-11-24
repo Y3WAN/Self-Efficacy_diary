@@ -53,7 +53,6 @@ export default function ProfilePage() {
 
         <section className="chart-card" aria-labelledby="growth-title">
           <h2 id="growth-title" className="chart-title">자신감 성장 그래프</h2>
-          <p className="chart-sub">날마다 달라지는 나의 자신감 변화</p>
           <GrowthChart />
         </section>
 

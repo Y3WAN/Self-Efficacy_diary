@@ -78,9 +78,6 @@ export default function AnalysisPage() {
       <main className="main-content">
         <header className="page-heading">
           <h1>AI가 이렇게 판단한 이유</h1>
-          <p>
-            AI가 일기를 읽고 자신감을 키우는 4가지 경험(해낸 경험 · 보고 배운 경험 · 응원받은 경험 · 마음·몸 상태)을 0~100점으로 매긴 이유예요.
-          </p>
         </header>
         {isLoading && <div className="chart-empty">불러오는 중...</div>}
         {!isLoading && !data.length && (

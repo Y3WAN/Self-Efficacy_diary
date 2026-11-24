@@ -317,7 +317,6 @@ function RecordCarousel({ date, today }) {
           <button type="button" aria-label="다음 날짜" disabled={!next} onClick={() => moveSlide(1)}><Icon name="chevronRight" /></button>
         </div>
       </header>
-      <p className="record-swipe-hint">좌우로 밀어서 날짜를 넘겨 보세요</p>
       <span className="record-date-announcement" role="status">{DAY_LABEL.format(new Date(date))}</span>
       <div
         className="record-rail"

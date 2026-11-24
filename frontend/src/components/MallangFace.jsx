@@ -46,8 +46,8 @@ export function MallangMouth({ variant }) {
     fill={filled ? color : "none"} strokeLinecap="round" strokeLinejoin="round" />;
 }
 
-export default function MallangFace({ look }) {
-  return <svg aria-hidden="true" viewBox="0 0 200 200">
+export default function MallangFace({ look, x, y, size }) {
+  return <svg aria-hidden="true" viewBox="0 0 200 200" x={x} y={y} width={size} height={size}>
     <ellipse data-surface-point="63 115" cx="63" cy="115" rx="19" ry="10"
       fill="var(--mallang-cheek)" opacity="var(--mallang-cheek-opacity)" />
     <ellipse data-surface-point="137 115" cx="137" cy="115" rx="19" ry="10"
