@@ -2030,6 +2030,36 @@ body:has(.mallang-page) { overflow-x: clip; }
 }
 .chart-tooltip strong { display: block; color: var(--accent-hover); }
 .chart-tooltip p + p { margin-top: 2px; }
+.chart-tooltip.growth-trend-tooltip {
+  max-width: min(250px, 78vw);
+  width: max-content;
+  white-space: normal;
+}
+.growth-tooltip-sources {
+  display: grid;
+  gap: 3px;
+  list-style: none;
+  margin-top: 5px;
+}
+.growth-tooltip-source {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.growth-tooltip-source i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 5px;
+}
+.growth-tooltip-note {
+  font-size: .86rem;
+}
+.growth-tooltip-sources .growth-tooltip-note {
+  padding-left: 13px;
+}
 .notice-text {
   color: var(--text-muted);
   text-align: center;
@@ -2454,6 +2484,11 @@ body:has(.mallang-page) { overflow-x: clip; }
 /* ═══════════════════════════════════════════════════════
    4원천 축 링크 · 이동한 곳 강조
 ═══════════════════════════════════════════════════════ */
+.radar-trend-score {
+  color: var(--text-muted);
+  text-align: center;
+}
+.radar-trend-score strong { color: var(--accent-hover); }
 .radar-mallang {
   cursor: pointer;
   transform-box: fill-box;

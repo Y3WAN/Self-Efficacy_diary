@@ -36,13 +36,27 @@ def parse_source_scores(data: dict) -> dict[str, Optional[float]]:
     return out
 
 
+def _weighted_source_scores(scores: dict[str, Optional[float]]) -> dict[str, float]:
+    return {s: WEIGHTS[s] * v for s, v in scores.items() if v is not None}
+
+
 def composite_score(scores: dict[str, Optional[float]]) -> Optional[float]:
     """근거가 있는 원천만으로 가중 평균 (가중치는 다시 합이 1이 되게 맞춘다). 근거가 하나도 없으면 None."""
-    known = {s: v for s, v in scores.items() if v is not None}
-    if not known:
+    weighted = _weighted_source_scores(scores)
+    if not weighted:
         return None
-    total_w = sum(WEIGHTS[s] for s in known)
-    return round(sum(WEIGHTS[s] * v for s, v in known.items()) / total_w, 2)
+    total_w = sum(WEIGHTS[s] for s in weighted)
+    return round(sum(weighted.values()) / total_w, 2)
+
+
+def source_contributions(scores: dict[str, Optional[float]], score: float) -> dict[str, float]:
+    """가중 점수의 비례를 유지하면서 기여도 합을 반올림된 일일 종합 점수에 맞춘다."""
+    weighted = _weighted_source_scores(scores)
+    total = sum(weighted.values())
+    return {
+        s: score * (weighted.get(s, 0.0) / total) if total else 0.0
+        for s in SOURCES
+    }
 
 
 def evidence_string(scores: dict[str, Optional[float]]) -> str:

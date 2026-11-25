@@ -3,15 +3,17 @@ import {
   ResponsiveContainer, Tooltip,
 } from "recharts";
 import { useId } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import client from "../api/client";
+import { useDailyEfficacyTrend } from "../api/dashboard";
 import MallangFace from "./MallangFace";
 import { readMallangCustomization } from "../utils/mallangCustomization";
 import { getMallangPalette, rgbColor } from "../utils/mallangTheme";
-import { SOURCES, SOURCE_BY_KEY } from "../utils/sources";
+import { SOURCE_BY_KEY } from "../utils/sources";
+import { getContributionShares, toScoreOutOf100 } from "../utils/efficacyTrend";
 
 const CHART_MARGIN = { top: 40, right: 92, bottom: 40, left: 92 };
+const NO_CONTRIBUTIONS = "아직 기여 비율을 계산할 기록이 없어요";
+const LOAD_ERROR = "기여 비율을 불러오지 못했어요.";
 
 // A cubic Bézier approximation of a quarter ellipse.
 const QUARTER_ELLIPSE_HANDLE = (4 * (Math.SQRT2 - 1)) / 3;
@@ -98,7 +100,7 @@ function RadarMallang({ points = [] }) {
 
 function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
-  const { key, days } = payload[0]?.payload ?? {};
+  const { key, percent } = payload[0]?.payload ?? {};
   const info = SOURCE_BY_KEY[key];
   if (!info) return null;
 
@@ -106,9 +108,7 @@ function CustomTooltip({ active, payload }) {
     <div className="chart-tooltip">
       <strong>{info.label}</strong>
       <p>{info.desc}</p>
-      <p>
-        {days ? `최근 7일 중 일기에 나온 날 ${days}일` : "최근 7일 일기에는 없어서 예전 기록으로 계산했어요"}
-      </p>
+      <p>종합 추세 점수 기여 비율 {percent}%</p>
     </div>
   );
 }
@@ -125,61 +125,74 @@ function spotlightMissions() {
 }
 
 // 축 글자를 누르면 그 원천을 키울 수 있는 화면으로 이동
-// 이론 이름 아래에 쉬운 말을 한 줄 더. 맨 위 글자는 원 밖으로 올라가게 한 줄만큼 위로 올린다.
-function SourceTick({ x, y, payload, textAnchor, index, onPick }) {
-  const s = SOURCES.find((src) => src.label === payload.value);
+// 이름 아래에 기여 비율을 표시한다. 맨 위 이름은 원 밖으로 한 줄만큼 올린다.
+function SourceTick({ x, y, payload, textAnchor, index, sources, onPick }) {
+  const source = sources.find(({ subject }) => subject === payload.value);
+  if (!source) return null;
+
   const top = index === 0 ? y - 16 : y;
-  const go = () => s && onPick(s);
+  const go = () => onPick(source);
   return (
     <text
       x={x} y={top} textAnchor={textAnchor} dominantBaseline="central"
       className="radar-tick" role="link" tabIndex={0}
-      aria-label={`${payload.value} 관련 화면으로 이동`}
+      aria-label={`${source.subject} ${source.percent}% 관련 화면으로 이동`}
       onClick={go}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } }}
     >
       <tspan>{payload.value}</tspan>
-      {s?.short && <tspan className="radar-tick-short" x={x} dy={17}>{s.short}</tspan>}
+      <tspan className="radar-tick-short" x={x} dy={17}>{source.percent}%</tspan>
     </text>
   );
 }
 
-function useRadar() {
-  return useQuery({
-    queryKey: ["dashboard", "radar"],
-    queryFn: () => client.get("/api/dashboard/radar").then((r) => r.data),
-  });
-}
-
 export default function RadarChartComponent() {
-  const { data: radar, isLoading } = useRadar();
+  const { data = [], isLoading, isError } = useDailyEfficacyTrend();
   const navigate = useNavigate();
+  const latest = data.at(-1);
 
-  if (isLoading) return <div className="chart-empty">불러오는 중...</div>;
-  if (!radar) return <div className="chart-empty">아직 분석된 일기가 없어요.</div>;
+  if (isLoading) return <p className="chart-empty">차트를 불러오는 중…</p>;
+  if (isError && !latest) return <p className="chart-empty">{LOAD_ERROR}</p>;
+  if (latest?.ema == null) return <p className="chart-empty">{NO_CONTRIBUTIONS}</p>;
+  if (!latest.ema_contributions) return <p className="chart-empty">{LOAD_ERROR}</p>;
 
-  const chartData = SOURCES.map((s) => ({
-    key: s.key,
-    subject: s.label,
-    score: radar[`score_${s.key}`],
-    days: radar[`days_${s.key}`],
+  const { parts, hasContributions } = getContributionShares(latest.ema_contributions);
+  if (!hasContributions) return <p className="chart-empty">{NO_CONTRIBUTIONS}</p>;
+
+  const chartData = parts.map(({ code, label, link, share, percent }) => ({
+    key: code.toLowerCase(),
+    subject: label,
+    score: share,
+    percent,
+    link,
   }));
 
   return (
-    <ResponsiveContainer className="radar-plot" width="100%" height={250}>
-      <RadarChart data={chartData} margin={CHART_MARGIN} outerRadius="100%" startAngle={90} endAngle={-270}>
-        <PolarGrid gridType="circle" stroke="var(--divider)" />
-        <PolarAngleAxis
-          dataKey="subject"
-          axisLineType="circle"
-          axisLine={{ stroke: "var(--accent-line)", strokeWidth: 1.5 }}
-          tickLine={false}
-          tick={(props) => <SourceTick {...props} onPick={(s) => (s.link === "mission" ? spotlightMissions() : navigate(s.link))} />}
-        />
-        <PolarRadiusAxis domain={[0, 1]} tick={false} axisLine={false} />
-        <Radar dataKey="score" shape={<RadarMallang />} fill="var(--accent)" />
-        <Tooltip content={<CustomTooltip />} />
-      </RadarChart>
-    </ResponsiveContainer>
+    <>
+      <p className="radar-trend-score">
+        종합 추세 점수 <strong>{toScoreOutOf100(latest.ema)}점 / 100점</strong>
+      </p>
+      <ResponsiveContainer className="radar-plot" width="100%" height={250}>
+        <RadarChart data={chartData} margin={CHART_MARGIN} outerRadius="100%" startAngle={90} endAngle={-270}>
+          <PolarGrid gridType="circle" stroke="var(--divider)" />
+          <PolarAngleAxis
+            dataKey="subject"
+            axisLineType="circle"
+            axisLine={{ stroke: "var(--accent-line)", strokeWidth: 1.5 }}
+            tickLine={false}
+            tick={(props) => (
+              <SourceTick
+                {...props}
+                sources={chartData}
+                onPick={(source) => (source.link === "mission" ? spotlightMissions() : navigate(source.link))}
+              />
+            )}
+          />
+          <PolarRadiusAxis domain={[0, 1]} tick={false} axisLine={false} />
+          <Radar dataKey="score" shape={<RadarMallang />} fill="var(--accent)" />
+          <Tooltip content={<CustomTooltip />} />
+        </RadarChart>
+      </ResponsiveContainer>
+    </>
   );
 }

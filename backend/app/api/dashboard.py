@@ -8,7 +8,9 @@ from app.db.models import User
 from app.services.elo_service import BASE_RATING, LEVEL_RATINGS, expected_success, target_level
 from app.services.analysis_service import INITIAL_REASONING
 from app.services.mission_service import load_source_profile
-from app.services.scoring import composite_score, ema_step, known_scores
+from app.services.scoring import (
+    SOURCES, composite_score, ema_step, evidence_string, known_scores, source_contributions,
+)
 from pydantic import BaseModel
 from typing import Optional
 from datetime import date, datetime
@@ -141,9 +143,12 @@ async def elo(
 
 class DailyScore(BaseModel):
     date: str
-    score: float
-    ema: float
+    score: Optional[float]
+    ema: Optional[float]
     confidence: float
+    ema_contributions: dict[str, float]
+    evidence_sources: str
+    is_initial: bool
 
 
 @router.get("/daily", response_model=list[DailyScore])
@@ -151,38 +156,50 @@ async def daily(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """일별 종합 점수와 확신도 가중 EMA 추세선. 하루 하나의 분석(가장 최근 것)만 사용한다.
-
-    EMA_t = EMA_(t-1) + (α × 확신도) × (점수_t − EMA_(t-1)),  α = scoring.EMA_ALPHA (0.5)
-    """
+    """분석 날짜별 종합 추세와 원천별 기여도. 추세에는 기존 반영 조건을 적용한다."""
     result = await db.execute(
         select(DailyAnalysis)
-        .where(
-            DailyAnalysis.user_id == current_user.id,
-            DailyAnalysis.is_reflected == True,
-            DailyAnalysis.composite_score.is_not(None),
-        )
+        .where(DailyAnalysis.user_id == current_user.id)
         .order_by(DailyAnalysis.diary_date, DailyAnalysis.created_at)
     )
-    by_date: dict[date, DailyAnalysis] = {}
-    for a in result.scalars().all():
-        by_date[a.diary_date] = a  # 같은 날짜면 나중 것이 덮어씀
+    latest_by_date: dict[date, DailyAnalysis] = {}
+    reflected_by_date: dict[date, DailyAnalysis] = {}
+    for analysis in result.scalars().all():
+        latest_by_date[analysis.diary_date] = analysis
+        if analysis.is_reflected and analysis.composite_score is not None:
+            reflected_by_date[analysis.diary_date] = analysis
 
     out: list[DailyScore] = []
     ema: Optional[float] = None
-    for d in sorted(by_date):
-        a = by_date[d]
-        # 예전 데이터도 같은 규칙(근거 있는 원천만)으로 다시 계산
-        recomputed = composite_score(known_scores(a))
-        if recomputed is None:
-            continue
-        score = recomputed
-        ema = ema_step(ema, score, float(a.confidence))
+    ema_contributions = dict.fromkeys(SOURCES, 0.0)
+    for day, latest in latest_by_date.items():
+        analysis = reflected_by_date.get(day, latest)
+        scores = known_scores(analysis)
+        confidence = float(analysis.confidence)
+        score = composite_score(scores) if day in reflected_by_date else None
+        if score is not None:
+            contributions = source_contributions(scores, score)
+            # 빠진 원천도 같은 비율로 평활화해야 기여도 합이 종합 추세와 일치한다.
+            ema_contributions = {
+                source: ema_step(None if ema is None else ema_contributions[source], value, confidence)
+                for source, value in contributions.items()
+            }
+            ema = ema_step(ema, score, confidence)
+
+        is_initial = score is not None and analysis.reasoning == INITIAL_REASONING
+        evidence_analysis = latest if is_initial else analysis
+        evidence = (
+            "" if evidence_analysis.reasoning == INITIAL_REASONING
+            else evidence_string(known_scores(evidence_analysis))
+        )
         out.append(DailyScore(
-            date=d.isoformat(),
-            score=round(score, 3),
-            ema=round(ema, 3),
-            confidence=float(a.confidence),
+            date=day.isoformat(),
+            score=score,
+            ema=round(ema, 3) if ema is not None else None,
+            confidence=confidence,
+            ema_contributions=ema_contributions,
+            evidence_sources=evidence,
+            is_initial=is_initial,
         ))
     return out
 

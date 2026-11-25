@@ -64,7 +64,7 @@ export default function MainPage() {
         <ActivityHistory today={today} />
         <section className="chart-card main-radar" aria-labelledby="main-radar-title">
           <h2 id="main-radar-title" className="chart-title">자기효능감</h2>
-          <p className="chart-sub">자기효능감은 '나는 해낼 수 있어' 하고 나를 믿는 마음이에요. 최근 7일 일기를 보고 네 가지로 나눠 보여 줘요.</p>
+          <p className="chart-sub">가장 최근 종합 추세 점수를 이루는 네 원천의 비율이에요.</p>
           <Suspense fallback={<p className="chart-sub">차트를 불러오는 중…</p>}>
             <RadarChartComponent />
           </Suspense>
