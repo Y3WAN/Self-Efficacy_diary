@@ -492,7 +492,8 @@ export default function MallangPage() {
     customizeButton.current?.focus();
   }
 
-  const isShellBroken = isWaxMode && waxShell.pieces.length === 0;
+  const hasWaxShell = isWaxMode && waxShell.pieces.length > 0;
+  const isShellBroken = isWaxMode && !hasWaxShell;
   const busy = isShellBroken && waxShell.chips.length > 0;
   return <div className={`mallang-page mallang-page--${appearance}`}>
     <AppBar />
@@ -528,7 +529,7 @@ export default function MallangPage() {
               <div ref={deformation} className="mallang-deformation">
                 <canvas ref={canvas} className="mallang-material-canvas" aria-hidden="true" />
                 <button ref={control} type="button" draggable={false} className="mallang-body"
-                  aria-label={isWaxMode && waxShell.pieces.length ? "껍질 길게 누르기" : "말랑이 누르기"}
+                  aria-label={hasWaxShell ? "껍질 길게 누르기" : "말랑이 누르기"}
                   aria-disabled={busy || undefined}
                   onPointerMove={(e) => controller.current.move(e)}
                   onPointerUp={(e) => controller.current.end(e)} onPointerCancel={(e) => controller.current.end(e)}
@@ -544,7 +545,8 @@ export default function MallangPage() {
             </div>
           </div>
         </section>
-        {customizing && <MallangCustomizer id={customizerId} look={look} onChange={updateLook} onClose={closeCustomizer} />}
+        {customizing && <MallangCustomizer id={customizerId} look={look} surface={hasWaxShell ? "wax" : appearance}
+          onChange={updateLook} onClose={closeCustomizer} />}
       </div>
     </main>
   </div>;

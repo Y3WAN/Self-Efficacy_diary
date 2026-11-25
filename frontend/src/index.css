@@ -16,53 +16,50 @@
    DESIGN TOKENS
 ═══════════════════════════════════════════════════════ */
 :root {
-  /* ── Backgrounds ── */
-  --bg:          #FBF6F7;
-  --bg-mint:     #EAF4EC;   /* 성공·완료 배경 */
-  --bg-sky:      #EDF3F8;   /* AI·정보 배경 */
-  --bg-warm:     #F8EFF2;
-  --card:        #FFFFFF;
-
-  /* ── Stroke & Surface ── */
-  --border:      #EBDDE2;
-  --divider:     #F1E5E9;
-
-  /* ── Text ── */
-  --text:        #302B31;
-  --text-muted:  #625B65;
-  --text-soft:   #756D77;
-
-  /* ── Sub Colors ── */
-  --green:       #7A9E7E;   /* 숲 초록 — 성장·성공 */
-  --green-bg:    #EAF4EC;
-  --blue:        #6C8BAA;   /* 슬레이트 블루 — 신뢰·차분 */
-  --blue-bg:     #EDF3F8;
-  --brown:       #A68A64;   /* 따뜻한 브라운 — 안정 */
-  --brown-bg:    #F5EDE0;
-
-  /* ── Accent Colors ── */
-  --accent:      #934361;
-  --accent-hover:#7B3450;
-  --accent-soft: #F7E3EC;
-  --accent-line: #E5BCD0;
-  --accent-rgb:  147 67 97;
+  /* applySavedMallangTheme sets the selected theme over these strawberry defaults. */
+  --bg: #FDF2F6;
+  --bg-warm: #FAE8F0;
+  --card: #fff;
+  --accent: #934361;
+  --accent-rgb: 147 67 97;
+  --accent-soft: #F7DCE9;
+  --accent-hover: color-mix(in srgb, var(--accent) 83%, black);
+  --accent-line: color-mix(in srgb, var(--accent) 33%, var(--card));
   --on-accent: #fff;
+
+  --border: color-mix(in srgb, var(--accent) 19%, var(--card));
+  --divider: color-mix(in srgb, var(--accent) 12%, var(--card));
+  --control-border: color-mix(in srgb, var(--accent) 76%, var(--card));
+
+  --text: #302A33;
+  --text-muted: #584F5B;
+  --text-soft: #6D6370;
+
+  /* Status colors keep the same meaning across themes. */
+  --green: #42715C;
+  --green-ink: #365D4C;
+  --green-bg: #E8F2EC;
+  --bg-mint: var(--green-bg);
+  --blue: #496986;
+  --blue-ink: #3B5770;
+  --blue-bg: #EBF2F8;
+  --bg-sky: var(--blue-bg);
+  --brown: #765944;
+  --brown-bg: #F4EDE5;
+  --orange: #92542C;
+  --coral: #985041;
+  --yellow: #E5B961;
+  --warning: #B87837;
+  --warning-bg: #FBF1E2;
+  --warning-text: #794822;
+
   --mallang-cheek: #DB789B;
   --mallang-eye: #492032;
   --mallang-mouth: #91465f;
   --mallang-eye-glint: #fff6fb;
   --mallang-cheek-opacity: .3;
-  --orange:      #F4A261;
-  --coral:       #E76F51;
-  --yellow:      #F6C453;   /* 성취·하이라이트 */
-
-  /* ── Warning (암버 계열 — 빨강 금지) ── */
-  --warning:     #F4A261;
-  --warning-bg:  #FEF3E8;
-  --warning-text:#954621;
-
   /* ── Shadow ── */
-  --shadow-ink: #3d3530;
+  --shadow-ink: #302A33;
   --shadow-sm:   0 1px 6px color-mix(in srgb, var(--shadow-ink) 6%, transparent);
   --shadow:      0 2px 14px color-mix(in srgb, var(--shadow-ink) 8%, transparent);
   --shadow-md:   0 4px 24px color-mix(in srgb, var(--shadow-ink) 10%, transparent);
@@ -84,56 +81,12 @@
   --card-padding: clamp(14px, 3.6vw, 22px);
   --control-height: 44px;
   --header-height: 60px;
-  --control-border: #a88a97;
   --focus-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.18);
-  --green-ink: #45684a;
-  --blue-ink: #45647e;
   font-family: var(--font-body);
   font-size: var(--body-size);
   font-weight: 400;
   color: var(--text);
   background: var(--bg);
-}
-
-:root:where([data-mallang-theme]:not([data-mallang-theme="rose"])) {
-  --bg: hsl(var(--mallang-theme-hue) 48% 96%);
-  --bg-warm: hsl(var(--mallang-theme-hue) 42% 93%);
-  --card: hsl(var(--mallang-theme-hue) 50% 98.5%);
-  --border: hsl(var(--mallang-theme-hue) 26% 87%);
-  --divider: hsl(var(--mallang-theme-hue) 30% 91%);
-  --text: hsl(var(--mallang-theme-hue) 21% 18%);
-  --text-muted: hsl(var(--mallang-theme-hue) 17% 34%);
-  --text-soft: hsl(var(--mallang-theme-hue) 14% 42%);
-  --accent-hover: color-mix(in srgb, var(--accent), black 20%);
-  --accent-soft: color-mix(in srgb, var(--accent) 13%, var(--card));
-  --accent-line: color-mix(in srgb, var(--accent) 32%, var(--card));
-  --control-border: color-mix(in srgb, var(--accent) 62%, var(--card));
-  --on-accent: hsl(var(--mallang-theme-hue) 45% 98%);
-
-  --green: hsl(calc(var(--mallang-theme-hue) - 24) 29% 42%);
-  --green-bg: color-mix(in srgb, var(--green) 12%, var(--card));
-  --green-ink: color-mix(in srgb, var(--green), black 24%);
-  --blue: hsl(calc(var(--mallang-theme-hue) + 26) 36% 43%);
-  --blue-bg: color-mix(in srgb, var(--blue) 12%, var(--card));
-  --blue-ink: color-mix(in srgb, var(--blue), black 24%);
-  --brown: hsl(calc(var(--mallang-theme-hue) + 15) 22% 44%);
-  --brown-bg: color-mix(in srgb, var(--brown) 12%, var(--card));
-  --bg-mint: var(--green-bg);
-  --bg-sky: var(--blue-bg);
-  --orange: hsl(calc(var(--mallang-theme-hue) - 44) 46% 47%);
-  --coral: hsl(calc(var(--mallang-theme-hue) - 44) 51% 38%);
-  --yellow: hsl(calc(var(--mallang-theme-hue) - 32) 62% 63%);
-  --warning: var(--orange);
-  --warning-bg: color-mix(in srgb, var(--warning) 12%, var(--card));
-  --warning-text: color-mix(in srgb, var(--coral), black 18%);
-  --shadow-ink: var(--text);
-  --mallang-cheek-opacity: .42;
-}
-
-:root[data-mallang-theme="cocoa"] {
-  --bg: hsl(var(--mallang-theme-hue) 25% 94%);
-  --bg-warm: hsl(var(--mallang-theme-hue) 23% 90%);
-  --card: hsl(var(--mallang-theme-hue) 24% 97%);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -517,14 +470,14 @@ h1, .community-title, .diary-header h2 {
   padding: 10px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--blue-bg);
-  color: var(--blue-ink);
+  background: var(--bg);
+  color: var(--accent);
   text-decoration: none;
   font-weight: 700;
   gap: 10px;
   min-height: var(--control-height);
 }
-.main-analysis-link:hover { background: var(--divider); }
+.main-analysis-link:hover { background: var(--accent-soft); color: var(--accent-hover); }
 .main-scroll-list { max-height: 280px; overflow-y: auto; }
 
 /* 섹션 헤더 */
@@ -1823,15 +1776,27 @@ body:has(.mallang-page) { overflow-x: clip; }
 }
 .mallang-shape-option svg { width: 38px; height: 23px; max-width: 100%; }
 .mallang-theme-dot {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--swatch-background);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--swatch-accent) 25%, transparent);
+}
+.mallang-theme-check {
+  position: absolute;
+  inset-inline-end: -4px;
+  inset-block-end: -2px;
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--swatch-accent);
   border-radius: 50%;
-  background: var(--swatch-color);
-  color: var(--on-accent);
+  background: var(--card);
+  color: var(--swatch-accent);
 }
-.mallang-theme-dot .app-icon { width: 15px; height: 15px; }
+.mallang-theme-check .app-icon { width: 12px; height: 12px; }
 .mallang-customizer p { font-size: .9rem; }
 
 @media (min-width: 680px) {
@@ -2151,7 +2116,7 @@ body:has(.mallang-page) { overflow-x: clip; }
   display: flex;
   margin-top: 12px;
   text-align: right;
-  color: var(--blue-ink);
+  color: var(--accent);
   text-decoration: underline;
   font-weight: 600;
   text-underline-offset: 3px;
@@ -2177,7 +2142,7 @@ body:has(.mallang-page) { overflow-x: clip; }
   text-align: center;
   line-height: 1.6;
 }
-.notice-text a { color: var(--blue-ink); }
+.notice-text a { color: var(--accent); }
 .analysis-card { padding: var(--card-padding); }
 .analysis-head {
   width: 100%;
@@ -2378,28 +2343,48 @@ body:has(.mallang-page) { overflow-x: clip; }
 .reflection-achievements .app-icon { position: absolute; left: 0; top: 0.22em; color: var(--green); }
 .reflection-message { margin-top: 10px; line-height: 1.6; color: var(--text-muted); }
 .reflection-mission { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
-.reflection-mission .reflection-label { color: var(--coral); }
+.reflection-mission .reflection-label { color: var(--accent); }
 .reflection-mission-content { line-height: 1.5; color: var(--text); }
 .reflection-mission-reason { margin-top: 4px; color: var(--text-muted); }
 .reflection-mission-link {
   display: inline-block;
   margin-top: 8px;
   font-weight: 700;
-  color: var(--blue);
+  color: var(--accent);
   text-decoration: none;
 }
 
+.main-content--home {
+  --today-diary-button-height: 48px;
+  --today-diary-button-gap: 12px;
+  padding-bottom: calc(var(--section-gap) + var(--today-diary-button-height) + var(--today-diary-button-gap));
+}
+.today-diary-button {
+  position: fixed;
+  z-index: 105;
+  inset-inline-end: max(var(--page-gutter), calc((100% - var(--app-width)) / 2 + var(--page-gutter)));
+  bottom: calc(var(--bottom-nav-height, 0px) + var(--today-diary-button-gap));
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--today-diary-button-height);
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: var(--shadow-accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+.today-diary-button:is(:hover, :active) { background: var(--accent-hover); }
+
 .today-card {
-  display: block;
   padding: var(--card-padding);
   border-radius: var(--radius);
   background: var(--card);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
-  color: var(--text);
-  text-decoration: none;
 }
-.today-card--empty { background: var(--accent-soft); border-color: var(--accent-line); }
 .today-card-title {
   margin-bottom: 8px;
   word-break: keep-all;
@@ -2411,22 +2396,6 @@ body:has(.mallang-page) { overflow-x: clip; }
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
-.today-card-prompt {
-  margin-bottom: 4px;
-  color: var(--text);
-  font-size: clamp(18px, 4vw, 22px);
-  line-height: 1.35;
-}
-.today-card-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 10px;
-  color: var(--accent-hover);
-  font-weight: 700;
-}
-.today-card:hover { border-color: var(--accent); }
-.today-card-action { text-decoration: underline; text-underline-offset: 3px; }
 
 .mission-links {
   display: grid;
@@ -2605,7 +2574,7 @@ body:has(.mallang-page) { overflow-x: clip; }
 }
 
 .radar-tick {
-  fill: var(--blue-ink);
+  fill: var(--accent);
   font-size: 14px;
   font-weight: 600;
   text-decoration: underline;

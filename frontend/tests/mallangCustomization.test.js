@@ -37,7 +37,10 @@ test("the saved face and app theme survive a fresh page load", async (t) => {
   assert.deepEqual(reloaded.readMallangCustomization(), saved);
   reloaded.applySavedMallangTheme();
   assert.equal(dataset.mallangTheme, "mint");
-  assert.equal(styles.get("--accent-rgb"), "53 109 94");
+  assert.equal(styles.get("--accent-rgb"), "60 111 93");
+  assert.equal(styles.get("--bg"), "#EFF8F3");
+  assert.equal(styles.get("--bg-warm"), "#E4F2EA");
+  assert.equal(styles.get("--accent-soft"), "#D8EDE1");
   assert.equal(styles.get("--mallang-eye"), rgbColor(getMallangPalette("mint").eyes));
   assert.equal(styles.get("--mallang-cheek"), rgbColor(getMallangPalette("mint").cheeks));
 });
@@ -53,6 +56,9 @@ test("old saved colors are ignored while valid face shapes are preserved", async
 test("each theme has distinct app accents and character colors", () => {
   assert.equal(MALLANG_THEMES.length, 8);
   assert.equal(new Set(MALLANG_THEMES.map(({ accent }) => accent)).size, 8);
+  for (const role of ["background", "surface", "softAccent"]) {
+    assert.equal(new Set(MALLANG_THEMES.map(({ app }) => app[role])).size, 8);
+  }
   for (const color of ["skin", "skinEdge", "groove", "cheeks", "waxMid"]) {
     assert.equal(new Set(MALLANG_THEMES.map(({ id }) => rgbColor(getMallangPalette(id)[color]))).size, 8);
   }

@@ -1,16 +1,5 @@
-import { useId, useMemo } from "react";
-import { getMallangTheme, tintMallangColor } from "../utils/mallangTheme";
-
-const waxColors = {
-  light: "#ffe3ee",
-  middle: "#f3bfd6",
-  rim: "#dc8bb3",
-  dark: "#ad507e",
-  gloss: "#fff6fc",
-  edge: "#9a4d76",
-  pieceLine: "#fdd4e8",
-  crack: "#813858",
-};
+import { useId } from "react";
+import { getMallangWaxPalette } from "../utils/mallangTheme";
 
 function WaxPlate({ piece, waxFill, glossFill, colors }) {
   const { path, center, opening, isCrumb } = piece;
@@ -37,10 +26,7 @@ function WaxHairlines({ paths, color }) {
 
 export default function WaxShell({ shell, shellRef, themeId }) {
   const id = useId();
-  const colors = useMemo(() => {
-    const theme = getMallangTheme(themeId);
-    return Object.fromEntries(Object.entries(waxColors).map(([name, hex]) => [name, tintMallangColor(hex, theme)]));
-  }, [themeId]);
+  const colors = getMallangWaxPalette(themeId);
   if (!shell.pieces.length && !shell.chips.length) return null;
 
   const { center, radius } = shell;

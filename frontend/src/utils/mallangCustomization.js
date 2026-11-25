@@ -57,7 +57,9 @@ export function applySavedMallangTheme() {
   const palette = getMallangPalette(theme.id);
   const { dataset, style } = document.documentElement;
   dataset.mallangTheme = theme.id;
-  style.setProperty("--mallang-theme-hue", theme.hue);
+  style.setProperty("--bg", theme.app.background);
+  style.setProperty("--bg-warm", theme.app.surface);
+  style.setProperty("--accent-soft", theme.app.softAccent);
   style.setProperty("--accent", theme.accent);
   style.setProperty("--accent-rgb", theme.accent.slice(1).match(/../g).map((channel) => parseInt(channel, 16)).join(" "));
   style.setProperty("--mallang-eye", rgbColor(palette.eyes));

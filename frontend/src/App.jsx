@@ -71,7 +71,11 @@ export default function App() {
         <Toaster
           position="bottom-center"
           toastOptions={{
-            style: { borderRadius: "12px" },
+            style: {
+              borderRadius: "12px",
+              background: "var(--card)",
+              color: "var(--text)",
+            },
             success: { icon: <Icon name="check" className="toast-success-icon" /> },
             error: { icon: <Icon name="close" className="toast-error-icon" /> },
           }}
