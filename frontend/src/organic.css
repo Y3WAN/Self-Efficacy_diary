@@ -158,7 +158,7 @@
 }
 :where(.today-card, .activity-day, .mission-list, .chart-card:not(.design-guide), .diary-entry,
   .community-card, .profile-info-card, .persona-card, .emotion-report, .timeline-card,
-  .failure-log-item, .mallang-customizer, .design-guide-layout-sample, .tester-source) {
+  .failure-log-item, .mallang-customizer, .design-guide-layout-sample, .tester-source, .stack-card) {
   --organic-contour: var(--contour-card);
 }
 :where(.today-card, .diary-entry:nth-child(3n + 2), .community-card:nth-child(5n + 2),
@@ -176,7 +176,7 @@
 :where(.auth-btn, .btn, .record-header button, .diary-header button, .diary-save-btn,
   .diary-actions button, .profile-logout-btn, .celebration-btn, .trial-submit, .trial-next,
   .trial-mission-actions button, .tester-button, .app-bottom-nav-link, .kebab-dropdown,
-  .trial-tabs, .mallang-customizer-sections, .analysis-head, .reflection-request-btn) {
+  .trial-tabs, .mallang-customizer-sections, .analysis-head, .reflection-request-btn, .stack-more) {
   --organic-contour: var(--contour-button);
 }
 :where(.auth-btn--trial, .today-diary-button, .main-analysis-link, .activity-write, .activity-diary,
@@ -187,13 +187,13 @@
   .tester-elo, .tester-receipt, .tester-sample, .tester-mission, .profile-row--points,
   .design-guide-list li, .design-guide-swatch, .design-guide-layout-sample span, .notice-box,
   .analysis-reason, .mission-feedback, .mission-helper-panel, .helper-bubble, .reflection-card,
-  .trial-diary, .auth-error, .chart-tooltip, .app-toast) {
+  .trial-diary, .auth-error, .chart-tooltip, .app-toast, .stack-filter, .stack-book, .stack-tag) {
   --organic-contour: var(--contour-petal);
 }
 :where(.calendar-day:nth-child(5n + 2), .calendar-day:nth-child(7n + 5), .grade-btn:nth-child(2),
   .survey-group:nth-of-type(even) .grade-btn:nth-child(4), .trial-tab:nth-child(2),
   .tester-options label:nth-child(4) > span, .mallang-shape-option:nth-child(3),
-  .helper-bubble--assistant, .activity-diary:nth-of-type(3n)) {
+  .helper-bubble--assistant, .activity-diary:nth-of-type(3n), .stack-book:nth-child(3n + 2)) {
   --organic-contour: var(--contour-button);
 }
 :where(.persona-badge, .status-tag, .timeline-source, .tag, .conf-badge, .trial-badge, .trial-level,
@@ -217,7 +217,8 @@
     #root :where(.auth-card, .celebration-card, .today-card, .activity-history, .activity-day,
       .mission-list, .chart-card, .diary-entry, .community-card, .profile-info-card, .profile-avatar-card,
       .emotion-report, .timeline-card, .failure-log-item, .mallang-customizer, .mallang-room,
-      .mission-preferences, .trial-mission, .design-guide-layout-sample, .tester-card, .tester-progress, .tester-source) {
+      .mission-preferences, .trial-mission, .design-guide-layout-sample, .tester-card, .tester-progress, .tester-source,
+      .stack-card) {
       position: relative;
       container-type: inline-size;
       isolation: isolate;
@@ -241,7 +242,7 @@
     }
 
     :where(.today-card, .diary-entry, .community-card, .profile-info-card, .failure-log-item,
-      .mallang-customizer, .mallang-room, .mission-preferences, .trial-mission) {
+      .mallang-customizer, .mallang-room, .mission-preferences, .trial-mission, .stack-card) {
       --surface-shadow: var(--shadow-sm);
     }
     .auth-card { --surface-shadow: var(--shadow-md); }
@@ -313,12 +314,13 @@
     .activity-history, .activity-day, .mission-list, .chart-card, .diary-entry, .community-card,
     .profile-info-card, .profile-avatar-card, .persona-card, .emotion-report, .timeline-card,
     .failure-log-item, .mallang-customizer, .mission-preferences, .ai-card, .trial-mission,
-    .design-guide-layout-sample, .tester-source) {
+    .design-guide-layout-sample, .tester-source, .stack-card) {
     border-radius: 5% 7% 4% 6% / 12% 8% 14% 7%;
   }
   #root :where(input:not([type="checkbox"], [type="radio"]), textarea, select, .auth-btn, .btn,
     .diary-save-btn, .profile-logout-btn, .today-diary-button, .trial-submit, .trial-next, .tester-button,
-    .activity-diary, .calendar-day, .grade-btn, .trial-tab, .tester-options label > span, .app-toast) {
+    .activity-diary, .calendar-day, .grade-btn, .trial-tab, .tester-options label > span, .app-toast,
+    .stack-filter, .stack-book, .stack-tag) {
     border-radius: 5% 4% 6% 4% / 34% 46% 30% 42%;
   }
 }

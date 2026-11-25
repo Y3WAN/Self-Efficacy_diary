@@ -21,11 +21,13 @@
 
 ### 예시 · 나의 미션 탑
 
-현재 `main`에 있는 `MissionStack.jsx`의 바깥쪽 요소는 `.stack-card`를 사용합니다. 이 클래스는 디자인 브랜치의 곡선 선택자에 없으므로, 병합 뒤 탑의 바깥 카드에도 곡선을 적용하고 싶다면 다음 세 군데에서 `.stack-card`를 추가하면 됩니다.
+`MissionStack.jsx`의 바깥쪽 요소인 `.stack-card`는 아래 세 군데에 연결돼 있습니다. 새 전용 카드를 추가할 때 이 구성을 예시로 쓸 수 있습니다.
 
 1. `--contour-card`를 지정하는 카드 그룹에 `.stack-card`를 추가합니다.
 2. `::after`를 생성하는 `#root :where(...)` 카드 목록에도 `.stack-card`를 넣습니다.
-3. 기존 탑의 그림자 세기를 맞추려면 `--surface-shadow: var(--shadow-sm)`을 지정하는 그룹에도 추가합니다. 대체 모서리를 적용하려면 파일 마지막의 카드 목록에도 넣습니다.
+3. 기존 탑의 그림자 세기에 맞춰 `--surface-shadow: var(--shadow-sm)`을 쓰는 그룹에 연결합니다. 파일 마지막의 카드 목록은 `border-shape`가 없을 때 대체 모서리를 적용합니다.
+
+탑의 필터와 책, 상태 배지는 버튼과 같은 작은 곡선 그룹을 씁니다. 책의 길이와 배치는 `MissionStack.jsx`의 `bookShape()`가 담당합니다.
 
 배경이나 테두리가 다른 새 카드라면 `--surface-background`, `--surface-border`, `--surface-shadow`로 장식층의 표시를 맞춥니다. 값은 해당 카드의 기본 스타일을 기준으로 정합니다.
 
