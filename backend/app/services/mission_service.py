@@ -111,6 +111,34 @@ helper (막히면 도와줄 사람과 실제로 건넬 말)
 JSON만 반환: {"problem": "일기에서 찾은 진짜 문제", "content": "미션 내용", "reason": "이 미션을 하면 좋아지는 점", "helper": "막히면 도와줄 사람과 방법"}"""
 
 
+EVERYDAY_MISSION_SYSTEM = """당신은 학생의 하루 일기를 보고, 그날 있었던 일을 한 번 더 즐겁게 이어 가는 작은 미션 1개를 만드는 코치입니다.
+이 일기는 공부·운동처럼 해 보려던 일이 없는 '일상 일기'입니다. 일기에서 고칠 점이나 문제를 찾지 마세요.
+
+미션 (content)
+- 일기에 나온 사람·장소·활동과 직접 이어지는 기분 좋은 행동 하나. 학생이 스스로 정해서 해냈다고 느낄 수 있는 것.
+- 금지: 돈·예산·절약·계획표·목록 정리·반성·건강 관리(스트레칭·발성 등)·요리처럼 일기 속 아쉬운 점을 고치려는 미션.
+- 지금 있는 곳에서 휴대폰이나 이미 가진 것만으로 바로 시작할 수 있을 것. 돈·장소 이동·준비물 금지.
+- 끝났는지 알 수 있게 대상이나 개수를 구체적으로 넣으세요.
+- [목표 난이도]가 높을수록 같은 방향에서 조금 더 큰 행동으로.
+  (Lv1 짧은 메시지 한 통 → Lv3 다음 약속을 직접 정해 제안하기 → Lv5 여러 사람과 함께할 일을 직접 꾸리기)
+- 행동은 하나. 학생에게 말하듯 자연스러운 한 문장, 20자 이상 60자 이하, 반드시 '~보세요'로 끝내세요.
+- 일기에 없는 사람(형·누나·동생 등)을 지어내지 마세요.
+- [지금 시각]이 밤이면 메시지처럼 지금 할 수 있는 방법으로.
+
+reason: 이 행동을 하면 무엇이 좋은지 긍정형 한 문장. 50자 이하, 존댓말, '~요'로 끝내기.
+helper: 막히면 도와줄 사람과 실제로 건넬 말을 큰따옴표로 넣은 한 문장. 45자 이하, '~보세요'로 끝내기. 마땅치 않으면 "".
+
+예시 (형식만 참고하고, 문장을 그대로 베끼지 마세요)
+- "친구와 마라탕을 먹었는데 돈이 모자라 꿔바로우를 뺐다" / Lv1
+  content: 같이 간 친구에게 오늘 제일 맛있었던 재료를 메시지로 말해 보세요.
+- 같은 일기 / Lv3
+  content: 같이 간 친구에게 다음에 같이 먹을 날과 메뉴를 정해 제안해 보세요.
+- "가족이랑 영화를 봤는데 생각보다 길어서 졸렸다" / Lv2
+  content: 같이 본 가족에게 영화에서 제일 좋았던 장면을 하나 골라 말해 보세요.
+
+JSON만 반환: {"problem": "일상 일기", "content": "미션 내용", "reason": "이 미션을 하면 좋아지는 점", "helper": "막히면 도와줄 사람과 방법"}"""
+
+
 def _fix_tone(content: str) -> str:
     """반말·명사형 종결을 '~해 보세요' 존댓말로 교정."""
     content = content.rstrip(".")
@@ -136,8 +164,10 @@ async def generate_mission_draft(
     existing_contents: list[str],
     custom_prompt: str = "",
     recent_reflections: str = "",
+    everyday: bool = False,
 ) -> tuple[str, str, str]:
-    """미션 내용, '왜 이 미션인지', '막히면 도와줄 사람'을 함께 만든다. 실패하면 ("", "", "")."""
+    """미션 내용, '왜 이 미션인지', '막히면 도와줄 사람'을 함께 만든다. 실패하면 ("", "", "").
+    everyday: 해 보려던 일이 없는 일상 일기 → 문제 찾기 대신 그날 일을 즐겁게 이어 가는 미션 지시문을 쓴다."""
     current_block = "\n".join(f"- {content}" for content in existing_contents) or "없음"
     user_prompt = (
         f"타겟 원천: {target_var}\n"
@@ -151,7 +181,7 @@ async def generate_mission_draft(
         user_prompt += f"[사용자 추가 컨텍스트]\n{custom_prompt}\n\n"
     user_prompt += f"[기존 미션 목록]\n{current_block}"
     data = await chat_json([
-        {"role": "system", "content": MISSION_SYSTEM},
+        {"role": "system", "content": EVERYDAY_MISSION_SYSTEM if everyday else MISSION_SYSTEM},
         {"role": "user", "content": user_prompt},
     ])
     if not isinstance(data, dict):

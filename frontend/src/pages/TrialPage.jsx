@@ -9,27 +9,28 @@ import { todayKST } from "../utils/date";
 // 체험 토큰은 이 화면 안에서만 들고 있어, 같은 브라우저의 시연용 로그인(demo)을 건드리지 않는다.
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000" });
 
-// 일어난 일 → 내가 한 행동 → 기분·다음 생각. 2번(행동)이 있어야 '해낸 것'을 찾을 수 있다.
+// 해 보려던 일 → 어디까지 했고 어디서 막혔는지 → 기분·다음 생각.
+// 분석('오늘 해낸 것')과 미션(막힌 곳을 푸는 작은 행동)이 둘 다 '해 보려던 일'이 있어야 제대로 나온다.
 const QUESTIONS = [
   {
-    q: "오늘 가장 기억에 남는 일은 무엇이었나요?",
-    hint: "언제, 어디서, 누구와 있었던 일인지 적어 보세요",
-    placeholder: "예: 학교 수학 시간에 쪽지 시험을 봤다",
-    example: "학교 수학 시간에 쪽지 시험을 봤다",
+    q: "오늘 해 보려고 했던 일이 있나요?",
+    hint: "숙제, 공부, 운동, 연습, 누군가에게 말 걸기처럼 아주 작은 일도 괜찮아요",
+    placeholder: "예: 수학 문제집 3쪽 풀기",
+    example: "수학 문제집 3쪽을 풀려고 했다",
     required: true,
   },
   {
-    q: "그때 나는 무엇을 했나요?",
-    hint: "끝까지 못 했어도 괜찮아요. 해 본 것, 시도한 것을 적어 보세요",
-    placeholder: "예: 모르는 문제는 건너뛰고 아는 문제부터 풀었다",
-    example: "모르는 문제는 건너뛰고 아는 문제부터 풀었다. 마지막 문제는 시간이 없어서 못 풀었다",
+    q: "그 일을 어디까지 했나요? 어디서 막혔나요?",
+    hint: "다 못 했어도 괜찮아요. 한 만큼, 막힌 곳을 그대로 적어 보세요",
+    placeholder: "예: 1~4번은 풀었는데 5번 도형 문제에서 막혔다",
+    example: "1번부터 4번까지는 풀었는데 5번 도형 문제에서 막혀서 30분 동안 붙잡고 있다가 덮었다",
     required: true,
   },
   {
-    q: "그 일을 겪고 어떤 기분이 들었나요? 다음엔 어떻게 해 보고 싶나요?",
+    q: "그때 기분은 어땠나요? 다음엔 어떻게 해 보고 싶나요?",
     hint: "선택 · 떠오르는 대로 짧게 적어도 돼요",
-    placeholder: "예: 아쉬웠다. 다음엔 시간을 재면서 풀어 보고 싶다",
-    example: "마지막 문제를 못 풀어서 아쉬웠다. 다음엔 시간을 재면서 풀어 보고 싶다",
+    placeholder: "예: 답답했다. 다음엔 친구한테 물어보고 싶다",
+    example: "답답했다. 다음엔 5번만 다시 천천히 보고 싶다",
     required: false,
   },
 ];
@@ -95,6 +96,15 @@ export default function TrialPage() {
     analyze(freeText);
   };
 
+  // 미션 생성이 실패했을 때: 적은 답은 그대로 두고 입력 화면으로 돌아간다
+  const rewrite = () => {
+    setStep("input");
+    setSubmitted("");
+    setResult(null);
+    setLevelChange(null);
+    setMissionError("");
+  };
+
   // 일기가 이미 만들어졌으면 분석만 다시, 아니면 일기 쓰기부터 다시
   const retry = () => (submitted ? analyze(submitted) : composeAndAnalyze());
 
@@ -144,7 +154,7 @@ export default function TrialPage() {
 
       {step === "input" && (
         <section className="trial-section">
-          <h1 className="trial-title">오늘 하루,<br />질문 세 개면 일기가 돼요</h1>
+          <h1 className="trial-title">오늘 해 보려던 일,<br />질문 세 개면 일기가 돼요</h1>
           <p className="trial-sub">AI가 일기로 정리하고, 그 안에서 <b>내가 해낸 것</b>을 찾아 드려요</p>
 
           <div className="trial-tabs" role="tablist">
@@ -187,13 +197,13 @@ export default function TrialPage() {
           {mode === "write" && (
             <form className="trial-questions" onSubmit={(e) => { e.preventDefault(); writeOwn(); }}>
               <label className="trial-question-label" htmlFor="trial-free">오늘의 일기</label>
-              <p className="trial-question-hint">있었던 일, 내가 한 일, 그때 기분을 자유롭게 적어 보세요</p>
+              <p className="trial-question-hint">해 보려던 일, 어디까지 했는지, 그때 기분을 자유롭게 적어 보세요</p>
               <textarea
                 id="trial-free"
                 className="trial-input trial-textarea"
                 rows={7}
                 maxLength={1000}
-                placeholder="예: 오늘 발표 연습을 두 번 했다. 처음엔 많이 떨렸는데 두 번째는 조금 나았다."
+                placeholder="예: 내일 발표라 연습을 두 번 했다. 처음엔 첫 문장에서 말이 막혔는데 두 번째는 끝까지 했다."
                 value={freeText}
                 onChange={(e) => setFreeText(e.target.value)}
               />
@@ -225,7 +235,7 @@ export default function TrialPage() {
           {step === "pending" && (
             <div className="reflection-card reflection-card--pending" role="status">
               <span className="reflection-spinner" aria-hidden="true" />
-              AI가 이 일기에서 해낸 것을 찾고 있어요…
+              AI가 이 일기를 보고 미션을 만들고 있어요…
             </div>
           )}
 
@@ -238,17 +248,12 @@ export default function TrialPage() {
 
           {step === "result" && result && (
             <>
-              <div className="reflection-card">
-                <p className="reflection-label">✨ 오늘 해낸 것</p>
-                <ul className="reflection-achievements">
-                  {result.reflection.achievements.map((item) => <li key={item}>{item}</li>)}
-                </ul>
-                {result.reflection.message && <p className="reflection-message">{result.reflection.message}</p>}
-              </div>
-              <p className="trial-why">
-                💡 왜 해낸 것을 찾아 줄까요? 직접 해낸 경험(성취 경험)은 '나도 할 수 있다'는 믿음, 자기효능감을 키우는
-                <b> 가장 강한 힘</b>이에요 (심리학자 반두라, 1977)
-              </p>
+              {!result.mission && (
+                <div className="trial-mission">
+                  <p className="trial-mission-content">이번에는 미션을 만들지 못했어요.</p>
+                  <button type="button" className="trial-submit trial-submit--wide" onClick={rewrite}>다시 써 보기</button>
+                </div>
+              )}
 
               {result.mission && (
                 <div className="trial-mission">
