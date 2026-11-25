@@ -39,7 +39,7 @@ export default function AboutPage() {
         <div className="chart-card">
           <h2 className="chart-title">서비스 소개</h2>
           <div className="about-text">
-            <p>codemyworld는 일기 속에서 '나도 할 수 있다'는 자신감(자기효능감)을 키우는 경험을 찾아 주고, 내 수준에 맞는 <b>작은 미션</b>을 주는 일기 앱이에요. 미션이 막히면 도움을 받을 사람도 함께 알려 줘요.</p>
+            <p>codemyworld는 일기 속에서 자기효능감(어떤 일을 해낼 수 있다는 스스로에 대한 믿음)을 키우는 경험을 찾아 주고, 내 수준에 맞는 <b>작은 미션</b>을 주는 일기 앱이에요. 미션이 막히면 도움을 받을 사람도 함께 알려 줘요.</p>
             <p className="notice-box">
               <Icon name="warning" /> 이 서비스는 <b>전문 심리 검사나 상담을 대신하지 않아요.</b> AI가 찾은 내용은 틀릴 수 있어요.
               마음이 많이 힘들다면 청소년상담 1388(전화·문자·카카오톡)에 도움을 요청하세요.

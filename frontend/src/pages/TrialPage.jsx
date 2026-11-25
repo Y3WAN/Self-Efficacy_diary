@@ -142,7 +142,7 @@ export default function TrialPage() {
                 {result.reflection.message && <p className="reflection-message">{result.reflection.message}</p>}
               </div>
               <p className="trial-why">
-                💡 왜 해낸 것을 찾아 줄까요? 직접 해낸 경험은 '나도 할 수 있다'는 자신감을 키우는
+                💡 왜 해낸 것을 찾아 줄까요? 직접 해낸 경험(성취 경험)은 '나도 할 수 있다'는 믿음, 자기효능감을 키우는
                 <b> 가장 강한 힘</b>이에요 (심리학자 반두라, 1977)
               </p>
 

@@ -21,7 +21,7 @@ const CustomTooltip = ({ active, payload }) => {
   return (
     <div className="chart-tooltip">
       <strong>{p.date.slice(5).replace("-", "/")}</strong>
-      <p>이날 일기에서 찾은 자신감</p>
+      <p>이날 일기에서 찾은 자기효능감</p>
     </div>
   );
 };
@@ -54,10 +54,10 @@ export default function GrowthChart() {
       {data.length > 1 && (
         <p className="elo-calibration">
           {diff >= 3
-            ? <><Icon name="sprout" /> {data.length}일 전보다 자신감이 자랐어요.</>
+            ? <><Icon name="sprout" /> {data.length}일 전보다 자기효능감이 자랐어요.</>
             : diff <= -3
               ? "요즘 조금 지쳤나 봐요. 작은 미션부터 천천히 해 봐요."
-              : "요즘 자신감은 비슷하게 이어지고 있어요."}
+              : "요즘 자기효능감은 비슷하게 이어지고 있어요."}
         </p>
       )}
     </>

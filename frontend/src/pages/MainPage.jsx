@@ -69,8 +69,8 @@ export default function MainPage() {
         />
         <ActivityHistory today={today} />
         <section className="chart-card main-radar" aria-labelledby="main-radar-title">
-          <h2 id="main-radar-title" className="chart-title">요즘 나를 키운 경험</h2>
-          <p className="chart-sub">최근 7일 동안의 변화</p>
+          <h2 id="main-radar-title" className="chart-title">자기효능감의 4가지 원천</h2>
+          <p className="chart-sub">자기효능감: 어떤 일을 해낼 수 있다는 스스로에 대한 믿음 · 최근 7일</p>
           <RadarChartComponent />
           <Link to="/analysis" className="chart-link">AI가 일기에서 찾은 문장 보기 <Icon name="arrowRight" /></Link>
         </section>

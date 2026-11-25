@@ -36,7 +36,7 @@ function AnalysisCard({ a, defaultOpen }) {
             return (
               <div key={s.key} className={`analysis-row${hasEvidence ? "" : " analysis-row--none"}`}>
                 <div className="analysis-row-top">
-                  <span className="analysis-label">{s.label}</span>
+                  <span className="analysis-label">{s.label} <em className="analysis-desc">{s.desc}</em></span>
                   {!hasEvidence && <span className="analysis-val">일기에 없음</span>}
                 </div>
                 <div className="analysis-bar"><div style={{ width: hasEvidence ? `${pct(score)}%` : 0 }} /></div>

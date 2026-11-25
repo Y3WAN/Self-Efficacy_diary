@@ -2387,7 +2387,17 @@ body:has(.mallang-page) { overflow-x: clip; }
 .today-card:hover { border-color: var(--accent); }
 .today-card-action { text-decoration: underline; text-underline-offset: 3px; }
 
-.profile-links { display: flex; flex-direction: column; gap: 10px; }
+.mission-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
+}
+@media (max-width: 380px) {
+  .mission-links { grid-template-columns: 1fr; }
+}
 .analysis-row--none .analysis-val { color: var(--text-soft); font-weight: 500; }
 
 .app-icon {
@@ -2569,4 +2579,12 @@ body:has(.mallang-page) { overflow-x: clip; }
 .about-more > summary {
   cursor: pointer;
   list-style: revert;
+}
+
+.analysis-desc {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 0.85em;
+  margin-left: 4px;
 }
