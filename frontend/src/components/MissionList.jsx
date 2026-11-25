@@ -135,7 +135,7 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
         )}
         <nav className="mission-links" aria-label="미션 관련 메뉴">
           <Link to="/prompt" className="main-analysis-link">
-            <span><Icon name="pencil" /> 미션 맞춤 설정</span><Icon name="arrowRight" />
+            <span><Icon name="pencil" /> 미션 내용</span><Icon name="arrowRight" />
           </Link>
           <Link to="/community" className="main-analysis-link">
             <span><Icon name="globe" /> 함께 해낸 미션</span><Icon name="arrowRight" />

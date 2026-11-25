@@ -309,7 +309,7 @@ function RecordCarousel({ date, today }) {
     <main className="record-page" onKeyDown={handleKeys}>
       <header className="record-header">
         <button ref={backRef} type="button" className="record-back" onClick={returnToCalendar}>
-          <Icon name="arrowLeft" /> 달력
+          <Icon name="arrowLeft" /> 메인
         </button>
         <h1>그날의 기록</h1>
         <div className="record-arrows">
