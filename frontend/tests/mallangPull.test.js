@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { blendPullTip, pullStretchProgress, tetherSpringDisplacement } from "../src/utils/mallangPull.js";
-import { advanceMotion, beginPull, MAX_VISUAL_TETHER_DISTANCE, PULL_RADIUS, pulledCircle, pullTarget, springDisplacement, updatePull } from "../src/utils/mallangMotion.js";
+import { advanceMotion, beginPull, dragRotationDelta, MAX_VISUAL_TETHER_DISTANCE, PULL_RADIUS, pulledCircle, pullTarget, springDisplacement, updatePull } from "../src/utils/mallangMotion.js";
 
 function motionAt(now = 0, hasMoved = false) {
   return { mode: "grab", rect: { left: 0, top: 0, width: 800, height: 600 }, bodySize: 200,
@@ -196,4 +196,18 @@ test("held force reads the current pointer on each substep at 12.5, 31 and 62 fp
     assert(Math.abs(motion.vx-outcomes[0].vx)<.00001);
     assert(Math.abs(motion.position.x-outcomes[0].position.x)<.00001);
   }
+});
+
+test("a tangential drag turns the body more at the rim and reverses with the pointer", () => {
+  const center = { x: 100, y: 100 }, radius = 94;
+  const from = (x) => ({ x, y: center.y });
+  const to = (x) => ({ x, y: center.y + 25 });
+  const nearCenter = dragRotationDelta(from(110), to(110), center, radius);
+  const midBody = dragRotationDelta(from(150), to(150), center, radius);
+  const rim = dragRotationDelta(from(190), to(190), center, radius);
+  assert(nearCenter > 0 && midBody > nearCenter && rim > midBody);
+  assert(Math.abs(rim + dragRotationDelta(to(190), from(190), center, radius)) < 1e-12);
+  assert.equal(dragRotationDelta(from(190), from(240), center, radius), 0);
+  assert.equal(dragRotationDelta(from(30), from(170), center, radius), 0);
+  assert.equal(dragRotationDelta(from(190), from(190), center, radius), 0);
 });

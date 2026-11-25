@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
 import { bareSurfaceContact, createMallangMaterial, membranePath, membraneRadii, membraneRadiusAt, MATERIAL } from "../src/utils/mallangMaterial.js";
-import { createWaxShell, fractureWaxShell } from "../src/utils/waxShell.js";
+import { createWaxShell, fractureWaxShell, markWaxShell } from "../src/utils/waxShell.js";
 import { createMallangSurface } from "../src/utils/mallangSurface.js";
 import { advanceMotion, beginPull, MAX_VISUAL_TETHER_DISTANCE, PULL_RADIUS, pulledCircle, updatePull } from "../src/utils/mallangMotion.js";
 
@@ -81,8 +81,9 @@ test("shell support and removed support alter the same deforming contents", () =
   for(const m of [soft,wax]) {m.touch(100,100,0);run(m,0,1600);}
   const supported=wax.sample(100,100);
   assert(Math.abs(supported)<Math.abs(soft.sample(100,100))*.5);
-  let broken=shell;
-  for(let i=0;i<6;i++)broken=fractureWaxShell(broken,{x:100,y:100},45,broken.nextPieceId)?.shell??broken;
+  const contact={x:100,y:100};
+  let broken=fractureWaxShell(markWaxShell(shell,contact),contact).shell;
+  while(broken.pieces.length)broken=fractureWaxShell(broken,contact).shell;
   wax.setShell(broken);run(wax,1600,3200);
   assert(wax.sample(100,100)<supported-1,"removing a shell must release its constraint");
   assert(Math.abs(wax.state.signedHeight)<.05);
@@ -163,7 +164,7 @@ test("body pressure and impact stay inside the reserved wall margin while the ti
   const pulled=membraneRadii(m,{x:228,y:100,radius:38});
   assert(pulled[0]>margin,"the pulled end may cross the body's wall margin");
 });
-test("restored relief keeps the current outline, tip tracking and palette while its wider trail refills", (t) => {
+test("the renderer preserves the dent trail within the current outline", (t) => {
   const originalDocument=globalThis.document,originalWindow=globalThis.window,originalPath=globalThis.Path2D;
   const calls={pixels:0,clips:0,encodes:0};
   const context={createImageData:(w,h)=>{calls.pixels++;return {width:w,data:new Uint8ClampedArray(w*h*4)};},
@@ -204,7 +205,6 @@ test("restored relief keeps the current outline, tip tracking and palette while 
 
   const fullDentRadius = 28;
   const pulledDentReach = MAX_VISUAL_TETHER_DISTANCE - 30;
-  const grooveAndShadowReach = pulledDentReach + fullDentRadius;
   renderer.setFlatStyle(true);
   for (const angle of [-Math.PI / 2, 0, Math.PI / 4, Math.PI, Math.PI / 2]) {
     const pointAt = (distance) => ({ x: 100 + Math.cos(angle) * distance, y: 100 + Math.sin(angle) * distance });
@@ -213,10 +213,10 @@ test("restored relief keeps the current outline, tip tracking and palette while 
       MAX_VISUAL_TETHER_DISTANCE - 3, MAX_VISUAL_TETHER_DISTANCE, 195]) {
       const tip = pointAt(distance);
       const contact = bareSurfaceContact(tip);
-      m.reset(); renderer.resetTrail(); m.touch(contact.x, contact.y, 0); run(m, 0, 1200);
+      m.reset(); renderer.reset(); m.touch(contact.x, contact.y, 0); run(m, 0, 1200);
       const pull = distance > 108 ? { ...pointAt(Math.min(distance, MAX_VISUAL_TETHER_DISTANCE)), radius: PULL_RADIUS, edgeRadius: 108, blend: 1 } : null;
       const outline = renderer.draw(pull);
-      renderer.resetTrail();
+      renderer.reset();
       const pose = pull && { ...pull, ...tip };
       assert.equal(renderer.draw(pull, null, pose), outline, "moving the dent must not change the outline");
       const scanStart = distance === 48 ? 25 : Math.min(distance, MAX_VISUAL_TETHER_DISTANCE) - 70;
@@ -242,7 +242,7 @@ test("restored relief keeps the current outline, tip tracking and palette while 
     assert(cap.dent - frames[4].dent <= 2, "the dent eases to a stop at full stretch");
   }
   renderer.setFlatStyle(false);
-  m.reset(); renderer.resetTrail(); renderer.draw();
+  m.reset(); renderer.reset(); renderer.draw();
   const restTrail = green(68, 74);
   const restBesideTrail = green(68, 140);
   m.touch(62, 74, 0);
@@ -252,13 +252,13 @@ test("restored relief keeps the current outline, tip tracking and palette while 
   run(m, 1200, 1264);
   renderer.draw();
   assert(green(68, 74) < restTrail - 20, "the previous depression remains visible along the old path");
-  assert.equal(green(68, 140), restBesideTrail, "untouched material beyond the wider trail keeps its color");
+  assert.equal(green(68, 140), restBesideTrail, "untouched material beside the dent keeps its color");
   run(m, 1264, 2650);
   renderer.draw();
   assert.equal(green(68, 74), restTrail, "the trail fades completely while the new press stays held");
 
   for (const side of [-1, 1]) {
-    m.reset(); renderer.resetTrail();
+    m.reset(); renderer.reset();
     const top = -Math.PI / 2;
     const tipAt = (angle) => ({
       x: 100 + Math.cos(angle) * MAX_VISUAL_TETHER_DISTANCE,
@@ -268,64 +268,23 @@ test("restored relief keeps the current outline, tip tracking and palette while 
     const tip = tipAt(top);
     m.touch(100, 26, 0); run(m, 0, 1200);
     renderer.draw(tip, null, tip);
-    m.advance(1216);
-    renderer.draw(tip, null, tip);
-    assert(!renderer.trailActive, "a stationary local contact leaves no trail");
-
-    function dragTo(angle, time) {
-      const movedTip = tipAt(angle);
+    for (const [index, angle] of [top + side * .75, top - side * .75].entries()) {
+      const movedTip = tipAt(angle), now = 1216 + index * 16;
       const { x, y } = bareSurfaceContact(movedTip);
-      m.move(x, y, time); m.advance(time);
+      m.move(x, y, now); m.advance(now);
       renderer.draw(movedTip, null, movedTip);
-      return membraneRadii(m, movedTip);
+      const baseRim = membraneRadii(m, movedTip);
+      assert.equal(renderer.radiusAt(top), membraneRadiusAt(baseRim, top),
+        "turning the tip cannot widen the rim along its previous path");
+      assert(renderer.sampleHeight(100 + Math.cos(angle) * pulledDentReach,
+        100 + Math.sin(angle) * pulledDentReach) < -10);
+      assert(renderer.sampleHeight(100, 100 - pulledDentReach) >= 0,
+        "dent history beyond the current outline is clipped");
     }
-
-    function assertRoundedFront(baseRim, angle, direction) {
-      for (const offset of [.08, .16, .24, .32]) {
-        const front = angle + offset * direction;
-        const expansion = renderer.radiusAt(front) - membraneRadiusAt(baseRim, front);
-        assert(expansion < 2, "the trailing shoulder extends the leading curve by " + expansion);
-      }
-    }
-
-    const firstAngle = top + side * .65;
-    const baseRim = dragTo(firstAngle, 1232);
-    assertRoundedFront(baseRim, firstAngle, side);
-    assert(renderer.trailActive);
-    assert(membraneRadiusAt(baseRim, top) < pulledDentReach, "the old contour would cut across the groove center");
-    assert(renderer.radiusAt(top) >= grooveAndShadowReach, "the widened shoulder contains the groove and its radial shading");
-    assert(green(100, 100 - pulledDentReach) < 175, "the groove still shades its original material coordinates");
-    assert.equal(renderer.radiusAt(top + Math.PI), membraneRadiusAt(baseRim, top + Math.PI));
-
-    const reversedAngle = top - side * .65;
-    const reversedRim = dragTo(reversedAngle, 1248);
-    assertRoundedFront(reversedRim, reversedAngle, -side);
-    assert(membraneRadiusAt(reversedRim, firstAngle) < pulledDentReach);
-    assert(renderer.radiusAt(firstAngle) >= grooveAndShadowReach, "a reversal also preserves the departing shoulder");
-    assert(renderer.radiusAt(top) >= grooveAndShadowReach, "the earlier groove still fits after the reversal");
-    for (let sample = 0; sample < 96; sample++) {
-      assert(renderer.radiusAt(sample * Math.PI / 48) <= MAX_VISUAL_TETHER_DISTANCE + 10,
-        "rounding the groove cannot extend the outline beyond the shorter cap");
-    }
-
-    m.release(1248, false);
-    m.advance(1264);
-    renderer.draw();
-    let previousRadius = renderer.radiusAt(top);
-    assert(previousRadius >= grooveAndShadowReach, "the groove starts retracting from its visible outline");
-    for (let now = 1280; now <= 2672; now += 16) {
-      m.advance(now);
-      renderer.draw();
-      const radius = renderer.radiusAt(top);
-      assert(radius <= previousRadius && previousRadius - radius < 12, "the shoulder recedes as the groove refills");
-      previousRadius = radius;
-    }
-    assert(!renderer.trailActive);
-    assert.equal(renderer.radiusAt(top), MATERIAL.radius);
   }
 
   // Releasing a stationary stretch must carry one dent inward from the last painted rim.
-  m.reset(); renderer.resetTrail(); renderer.setFlatStyle(true);
+  m.reset(); renderer.reset(); renderer.setFlatStyle(true);
   const up = { x: 100, y: 100 - MAX_VISUAL_TETHER_DISTANCE, radius: PULL_RADIUS, edgeRadius: 108 };
   m.touch(100, 26, 0); run(m, 0, 1200);
   const stretchedOutline = renderer.draw(up, null, up);
@@ -369,11 +328,11 @@ test("restored relief keeps the current outline, tip tracking and palette while 
   m.advance(1540); renderer.draw();
   assert.equal(renderer.radiusAt(-Math.PI / 2), MATERIAL.radius);
   assert.equal(deepestTopDent().depth, 0);
-  assert(!renderer.trailActive);
+  assert(!renderer.recovering);
 
   const earlyReturns = [];
   for (const [speed, duration] of [[250, 340], [910, 385], [1800, 430]]) {
-    m.reset(); renderer.resetTrail();
+    m.reset(); renderer.reset();
     m.touch(100, 26, 0); run(m, 0, 1200);
     renderer.draw(up, null, up);
     renderer.setReleaseSpeed(speed);
@@ -381,9 +340,9 @@ test("restored relief keeps the current outline, tip tracking and palette while 
     m.advance(1350); renderer.draw();
     earlyReturns.push(deepestTopDent().reach);
     m.advance(1200 + duration - 1); renderer.draw();
-    assert(renderer.trailActive, "recovery remains active just before the captured duration");
+    assert(renderer.recovering, "recovery remains active just before the captured duration");
     m.advance(1200 + duration); renderer.draw();
-    assert(!renderer.trailActive, "recovery finishes at the captured duration");
+    assert(!renderer.recovering, "recovery finishes at the captured duration");
     assert.equal(renderer.radiusAt(-Math.PI / 2), MATERIAL.radius);
   }
   assert(earlyReturns[0] < earlyReturns[1] && earlyReturns[1] < earlyReturns[2],
@@ -393,7 +352,7 @@ test("restored relief keeps the current outline, tip tracking and palette while 
   // The same local stroke lasts longer at low pointer speed, and speeding up
   // also consumes the remaining lifetime of the part already on the surface.
   for (const speed of [60, 1600]) {
-    m.reset(); renderer.resetTrail();
+    m.reset(); renderer.reset();
     m.touch(48, 100, 0); run(m, 0, 1200);
     renderer.draw();
     m.move(150, 100, 1216); m.advance(1216);
@@ -410,7 +369,7 @@ test("restored relief keeps the current outline, tip tracking and palette while 
       run(m, 1440, 1648); renderer.draw();
     }
     assert.equal(renderer.sampleHeight(50, 100), 0, "a fast swipe refills the tail even after stopping");
-    assert(!renderer.trailActive);
+    assert(!renderer.recovering);
     assert(renderer.sampleHeight(150, 100) < -10, "speed changes leave the held dent intact");
   }
 
@@ -456,7 +415,7 @@ test("the bare renderer displays surface-anchored ripples and respects reduced m
   assert.equal(material.state.waves.length, 0); assert.equal(material.state.active, false);
   assert(clips >= 5, "each wave frame is clipped to the current membrane path");
 
-  material.reset(); renderer.resetTrail();
+  material.reset(); renderer.reset();
   material.touch(26, 100, 0); run(material, 0, 1200); renderer.draw();
   const leftAnchor = renderer.releaseWaveAnchor();
   assert.equal(leftAnchor.angle, Math.PI);
@@ -482,7 +441,7 @@ test("the bare renderer displays surface-anchored ripples and respects reduced m
   renderer.draw(leftPull, { x: -1, y: 0 });
   assert.deepEqual(innerPatch(), beforeMove, "pulling or squashing the rim cannot move an inner wave in local coordinates");
 
-  material.reset(); renderer.resetTrail();
+  material.reset(); renderer.reset();
   material.touch(174, 100, 0); run(material, 0, 1200);
   const rightPull = { x: 100 + MAX_VISUAL_TETHER_DISTANCE, y: 100, radius: PULL_RADIUS, edgeRadius: 108 };
   renderer.draw(rightPull, null, rightPull);

@@ -30,6 +30,20 @@ export function positionFromPoint(x, y, rect) {
   };
 }
 
+export function dragRotationDelta(from, to, center, radius) {
+  const x = from.x - center.x, y = from.y - center.y;
+  const dx = to.x - from.x, dy = to.y - from.y;
+  const cross = x * dy - y * dx;
+  const movementSquared = dx * dx + dy * dy;
+  if (!cross || radius <= 0) return 0;
+
+  // A stroke crossing the pivot has no leverage, even when its endpoints are far apart.
+  const closest = clamp(-(x * dx + y * dy) / movementSquared, 0, 1);
+  const leverage = Math.min(1, Math.hypot(x + closest * dx, y + closest * dy) / radius);
+  const turn = Math.atan2(cross, x * (x + dx) + y * (y + dy));
+  return turn * leverage ** 2;
+}
+
 function tetherOffset(motion, x, y, limit = MAX_TETHER_DISTANCE) {
   const { rect, bodySize } = motion;
   const point = motion.tetherPoint ?? motion.pointer;

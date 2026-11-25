@@ -1,5 +1,4 @@
-import { MATERIAL, membranePath, membraneRadii, membraneRadiusAt, retractMembraneCap,
-  widenMembraneForTrail } from "./mallangMaterial.js";
+import { MATERIAL, membranePath, membraneRadii, membraneRadiusAt, retractMembraneCap } from "./mallangMaterial.js";
 import { MAX_VISUAL_TETHER_DISTANCE } from "./mallangMotion.js";
 import { PULL_RIM_EASE_DISTANCE, softLimitDistance } from "./mallangPull.js";
 import { smoothStep } from "./surfacePress.js";
@@ -185,7 +184,7 @@ function paintWaxPixels(pixels, material, radii, slopeX, slopeY, { gloss, waxSha
     pixels.data[p] = tone[0];
     pixels.data[p + 1] = tone[1];
     pixels.data[p + 2] = tone[2];
-    pixels.data[p + 3] = Math.min(165, Math.abs(lighting) * 220 + Math.max(0, -h) * 1.1) *
+    pixels.data[p + 3] = Math.min(165, Math.abs(lighting) * 300 + Math.max(0, -h) * 48) *
       smooth((radius - distance) / 5);
   }
 }
@@ -223,7 +222,6 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
     waveSettings: { speed: MATERIAL.waveSpeed, width: MATERIAL.waveWidth, travel: MATERIAL.waveTravel } });
   const trailPoints = [];
   let trailHead = null;
-  let trailDirection = null;
   let lastTrailUpdate = null;
   let lastContactPose = null;
   let retraction = null;
@@ -252,10 +250,9 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
       MATERIAL.origin, MATERIAL.origin, MATERIAL.extent, MATERIAL.extent);
   }
 
-  function resetTrail() {
+  function reset() {
     trailPoints.length = 0;
     trailHead = null;
-    trailDirection = null;
     lastTrailUpdate = null;
     lastContactPose = null;
     retraction = null;
@@ -294,7 +291,7 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
     return surfaceWaves;
   }
 
-  function recordTrail(relief, now, dragSpeed) {
+  function recordDentTrail(relief, now, dragSpeed) {
     const excessSpeed = Math.max(0, dragSpeed - TRAIL_SPEED_THRESHOLD);
     const recoveryRate = Math.min(MAX_TRAIL_RECOVERY_RATE, 1 + excessSpeed / TRAIL_SPEED_PER_RECOVERY_STEP);
     const frameTime = Math.max(0, now - (lastTrailUpdate ?? now));
@@ -310,13 +307,11 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
     const { contact } = material.state;
     if (!contact || !relief) {
       trailHead = null;
-      trailDirection = null;
       return;
     }
     const next = { ...relief, time: now, startedAt: contact.startedAt };
     if (trailHead?.startedAt !== contact.startedAt) {
       trailHead = next;
-      trailDirection = null;
       return;
     }
     const dx = next.x - trailHead.x, dy = next.y - trailHead.y;
@@ -326,7 +321,7 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
       trailHead.time = now;
       return;
     }
-    trailDirection = { dx: dx / distance, dy: dy / distance };
+
     // Overlapping stamps keep the local path continuous through a fast turn.
     const steps = Math.min(MATERIAL.maxTrail, Math.ceil(distance / TRAIL_SAMPLE_SPACING));
     const elapsed = Math.min(MAX_TRAIL_DEPARTURE_INTERVAL_MS, Math.max(0, now - trailHead.time));
@@ -416,8 +411,10 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
 
   function draw(pull = null, impact = null, reliefTip = null, dragSpeed = 0) {
     const { shell, contact, time } = material.state;
+    const intactWax = shell && !shell.fractures;
     const load = material.rimLoad();
-    let relief = shell ? null : contactRelief(load, reliefTip);
+    const exposedContact = shell && contact && { x: contact.x, y: contact.y, depth: material.contactDepth() };
+    let relief = intactWax ? null : contactRelief(load ?? exposedContact, reliefTip);
     if (!shell) updateRetraction(contact, load);
     let catchProgress = 1;
     if (regrab) {
@@ -431,21 +428,18 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
           sizeDepth: (start.sizeDepth ?? start.depth) * (1 - catchProgress) + relief.depth * catchProgress };
       }
     }
-    if (!shell) recordTrail(relief, time, dragSpeed);
-    const baseRadii = retraction ? membraneRadii(material, null, impact, null)
+    if (!shell) recordDentTrail(relief, time, dragSpeed);
+    let radii = retraction ? membraneRadii(material, null, impact, null)
       : membraneRadii(material, pull, impact, load);
-    const front = contact && relief && pull && trailDirection && { ...relief, ...trailDirection };
-    let radii = baseRadii;
-    if (retraction) ({ radii, relief } = retract(baseRadii, time));
-    else if (!shell) radii = widenMembraneForTrail(baseRadii, trailPoints, time, 2 * SHADE_STEP, front);
-    const stretched = !!pull?.radius || radii !== baseRadii || !!regrab;
+    if (retraction) ({ radii, relief } = retract(radii, time));
+    const stretched = !!pull?.radius || !!regrab;
     if (regrab) radii = blendRadii(regrab.radii, radii, catchProgress);
     renderedRadii = radii;
     const next = membranePath(radii);
     if (next !== outline) { outline = next; path = new Path2D(next); }
     clear(context);
     if (lightContext) clear(lightContext);
-    if (!shell) {
+    if (!intactWax) {
       context.save();
       // Cast the soft shadow from the current contour, including the drawn-out end.
       context.shadowColor = paint.shadow;
@@ -456,7 +450,7 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
       context.restore();
     }
     context.save(); context.clip(path);
-    if (shell) {
+    if (intactWax) {
       context.fillStyle = flat ? paint.waxFlat : paint.gradient;
       context.fillRect(VIEW_ORIGIN, VIEW_ORIGIN, VIEW_SIZE, VIEW_SIZE);
       if (!flat) { context.fillStyle = paint.sheen; context.fillRect(VIEW_ORIGIN, VIEW_ORIGIN, VIEW_SIZE, VIEW_SIZE); }
@@ -487,13 +481,13 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
       context.drawImage(shadeCanvas, origin, origin, extent, extent);
     }
     context.restore();
-    context.strokeStyle = shell ? paint.waxStroke : paint.bareStroke;
+    context.strokeStyle = intactWax ? paint.waxStroke : paint.bareStroke;
     context.lineWidth = .7; context.stroke(path);
     return outline;
   }
-  return { draw, releaseWaveAnchor, resetTrail, setReleaseSpeed, sampleHeight: reliefField.sample,
+  return { draw, releaseWaveAnchor, reset, setReleaseSpeed, sampleHeight: reliefField.sample,
     radiusAt,
-    get trailActive() { return trailPoints.length > 0 || retraction?.remaining > 0; },
+    get recovering() { return trailPoints.length > 0 || (retraction?.remaining ?? 0) > 0; },
     get hasStretchedContact() {
       return !!lastContactPose?.stretched && lastContactPose.startedAt === material.state.contact?.startedAt;
     },

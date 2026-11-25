@@ -14,10 +14,6 @@ export function pressDepth(elapsed) {
   return depth * smoothStep(Math.min(1, elapsed / PRESS_FADE_IN_MS));
 }
 
-export function pressRadiusRatio(depth) {
-  return 0.19 + depth * 0.29;
-}
-
 export function pressRecoveryDuration(depth) {
   return 260 + 420 * depth;
 }

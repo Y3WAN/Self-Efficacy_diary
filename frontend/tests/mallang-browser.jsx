@@ -108,18 +108,24 @@ async function run(name,setRunning,setReport) {
         const toggle=document.querySelector("[role=switch]");
         if(toggle.getAttribute("aria-checked")!=="true"){toggle.click();await next();}
         const reset=document.querySelector(".mallang-wax-reset");if(!reset.disabled){reset.click();await next();}
-        const initialPieces=inspect().shellPieces;
-        send("pointerdown");await wait(70);send("pointerup");await wait(150);
-        const shortPress=inspect().shellPieces===initialPieces;
-        let presses=0,firstFragments=0;
-        while(inspect().shellPieces&&presses<180) {
-          key("keydown");await wait(660);key("keyup");await wait(35);presses++;
-          if(presses===1)firstFragments=inspect().shellPieces;
-          if(presses%10===0)setReport({name,status:"running",presses,pieces:inspect().shellPieces});
+        send("pointerdown");send("pointerup");await wait(200);
+        const lightCracks=inspect().shellPieces===1&&document.querySelectorAll(".mallang-wax-hairline").length===2;
+        send("pointerdown");await wait(850);send("pointerup");await wait(360);
+        const firstFragments=inspect().shellPieces;
+        const allStillAttached=firstFragments>=7&&document.querySelectorAll(".mallang-wax-chip").length===0;
+        let presses=0;
+        let crumbs=inspect().reducedMotion;
+        while(inspect().shellPieces&&presses<firstFragments) {
+          key("keydown");await wait(640);
+          crumbs ||= document.querySelectorAll(".mallang-wax-crumb").length>0;
+          key("keyup");await wait(30);presses++;
         }
         await wait(3500);
-        checks={shortPress,firstFragments:firstFragments>1,cleared:inspect().shellPieces===0,
-          noAnimation:!inspect().active,presses};
+        const cleared=inspect().shellPieces===0&&!document.querySelector(".mallang-wax-shell");
+        const noAnimation=!inspect().active;
+        reset.click();await next();
+        checks={lightCracks,allStillAttached,crumbs,cleared,noAnimation,
+          restored:inspect().shellPieces===1&&reset.disabled,presses};
       }
       if(name==="switch") {
         send("pointerdown");await wait(400);
@@ -135,11 +141,11 @@ async function run(name,setRunning,setReport) {
         const toggle=document.querySelector("[role=switch]");
         if(toggle.getAttribute("aria-checked")!=="true"){toggle.click();await next();}
         const reset=document.querySelector(".mallang-wax-reset");if(!reset.disabled){reset.click();await next();}
-        send("pointerdown",50,100);await wait(800);
+        send("pointerdown",50,100);await wait(850);
         const first=inspect().shellPieces;
         for(let i=1;i<=45;i++){send("pointermove",50+i*2,100);await wait(30);}
         const last=inspect().shellPieces;send("pointerup",140,100);await wait(3500);
-        checks={firstCrack:first>1,pathCracks:last>first,persists:inspect().shellPieces===last,settled:!inspect().active};
+        checks={firstCrack:first>=7,pathShed:last<first,persists:inspect().shellPieces===last,settled:!inspect().active};
       }
       if(name==="burst") {
         for(let i=0;i<20;i++){send("pointerdown",100,100);await wait(24);send("pointerup",100,100);await wait(22);}

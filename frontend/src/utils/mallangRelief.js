@@ -11,7 +11,6 @@ const TRAIL_DURATION_SCALE = 2;
 const TRAIL_REFILL_START = .42;
 const CONTACT_SHOULDER_EXTENT = 1.85;
 const TRAIL_SHOULDER_EXTENT = 1.25;
-const TRAIL_FINAL_DEPTH = .14;
 
 export function dentDimensions(depth) {
   const length = 19 + depth * 9;
@@ -42,7 +41,7 @@ export function trailProfileAt(point, now) {
   const depth = trailDepth(point, progress);
   return { x: point.x - (point.ux ?? 1) * travel, y: point.y - (point.uy ?? 0) * travel,
     depth, length: length * scale, width: width * scale,
-    shoulderExtent: TRAIL_SHOULDER_EXTENT, scale, rimSupport: smooth(depth / TRAIL_FINAL_DEPTH) };
+    shoulderExtent: TRAIL_SHOULDER_EXTENT };
 }
 
 // Visual height in material units. The current controller still owns input,
@@ -117,12 +116,11 @@ export function createMallangRelief({ size, origin, step, maxDepth, waveSettings
     }
   }
 
-  function update({ contact, trail, now, waves = [], bounds = null, rim = null }) {
+  function update({ contact, trail = [], now, waves = [], bounds = null, rim = null }) {
     depression.fill(0); shoulder.fill(0);
     for (const point of trail) {
       const profile = trailProfileAt(point, now);
-      stamp({ x: profile.x, y: profile.y, ux: point.ux, uy: point.uy }, profile,
-        profile.rimSupport < 1 || point.releaseStrength < 1 ? rim : null);
+      stamp({ x: profile.x, y: profile.y, ux: point.ux, uy: point.uy }, profile, rim);
     }
     if (contact) {
       const { length, width } = dentDimensions(contact.sizeDepth ?? contact.depth);
