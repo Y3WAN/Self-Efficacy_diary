@@ -2,6 +2,7 @@ import hashlib
 import secrets
 from uuid import uuid4
 
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +12,7 @@ from app.services.elo_service import BASE_RATING, target_level
 from app.services.mission_service import generate_mission_draft
 
 COMMON_MISSION_ID = "english-presentation-v1"
+COMMON_MISSION_LOCK = 1739115301
 COMMON_SAMPLE_DIARY = (
     "오늘 영어 발표를 준비했다. 처음에는 긴장해서 첫 문장도 잘 읽지 못했다. "
     "친구가 문장 사이에 잠깐 쉬면서 말하는 걸 보고 나도 따라 해봤다. "
@@ -28,6 +30,11 @@ async def prepare_common_mission(db: AsyncSession) -> TesterMission:
     existing = await db.get(TesterMission, COMMON_MISSION_ID)
     if existing is not None:
         return existing
+    if db.get_bind().dialect.name == "postgresql":
+        await db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": COMMON_MISSION_LOCK})
+        existing = await db.get(TesterMission, COMMON_MISSION_ID)
+        if existing is not None:
+            return existing
 
     # 발표할 때의 긴장이 예시 일기에서 드러난 막힘이므로 A 원천을 사용한다.
     content, reason, helper = await generate_mission_draft(

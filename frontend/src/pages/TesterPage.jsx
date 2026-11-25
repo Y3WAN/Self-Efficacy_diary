@@ -5,6 +5,7 @@ import { SOURCES } from "../utils/sources";
 import "./TesterPage.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const TESTER_SESSION_KEY = "samari.tester.session";
 const STEPS = ["일기 작성", "자기효능감 분석", "공통 미션", "미션 채점"];
 const DIARY_PROMPT = "오늘 해보려던 일, 실제로 한 행동, 그때 느낀 점을 적어주세요";
 const SOURCE_LABELS = { p: "언어적 설득", a: "신체·정서 상태" };
@@ -15,14 +16,23 @@ const QUESTIONS = [
   ["feasibility", "예시 일기 속 사람이 이 미션을 실제로 해볼 만한가요?"],
 ];
 
-async function requestTester(invite, endpoint, { body, signal } = {}) {
+function browserSessionToken() {
+  const stored = localStorage.getItem(TESTER_SESSION_KEY);
+  if (/^[A-Za-z0-9_-]{43}$/.test(stored)) return stored;
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const token = btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+  localStorage.setItem(TESTER_SESSION_KEY, token);
+  return token;
+}
+
+async function requestTester(token, endpoint, { body, signal } = {}) {
   const response = await fetch(`${API_URL}/api/tester/${endpoint}`, {
     method: body ? "POST" : "GET",
     credentials: "omit",
     cache: "no-store",
     signal,
     headers: {
-      Authorization: `Bearer ${invite}`,
+      Authorization: `Bearer ${token}`,
       ...(body && { "Content-Type": "application/json" }),
     },
     body: body && JSON.stringify(body),
@@ -81,18 +91,25 @@ function TesterFlow({ invite }) {
   const [error, setError] = useState("");
   const titleRef = useRef(null);
   const requestInProgress = useRef(false);
+  const sessionToken = useRef(null);
   const activeStep = session?.completed ? STEPS.length : step;
 
   useEffect(() => {
-    if (!invite) return;
     const controller = new AbortController();
-    requestTester(invite, "session", { signal: controller.signal })
-      .then(setSession)
+    Promise.resolve().then(() => {
+      if (controller.signal.aborted) return;
+      sessionToken.current ||= invite || browserSessionToken();
+      return requestTester(sessionToken.current, "session", {
+        body: invite ? undefined : {},
+        signal: controller.signal,
+      });
+    })
+      .then((result) => { if (result && !controller.signal.aborted) setSession(result); })
       .catch((failure) => {
         if (!controller.signal.aborted) {
-          setLoadError(failure.message === "유효한 테스터 초대 링크가 필요합니다."
-            ? failure.message
-            : "테스트를 불러오지 못했습니다. 다시 시도해 주세요.");
+          setLoadError(failure instanceof TypeError || failure instanceof SyntaxError
+            ? "테스트를 불러오지 못했습니다. 다시 시도해 주세요."
+            : failure.message);
         }
       });
     return () => controller.abort();
@@ -128,7 +145,7 @@ function TesterFlow({ invite }) {
   function submitDiary(event) {
     event.preventDefault();
     runRequest(async () => {
-      setAnalysis(await requestTester(invite, "analysis", { body: { diary } }));
+      setAnalysis(await requestTester(sessionToken.current, "analysis", { body: { diary } }));
       setDiary("");
       goTo(1);
     });
@@ -136,7 +153,7 @@ function TesterFlow({ invite }) {
 
   function openMission() {
     runRequest(async () => {
-      setMission(await requestTester(invite, "mission"));
+      setMission(await requestTester(sessionToken.current, "mission"));
       goTo(2);
     });
   }
@@ -144,7 +161,7 @@ function TesterFlow({ invite }) {
   function submitRating(event) {
     event.preventDefault();
     runRequest(async () => {
-      await requestTester(invite, "evaluation", { body: { ...ratings, comment } });
+      await requestTester(sessionToken.current, "evaluation", { body: { ...ratings, comment } });
       setAnalysis(null);
       setComment("");
       setSession({ ...session, completed: true });
@@ -155,12 +172,12 @@ function TesterFlow({ invite }) {
     return (
       <main className="tester-notice tester-card">
         <h1>사말이 미션 평가</h1>
-        {!invite ? <p>받은 테스터 초대 링크를 열어 주세요.</p> : loadError ? (
+        {loadError ? (
           <>
             <p role="alert">{loadError}</p>
             <Button type="button" onClick={() => { setLoadError(""); setLoadAttempt(loadAttempt + 1); }}>다시 시도</Button>
           </>
-        ) : <p role="status">초대 링크를 확인하는 중입니다…</p>}
+        ) : <p role="status">테스터 세션을 준비하는 중입니다…</p>}
       </main>
     );
   }

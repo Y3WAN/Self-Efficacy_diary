@@ -3,11 +3,12 @@ import logging
 import re
 from datetime import timedelta
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field, StringConstraints
-from sqlalchemy import or_, select, update
+from sqlalchemy import func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +18,7 @@ from app.db.tester_models import TesterEvaluation, TesterMission, TesterParticip
 from app.services.analysis_service import analyze_diary_text
 from app.services.elo_service import BASE_RATING
 from app.services.scoring import parse_source_scores
-from app.services.tester_service import hash_invite
+from app.services.tester_service import COMMON_MISSION_ID, hash_invite, prepare_common_mission
 
 router = APIRouter(prefix="/api/tester", tags=["tester"])
 logger = logging.getLogger(__name__)
@@ -25,6 +26,8 @@ invite_bearer = HTTPBearer(auto_error=False)
 INVITE_PATTERN = re.compile(r"[A-Za-z0-9_-]{43}")
 ANALYSIS_TIMEOUT_SECONDS = 50
 ANALYSIS_RETRY_SECONDS = 60
+ANALYSIS_RATE_LOCK = 1739115302
+ANALYSES_PER_MINUTE = 20
 
 Db = Annotated[AsyncSession, Depends(get_db)]
 Rating = Annotated[int, Field(strict=True, ge=1, le=5)]
@@ -75,6 +78,38 @@ async def get_session(participant: Participant, db: Db):
     }
 
 
+@router.post("/session")
+async def start_session(
+    response: Response,
+    auth: Annotated[HTTPAuthorizationCredentials | None, Depends(invite_bearer)],
+    db: Db,
+):
+    if not auth or not INVITE_PATTERN.fullmatch(auth.credentials):
+        raise HTTPException(400, "참가 세션을 시작하려면 페이지를 다시 열어 주세요.")
+
+    token_hash = hash_invite(auth.credentials)
+    lookup = select(TesterParticipant).where(TesterParticipant.invite_hash == token_hash)
+    participant = await db.scalar(lookup)
+    if participant is None:
+        try:
+            async with asyncio.timeout(45):
+                await prepare_common_mission(db)
+        except Exception as error:
+            logger.warning("Common tester mission unavailable (%s)", type(error).__name__)
+            raise HTTPException(503, "공통 미션을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.") from None
+        participant = TesterParticipant(id=uuid4(), mission_id=COMMON_MISSION_ID, invite_hash=token_hash)
+        db.add(participant)
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            participant = await db.scalar(lookup)
+            if participant is None:
+                raise
+    response.headers["Cache-Control"] = "no-store"
+    return await get_session(participant, db)
+
+
 @router.post("/analysis")
 async def analyze(payload: DiaryInput, participant: Participant, db: Db):
     participant_id = participant.id
@@ -82,6 +117,14 @@ async def analyze(payload: DiaryInput, participant: Participant, db: Db):
         raise HTTPException(409, "이미 평가를 제출했습니다. 페이지를 새로고침해 주세요.")
 
     started_at = now_utc()
+    if db.get_bind().dialect.name == "postgresql":
+        # 여러 워커에서 동시에 요청을 받아도 공유 AI 호출 한도가 일관되게 적용된다.
+        await db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": ANALYSIS_RATE_LOCK})
+    recent_count = await db.scalar(select(func.count()).select_from(TesterParticipant).where(
+        TesterParticipant.analysis_started_at >= started_at - timedelta(minutes=1),
+    ))
+    if recent_count >= ANALYSES_PER_MINUTE:
+        raise HTTPException(429, "분석 요청이 많습니다. 잠시 후 다시 시도해 주세요.")
     claimed = await db.execute(update(TesterParticipant).where(
         TesterParticipant.id == participant_id,
         or_(

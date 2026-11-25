@@ -2,7 +2,11 @@
 
 기존 React 프런트엔드의 `/tester` 화면과 FastAPI의 `/api/tester`를 사용합니다. 프런트엔드의 `VITE_API_URL`은 API 주소를 가리켜야 합니다. API에는 기존 PostgreSQL의 `DATABASE_URL`, `JWT_SECRET`, 일기 분석과 공통 미션 생성에 쓰는 `GROQ_API_KEY`를 설정합니다. 백엔드 첫 기동 시 평가용 테이블 세 개가 생성됩니다.
 
-## 공통 미션 준비와 초대
+## 테스트 시작
+
+테스터에게 `https://self-efficacy-diary.vercel.app/tester` 주소를 공유합니다. 브라우저가 참가 세션을 자동으로 만들고, 첫 접속 때 공통 미션이 아직 없으면 서버가 생성해 저장합니다. 같은 브라우저에서 다시 열면 동일한 세션으로 이어집니다. 한 기기에서 여러 참가자를 검증하려면 별도 브라우저 프로필을 사용합니다.
+
+## 운영 명령
 
 백엔드가 테이블을 만든 뒤, 같은 환경 설정을 사용하는 `backend` 디렉터리에서 실행합니다.
 
@@ -32,4 +36,4 @@ python -m pip install -r requirements.txt aiosqlite
 python -m unittest -v test_tester_round
 ```
 
-테스트는 실제 FastAPI 라우터와 임시 SQLite DB를 사용합니다. Groq의 HTTP 응답은 테스트 데이터로 대체합니다. 참가자별 원문 근거와 ELO, 동일한 공통 일기와 미션, 별도 평가 저장 및 재제출을 확인합니다.
+테스트는 실제 FastAPI 라우터와 임시 SQLite DB를 사용합니다. Groq의 HTTP 응답은 테스트 데이터로 대체합니다. 초대 링크 없이 시작한 두 세션의 원문 근거와 ELO, 동일한 공통 일기와 미션, 별도 평가 저장 및 재제출을 확인합니다.

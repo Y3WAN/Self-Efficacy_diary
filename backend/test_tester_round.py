@@ -1,5 +1,6 @@
 import json
 import os
+import secrets
 import unittest
 from unittest.mock import patch
 
@@ -49,7 +50,7 @@ def fixture_groq(request: httpx.Request) -> httpx.Response:
 
 
 class TesterRoundTest(unittest.IsolatedAsyncioTestCase):
-    async def test_two_invites_keep_diaries_and_ratings_separate(self):
+    async def test_two_public_sessions_keep_diaries_and_ratings_separate(self):
         engine = create_async_engine("sqlite+aiosqlite://")
         self.addAsyncCleanup(engine.dispose)
         sessions = async_sessionmaker(engine, expire_on_commit=False)
@@ -72,18 +73,26 @@ class TesterRoundTest(unittest.IsolatedAsyncioTestCase):
             transport=httpx.MockTransport(capture_groq)
         )) as groq, httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
             with patch("app.services.groq_client.get_groq", return_value=groq):
+                auth_a = {"Authorization": f"Bearer {secrets.token_urlsafe(32)}"}
+                auth_b = {"Authorization": f"Bearer {secrets.token_urlsafe(32)}"}
+                ids = []
+                for headers in (auth_a, auth_b, auth_a):
+                    session = await client.post("/api/tester/session", headers=headers)
+                    self.assertEqual(session.status_code, 200, session.text)
+                    self.assertEqual(session.json()["completed"], False)
+                    ids.append(session.json()["participant_id"])
+                id_a, id_b, reopened_id = ids
+                self.assertEqual(reopened_id, id_a)
                 async with sessions() as db:
                     self.assertEqual((await prepare_common_mission(db)).content, MISSION)
                     self.assertEqual((await prepare_common_mission(db)).id, COMMON_MISSION_ID)
                     db.add(User(id=1, username="existing", password_hash="unused", initial_grade="중", elo=1078))
                     await db.commit()
-                    (id_a, token_a), = await create_tester_invites(db, 1)
-                    (id_b, token_b), = await create_tester_invites(db, 1, app_user_id=1)
-                    (await db.get(User, 1)).elo = 1082
-                    await db.commit()
+                    (legacy_id, legacy_token), = await create_tester_invites(db, 1, app_user_id=1)
 
-                auth_a = {"Authorization": f"Bearer {token_a}"}
-                auth_b = {"Authorization": f"Bearer {token_b}"}
+                legacy = await client.get("/api/tester/session", headers={"Authorization": f"Bearer {legacy_token}"})
+                self.assertEqual(legacy.json(), {"participant_id": legacy_id, "completed": False})
+
                 self.assertNotEqual(id_a, id_b)
                 self.assertEqual((await client.get("/api/tester/session")).status_code, 401)
                 self.assertEqual((await client.get("/api/tester/mission", headers=auth_a)).status_code, 409)
@@ -99,7 +108,7 @@ class TesterRoundTest(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response_b.status_code, 200, response_b.text)
                 self.assertEqual(response_b.json(), {
                     "sources": {"M": None, "V": None, "P": EVIDENCE_B, "A": "안심이 됐다."},
-                    "elo": 1082,
+                    "elo": BASE_RATING,
                 })
                 mission_a = (await client.get("/api/tester/mission", headers=auth_a)).json()
                 mission_b = (await client.get("/api/tester/mission", headers=auth_b)).json()
@@ -130,7 +139,7 @@ class TesterRoundTest(unittest.IsolatedAsyncioTestCase):
                 id_a: (COMMON_MISSION_ID, 5, 4, 3, scores_a["comment"]),
                 id_b: (COMMON_MISSION_ID, 2, 3, 1, None),
             })
-            self.assertEqual((await db.get(User, 1)).elo, 1082)
+            self.assertEqual((await db.get(User, 1)).elo, 1078)
 
 
 if __name__ == "__main__":
