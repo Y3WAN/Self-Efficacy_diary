@@ -20,6 +20,7 @@ const MallangPage = lazy(() => import("./pages/MallangPage"));
 const AnalysisPage = lazy(() => import("./pages/AnalysisPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const TrialPage = lazy(() => import("./pages/TrialPage"));
+const TesterPage = lazy(() => import("./pages/TesterPage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
 
 // 30초 안에 같은 화면으로 돌아오면 이미 받은 데이터를 바로 보여 준다
@@ -66,6 +67,7 @@ export default function App() {
           {/* 대시보드 탭은 없앰: 4원천 분석은 메인, 성장·ELO 그래프는 내 정보로 옮김 */}
           <Route path="/dashboard" element={<Navigate to="/profile" replace />} />
           <Route path="/try" element={<TrialPage />} />
+          <Route path="/tester" element={<TesterPage />} />
         </Routes>
         </Suspense>
         <Toaster

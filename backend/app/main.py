@@ -6,6 +6,7 @@ from sqlalchemy import text
 from app.db.session import engine
 from app.db.models import Base
 from app.api import auth, diary, mission, dashboard, debug, failure_log, user_prompt
+from app.api import tester
 from app.core.config import settings
 from app.core.timeutil import KST
 
@@ -76,6 +77,7 @@ if settings.ENABLE_DEBUG_API:
     app.include_router(debug.router)
 app.include_router(failure_log.router)
 app.include_router(user_prompt.router)
+app.include_router(tester.router)
 
 
 @app.get("/health")

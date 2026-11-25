@@ -58,6 +58,23 @@ ANALYSIS_USER = """일기:
 }}"""
 
 
+async def analyze_diary_text(diary_text: str, *, quote_evidence: bool = False) -> dict:
+    system = ANALYSIS_SYSTEM
+    if quote_evidence:
+        system += (
+            "\n- 각 evidence 값은 해당 원천을 보여주는 일기 원문의 연속된 구절을 "
+            "한 개 그대로 복사하세요. 요약, 따옴표 추가, 문장 합치기를 하지 마세요. "
+            "직접 인용할 근거가 없으면 점수를 null로, evidence를 빈 문자열로 반환하세요."
+        )
+    data = await chat_json([
+        {"role": "system", "content": system},
+        {"role": "user", "content": ANALYSIS_USER.format(diary_text=diary_text)},
+    ])
+    if not isinstance(data, dict):
+        raise ValueError("Diary analysis must be a JSON object")
+    return data
+
+
 async def analyze_day(user_id: int, target_date: date, db: AsyncSession) -> bool:
     # idempotency guard (가입 설문 결과는 일기 분석이 아니므로 제외)
     exists = await db.execute(
@@ -101,16 +118,9 @@ async def analyze_day(user_id: int, target_date: date, db: AsyncSession) -> bool
         combined += "\n\n[이날 미션을 하고 남긴 회고]\n" + "\n".join(reflection_lines)
 
     try:
-        data = await chat_json([
-            {"role": "system", "content": ANALYSIS_SYSTEM},
-            {"role": "user", "content": ANALYSIS_USER.format(diary_text=combined)},
-        ])
+        data = await analyze_diary_text(combined)
     except Exception as e:
         logger.error(f"Groq analysis failed user={user_id} date={target_date}: {e}")
-        return False
-
-    if not isinstance(data, dict):
-        logger.error(f"Groq analysis returned non-object user={user_id} date={target_date}")
         return False
 
     scores = parse_source_scores(data)
