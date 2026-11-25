@@ -2555,3 +2555,78 @@ body:has(.mallang-page) { overflow-x: clip; }
   font-size: 0.85em;
   margin-left: 4px;
 }
+
+/* ═══ 미션 쌓기 (나의 미션 탑) ═══ */
+.stack-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--card-padding);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.stack-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.stack-head h3 { margin: 0; color: var(--text); }
+.stack-total { color: var(--accent); font-weight: 700; white-space: nowrap; }
+.stack-summary { margin: 0; color: var(--text-muted); line-height: 1.6; }
+.stack-summary strong { color: var(--text); }
+.stack-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.stack-filter {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.stack-filter--on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); font-weight: 700; }
+.stack-more {
+  align-self: center;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.stack-books { list-style: none; margin: 0; padding: 0 4px; display: flex; flex-direction: column; gap: 3px; }
+.stack-book {
+  box-sizing: border-box;
+  max-width: calc(100% - 9%);
+  min-height: 34px;
+  border-radius: 5px 7px 7px 5px;
+  padding: 6px 10px 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  animation: stack-drop .35s ease-out both;
+}
+.stack-book::before { /* 책등 줄무늬 */
+  content: "";
+  position: absolute;
+  left: 6px; top: 5px; bottom: 5px;
+  width: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: .35;
+}
+.stack-book--done { background: var(--accent); color: var(--on-accent); }
+.stack-book--skipped { background: var(--warning-bg); color: var(--warning-text); border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent); }
+.stack-book-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
+.stack-tag {
+  flex-shrink: 0;
+  font-size: .72rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  white-space: nowrap;
+}
+.stack-floor { height: 6px; border-radius: 3px; background: var(--divider); margin-top: -8px; }
+.stack-note { margin: 0; color: var(--text-soft); font-size: .85rem; }
+@keyframes stack-drop { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .stack-book { animation: none; } }

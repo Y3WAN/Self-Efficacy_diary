@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../api/client";
 import AppBar from "../components/AppBar";
+import MissionStack from "../components/MissionStack";
 import toast from "react-hot-toast";
 
 function timeAgo(dateStr) {
@@ -27,6 +28,11 @@ export default function CommunityPage() {
     if (!cheerFocus || !feed.length) return;
     document.querySelector(".community-card--cheer")?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [cheerFocus, feed.length]);
+  // 모두의 탑 권수는 미션 탑과 같은 응답을 쓴다 (요청은 한 번).
+  const { data: stack } = useQuery({
+    queryKey: ["mission-stack"],
+    queryFn: ({ signal }) => api.get("/api/missions/stack", { signal }).then((r) => r.data),
+  });
   const refreshFeed = () => queryClient.invalidateQueries({ queryKey: ["community-feed"] });
 
   const respectMutation = useMutation({
@@ -45,7 +51,12 @@ export default function CommunityPage() {
     <div className="community-page">
       <AppBar />
       <main className="community-container">
-        <h2 className="community-title">함께 해낸 미션</h2>
+        <MissionStack />
+
+        <div className="stack-head">
+          <h2 className="community-title">함께 해낸 미션</h2>
+          {stack && <span className="stack-total">모두의 탑 {stack.everyone_done_count}권</span>}
+        </div>
 
         {isLoading && <p className="community-empty">불러오는 중이에요.</p>}
         {isError && <button className="respect-btn" onClick={() => refetch()}>다시 불러오기</button>}

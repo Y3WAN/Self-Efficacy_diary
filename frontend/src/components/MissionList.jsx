@@ -54,6 +54,7 @@ function HelperPanel({ mission, onClose, onGiveUp }) {
       toast.success("내일 오늘의 미션에 다시 보여 드릴게요.");
       onClose();
       await qc.invalidateQueries({ queryKey: ["missions"] });
+      qc.invalidateQueries({ queryKey: ["mission-stack"] });
     },
     onError: () => toast.error("미루지 못했어요."),
   });
@@ -146,6 +147,7 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
         qc.invalidateQueries({ queryKey: ["me"] }),
         qc.invalidateQueries({ queryKey: ["dashboard", "elo"] }),
         qc.invalidateQueries({ queryKey: ["community-feed"] }),
+        qc.invalidateQueries({ queryKey: ["mission-stack"] }),
       ]);
     },
     onError: async (error) => {

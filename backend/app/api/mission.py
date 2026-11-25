@@ -172,6 +172,79 @@ async def community_feed(
     ]
 
 
+class StackBook(BaseModel):
+    id: int
+    content: str
+    status: str  # done / skipped
+    was_postponed: bool
+    respect_count: int
+    finished_at: datetime
+
+
+class MissionStackResponse(BaseModel):
+    """미션 쌓기: 끝난 미션을 결과별 책으로 쌓아 보여 준다. 나만 보는 탑."""
+    books: list[StackBook]  # 오래된 것부터 (아래부터 쌓임)
+    done_count: int
+    skipped_count: int
+    postponed_count: int  # 미뤘던 적이 있는 끝난 미션
+    waiting_count: int  # 지금 미뤄 둔 미션 (아직 책이 아님)
+    everyone_done_count: int  # 모두가 해낸 미션 수 (함께 해낸 미션과 연동)
+
+
+STACK_LIMIT = 200
+
+
+@router.get("/stack", response_model=MissionStackResponse)
+async def mission_stack(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    finished_at = func.coalesce(Mission.completed_at, Mission.created_at)
+    result = await db.execute(
+        select(
+            Mission.id, Mission.content, Mission.status,
+            (Mission.postponed_until.isnot(None)).label("was_postponed"),
+            func.count(Respect.id).label("respect_count"),
+            finished_at.label("finished_at"),
+        )
+        .outerjoin(Respect, Respect.mission_id == Mission.id)
+        .where(Mission.user_id == current_user.id, Mission.status.in_(("done", "skipped")))
+        .group_by(Mission.id)
+        .order_by(finished_at.desc(), Mission.id.desc())
+        .limit(STACK_LIMIT)
+    )
+    books = [StackBook(**row._mapping) for row in result.all()][::-1]
+
+    counts = dict((await db.execute(
+        select(Mission.status, func.count())
+        .where(Mission.user_id == current_user.id, Mission.status.in_(("done", "skipped")))
+        .group_by(Mission.status)
+    )).all())
+    postponed = await db.scalar(
+        select(func.count()).select_from(Mission).where(
+            Mission.user_id == current_user.id,
+            Mission.status.in_(("done", "skipped")),
+            Mission.postponed_until.isnot(None),
+        )
+    )
+    waiting = await db.scalar(
+        select(func.count()).select_from(Mission).where(
+            Mission.user_id == current_user.id,
+            Mission.status == "active",
+            Mission.postponed_until > today_kst(),
+        )
+    )
+    everyone = await db.scalar(select(func.count()).select_from(Mission).where(Mission.status == "done"))
+    return MissionStackResponse(
+        books=books,
+        done_count=counts.get("done", 0),
+        skipped_count=counts.get("skipped", 0),
+        postponed_count=postponed or 0,
+        waiting_count=waiting or 0,
+        everyone_done_count=everyone or 0,
+    )
+
+
 async def _get_active_mission(mission_id: int, user: User, db: AsyncSession) -> Mission:
     result = await db.execute(
         select(Mission).where(Mission.id == mission_id, Mission.user_id == user.id)
