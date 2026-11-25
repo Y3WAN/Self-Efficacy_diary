@@ -1391,14 +1391,6 @@ h1, .community-title, .diary-header h2 {
 .mission-preferences label { font-weight: 700; }
 .mission-preferences p { color: var(--text); line-height: 1.6; }
 .mission-preferences textarea { min-height: 144px; resize: vertical; }
-.mission-preferences-example {
-  display: grid;
-  justify-items: start;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: var(--radius-sm);
-  background: var(--blue-bg);
-}
 
 /* 포인트 */
 .profile-row--points {
@@ -2445,11 +2437,6 @@ body:has(.mallang-page) { overflow-x: clip; }
 }
 .trial-footer { margin-top: auto; padding-top: 28px; color: var(--text-soft); text-align: center; }
 .trial-footer a { color: var(--text-muted); }
-.trial-why {
-  margin: 0; padding: 10px 14px; line-height: 1.55;
-  color: var(--text-muted); background: var(--brown-bg); border-radius: var(--radius-sm);
-}
-.trial-why b { color: var(--text); }
 .trial-mission-question { margin: 14px 0 0; font-weight: 700; color: var(--text); }
 .trial-mission-question + .trial-mission-actions { margin-top: 8px; }
 

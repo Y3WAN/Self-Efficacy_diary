@@ -248,7 +248,8 @@ async def retarget_mission(
         diary_text = diary.content if diary else ""
 
     content, reason, helper = await generate_mission_draft(
-        mission.target_var, new_level, diary_text, [mission.content]
+        mission.target_var, new_level, diary_text, [mission.content],
+        everyday=bool(mission.is_everyday),
     )
     if not content:
         raise HTTPException(status_code=502, detail="AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.")

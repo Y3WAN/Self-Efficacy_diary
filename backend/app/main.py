@@ -43,6 +43,7 @@ async def lifespan(app: FastAPI):
         ))
         await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS reflection TEXT"))
         await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS helper TEXT"))
+        await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS is_everyday BOOLEAN NOT NULL DEFAULT FALSE"))
 
     from app.jobs.catch_up import catch_up, midnight_job, morning_job, MORNING_HOUR
 
