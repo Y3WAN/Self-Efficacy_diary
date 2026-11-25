@@ -148,6 +148,10 @@ body { background: var(--bg); min-height: 100dvh;
   line-height: 1.5;
 }
 
+/* 글씨 드래그(선택) 막기. 입력칸은 그대로 쓸 수 있게 둔다. */
+body { user-select: none; -webkit-user-select: none; }
+:is(input, textarea, [contenteditable="true"]) { user-select: text; -webkit-user-select: text; }
+
 #root { max-width: var(--app-width); margin: 0 auto; min-height: 100dvh; position: relative; }
 
 :where(h1, h2, h3, h4, h5, h6, .section-title, .chart-title) {
