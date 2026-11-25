@@ -72,8 +72,8 @@ export default function MainPage() {
         />
         <ActivityHistory today={today} />
         <section className="chart-card main-radar" aria-labelledby="main-radar-title">
-          <h2 id="main-radar-title" className="chart-title">자기효능감의 4가지 원천</h2>
-          <p className="chart-sub">자기효능감: 어떤 일을 해낼 수 있다는 스스로에 대한 믿음 · 최근 7일</p>
+          <h2 id="main-radar-title" className="chart-title">자기효능감</h2>
+          <p className="chart-sub">자기효능감은 '나는 해낼 수 있어' 하고 나를 믿는 마음이에요. 최근 7일 일기를 보고 네 가지로 나눠 보여 줘요.</p>
           <Suspense fallback={<p className="chart-sub">차트를 불러오는 중…</p>}>
             <RadarChartComponent />
           </Suspense>

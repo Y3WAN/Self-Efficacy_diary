@@ -2560,6 +2560,12 @@ body:has(.mallang-page) { overflow-x: clip; }
   text-decoration: underline;
   cursor: pointer;
 }
+.radar-tick-short {
+  fill: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
 .radar-tick:hover, .radar-tick:focus-visible { fill: var(--accent-hover); outline: none; }
 .mission-list.is-spotlight { animation: spotlight 2.4s ease-out; }
 @keyframes spotlight {
