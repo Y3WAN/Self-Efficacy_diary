@@ -77,7 +77,7 @@ export default function MissionStack() {
           <div className="stack-floor" aria-hidden="true" />
         </>
       )}
-      <p className="stack-note">이 탑은 나만 봐요. 해낸 미션만 아래 '함께 해낸 미션'에 올라가요.</p>
+      <p className="stack-note">이 탑은 나만 봐요. 해낸 미션만 '함께 해낸 미션'에 올라가요.</p>
     </section>
   );
 }

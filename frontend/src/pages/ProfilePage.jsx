@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import client from "../api/client";
 import GrowthChart from "../components/GrowthChart";
+import MissionStack from "../components/MissionStack";
 import { useConfirmLogout } from "../utils/useConfirmLogout";
 
 export default function ProfilePage() {
@@ -54,6 +55,8 @@ export default function ProfilePage() {
           <h2 id="growth-title" className="chart-title">자기효능감 흐름</h2>
           <GrowthChart />
         </section>
+
+        <MissionStack />
 
         <button
           className="profile-logout-btn"

@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../api/client";
 import AppBar from "../components/AppBar";
-import MissionStack from "../components/MissionStack";
 import toast from "react-hot-toast";
 
 function timeAgo(dateStr) {
@@ -51,8 +50,6 @@ export default function CommunityPage() {
     <div className="community-page">
       <AppBar />
       <main className="community-container">
-        <MissionStack />
-
         <div className="stack-head">
           <h2 className="community-title">함께 해낸 미션</h2>
           {stack && <span className="stack-total">모두의 탑 {stack.everyone_done_count}권</span>}
