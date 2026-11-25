@@ -16,6 +16,10 @@ const DRAG_FULL_DAMPING_SPEED = .00125;
 const CATCH_DAMPING = 1.2;
 const WALL_BOUNCE = 0.5;
 const COAST_FRICTION = 0.0052;
+const ROTATION_COAST_TIME_MS = 160;
+const ROTATION_RELEASE_DECAY_MS = 90;
+const MAX_RELEASE_ANGULAR_SPEED = 0.0046;
+const STOP_ANGULAR_SPEED = 0.00018;
 export const STOP_SPEED = 0.015;
 export const BLOB_CENTER = 100;
 export const BODY_RADIUS = 94;
@@ -42,6 +46,21 @@ export function dragRotationDelta(from, to, center, radius) {
   const leverage = Math.min(1, Math.hypot(x + closest * dx, y + closest * dy) / radius);
   const turn = Math.atan2(cross, x * (x + dx) + y * (y + dy));
   return turn * leverage ** 2;
+}
+
+export function releaseAngularSpeed(speed, idleTime) {
+  const recentSpeed = clamp(speed, -MAX_RELEASE_ANGULAR_SPEED, MAX_RELEASE_ANGULAR_SPEED) *
+    Math.exp(-Math.max(0, idleTime) / ROTATION_RELEASE_DECAY_MS);
+  return Math.abs(recentSpeed) > STOP_ANGULAR_SPEED ? recentSpeed : 0;
+}
+
+export function advanceAngularCoast(speed, elapsed) {
+  if (Math.abs(speed) <= STOP_ANGULAR_SPEED) return { delta: 0, speed: 0 };
+  const stopAfter = Math.log(Math.abs(speed) / STOP_ANGULAR_SPEED) * ROTATION_COAST_TIME_MS;
+  const remaining = Math.exp(-clamp(elapsed, 0, stopAfter) / ROTATION_COAST_TIME_MS);
+  // Integrate the decaying speed so long and short frames turn the same amount.
+  return { delta: speed * ROTATION_COAST_TIME_MS * (1 - remaining),
+    speed: elapsed >= stopAfter ? 0 : speed * remaining };
 }
 
 function tetherOffset(motion, x, y, limit = MAX_TETHER_DISTANCE) {

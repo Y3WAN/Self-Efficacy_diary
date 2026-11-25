@@ -10,8 +10,8 @@ import { bareSurfaceContact, createMallangMaterial, materialContact, membraneRad
 import { createMallangSurface } from "../utils/mallangSurface";
 import { getMallangPalette } from "../utils/mallangTheme";
 import { createWaxShell, fractureWaxShell, markWaxShell, waxKeyboardPoint } from "../utils/waxShell";
-import { BLOB_CENTER, BODY_RADIUS, PULL_RADIUS, STOP_SPEED, advanceMotion, beginPull, dragRotationDelta, positionFromPoint,
-  pullTarget, springDisplacement, updatePull } from "../utils/mallangMotion";
+import { BLOB_CENTER, BODY_RADIUS, PULL_RADIUS, STOP_SPEED, advanceAngularCoast, advanceMotion, beginPull,
+  dragRotationDelta, positionFromPoint, pullTarget, releaseAngularSpeed, springDisplacement, updatePull } from "../utils/mallangMotion";
 import { createMallangAudio } from "../utils/mallangAudio";
 
 const WAX_MODE_KEY = "codemyworld.mallang.wax";
@@ -247,6 +247,12 @@ export default function MallangPage() {
       const motion = r.motion;
       const grabbing = motion?.mode === "grab";
       if (motion) {
+        if (material.state.reducedMotion) motion.angularSpeed = 0;
+        if (!grabbing && motion.angularSpeed) {
+          const coast = advanceAngularCoast(motion.angularSpeed, now - motion.lastFrame);
+          motion.angularSpeed = coast.speed;
+          r.rotation = (r.rotation + coast.delta) % (2 * Math.PI);
+        }
         motion.tetherMoving = advanceMotion(motion, now);
         if (grabbing) {
           const contact = bareSurfaceContact(bodyPoint(pullTarget(motion)));
@@ -287,7 +293,7 @@ export default function MallangPage() {
       const speed = Math.hypot(motion.vx, motion.vy);
       if (motion.mode === "coast") {
         if (speed <= STOP_SPEED) motion.vx = motion.vy = 0;
-        return speed > STOP_SPEED || !!motion.pull;
+        return speed > STOP_SPEED || !!motion.pull || !!motion.angularSpeed;
       }
       if (speed > GRAB_REST_SPEED || motion.tetherMoving) return true;
       const spring = springDisplacement(motion, motion.position.x * motion.rect.width / 100,
@@ -343,7 +349,7 @@ export default function MallangPage() {
         const body = character.current.getBoundingClientRect();
         const motion = { mode: "grab", vx: previousMotion?.vx ?? 0, vy: previousMotion?.vy ?? 0,
           position: previousMotion?.position, pointer: { x: event.clientX, y: event.clientY },
-          pointerSpeed: 0, pointerMovedAt: now,
+          pointerSpeed: 0, angularSpeed: 0, pointerMovedAt: now,
           lastFrame: now, pull: previousMotion?.pull ?? null, pullStartRadius: contactPoint(raw).radius,
           tetherPoint: wasReturning ? previousMotion.tetherPoint : null,
           tetherSpeed: wasReturning ? previousMotion.tetherSpeed : null };
@@ -360,17 +366,21 @@ export default function MallangPage() {
       const motion = r.motion;
       if (motion?.mode === "grab") {
         const pointer = { x: event.clientX, y: event.clientY };
+        const elapsed = Math.max(1, now - motion.pointerMovedAt);
+        const sampleTime = Math.min(elapsed, POINTER_SPEED_WINDOW_MS);
+        const weight = Math.exp(-elapsed / POINTER_SPEED_SMOOTHING_MS);
         if (!reduced()) {
           const { rect, position, bodySize } = motion;
           const center = { x: rect.left + position.x / 100 * rect.width,
             y: rect.top + position.y / 100 * rect.height };
           const radius = BODY_RADIUS * bodySize / (BLOB_CENTER * 2);
-          r.rotation = (r.rotation + dragRotationDelta(motion.pointer, pointer, center, radius)) % (2 * Math.PI);
+          const turn = dragRotationDelta(motion.pointer, pointer, center, radius);
+          r.rotation = (r.rotation + turn) % (2 * Math.PI);
+          const previousSpeed = turn * motion.angularSpeed < 0 ? 0 : motion.angularSpeed;
+          motion.angularSpeed = previousSpeed * weight + turn / sampleTime * (1 - weight);
         }
         const dx = pointer.x - motion.pointer.x, dy = pointer.y - motion.pointer.y;
-        const elapsed = Math.max(1, now - motion.pointerMovedAt);
-        const speed = 1000 * Math.hypot(dx, dy) / Math.min(elapsed, POINTER_SPEED_WINDOW_MS);
-        const weight = Math.exp(-elapsed / POINTER_SPEED_SMOOTHING_MS);
+        const speed = 1000 * Math.hypot(dx, dy) / sampleTime;
         motion.pointerSpeed = motion.pointerSpeed * weight + speed * (1 - weight);
         motion.pointerMovedAt = now;
         motion.pointer = pointer;
@@ -408,7 +418,8 @@ export default function MallangPage() {
       r.input = null;
       if (motion?.mode === "grab") {
         if (motion.pull) audio.play("retract", motion.pull.radius / PULL_RADIUS);
-        // Start recovery from the last painted pose and keep both velocities.
+        // Start from the painted pose, with only recent rotation carrying through release.
+        motion.angularSpeed = reduced() ? 0 : releaseAngularSpeed(motion.angularSpeed, now - motion.pointerMovedAt);
         motion.mode = "coast";
         motion.lastFrame = now;
         motion.tetherMoving = false;
@@ -424,6 +435,7 @@ export default function MallangPage() {
       const local = wax ? waxKeyboardPoint(r.shell) : { x: BLOB_CENTER, y: BLOB_CENTER };
       r.pressFollowsTether = false;
       r.input = { key: event.key, wax };
+      if (r.motion) r.motion.angularSpeed = 0;
       audio.prepare();
       const now = performance.now();
       material.touch(local.x, local.y, now);

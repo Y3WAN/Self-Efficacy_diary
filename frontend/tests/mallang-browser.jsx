@@ -1,4 +1,4 @@
-import { PULL_RADIUS } from "../src/utils/mallangMotion";
+import { BODY_RADIUS, PULL_RADIUS, dragRotationDelta } from "../src/utils/mallangMotion";
 import { MATERIAL } from "../src/utils/mallangMaterial";
 // Development-only test entry. Vite's production entry never imports this file.
 import { useEffect, useState } from "react";
@@ -17,7 +17,7 @@ const snapshot = () => {
 };
 async function run(name,setRunning,setReport) {
     setRunning(true);setReport({name,status:"running"});await next();
-    const body=document.querySelector(".mallang-body"),rect=body.getBoundingClientRect();
+    const body=document.querySelector(".mallang-body"),rect=body.closest(".mallang-character").getBoundingClientRect();
     const originalCapture=body.setPointerCapture;
     // DOM-injected touch tests cannot acquire native pointer capture. Native CUA
     // clicks/drags test real capture separately on /mallang.
@@ -79,6 +79,27 @@ async function run(name,setRunning,setReport) {
         checks={pressure:moving.every((s)=>s.depth>.85),fixedCenter:moving.every((s)=>s.x===moving[0].x&&s.y===moving[0].y),
           bounded:moving.every((s)=>s.trail<=MATERIAL.maxTrail&&Number.isFinite(s.center)),
           recoveringTrail:moving.some((s)=>s.trail>1),balanced:moving.every((s)=>Math.abs(s.raised-s.displaced)<.05),restored:!snapshot().active};
+      }
+      if(name==="spin") {
+        const center = { x: 100, y: 100 };
+        let from = { x: 174, y: 75 }, draggedAngle = 0;
+        send("pointerdown", from.x, from.y);
+        await next();
+        const held = snapshot().last;
+        for (let y = 85; y <= 125; y += 10) {
+          const to = { x: 174, y };
+          send("pointermove", to.x, to.y);
+          draggedAngle += dragRotationDelta(from, to, center, BODY_RADIUS);
+          from = to;
+        }
+        send("pointerup", from.x, from.y);
+        await wait(570); await next();
+        const after = snapshot().last;
+        const change = after.rotation - held.rotation - draggedAngle;
+        const coast = Math.atan2(Math.sin(change), Math.cos(change));
+        await next();
+        checks = { continues: coast > .55 && coast < .77, stops: snapshot().last.rotation === after.rotation,
+          fixedCenter: after.x === held.x && after.y === held.y };
       }
       if(name==="pull") {
         send("pointerdown",181,100);await wait(350);
@@ -194,7 +215,7 @@ export default function Harness() {
       <p>개발용 입력 재현 (프로덕션 빌드 제외)</p>
       <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
         <button type="button" disabled={running} onClick={suite}>suite</button>
-        {["rim-transition","hold","edge","rub","turn","pull","cancel","empty","low-frame","wax","wax-drag","switch","burst","ripples"].map((name)=>
+        {["rim-transition","hold","edge","rub","turn","spin","pull","cancel","empty","low-frame","wax","wax-drag","switch","burst","ripples"].map((name)=>
           <button type="button" key={name} disabled={running} onClick={()=>run(name,setRunning,reportResult)}>{name}</button>)}
       </div>
       <button id="ordinary-test" type="button" onClick={()=>setClicks((v)=>v+1)}>일반 버튼 {clicks}</button>

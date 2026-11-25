@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { blendPullTip, pullStretchProgress, tetherSpringDisplacement } from "../src/utils/mallangPull.js";
-import { advanceMotion, beginPull, dragRotationDelta, MAX_VISUAL_TETHER_DISTANCE, PULL_RADIUS, pulledCircle, pullTarget, springDisplacement, updatePull } from "../src/utils/mallangMotion.js";
+import { advanceAngularCoast, advanceMotion, beginPull, dragRotationDelta, MAX_VISUAL_TETHER_DISTANCE,
+  PULL_RADIUS, pulledCircle, pullTarget, releaseAngularSpeed, springDisplacement, updatePull } from "../src/utils/mallangMotion.js";
 
 function motionAt(now = 0, hasMoved = false) {
   return { mode: "grab", rect: { left: 0, top: 0, width: 800, height: 600 }, bodySize: 200,
@@ -210,4 +211,24 @@ test("a tangential drag turns the body more at the rim and reverses with the poi
   assert.equal(dragRotationDelta(from(190), from(240), center, radius), 0);
   assert.equal(dragRotationDelta(from(30), from(170), center, radius), 0);
   assert.equal(dragRotationDelta(from(190), from(190), center, radius), 0);
+});
+
+test("a fresh spin keeps turning past 200 ms in either direction and a held pause cancels the spin", () => {
+  const speed = releaseAngularSpeed(.05, 0);
+  assert(speed > releaseAngularSpeed(.05, 80));
+  assert.equal(releaseAngularSpeed(.05, 320), 0);
+  assert(advanceAngularCoast(releaseAngularSpeed(.003, 60), 200).speed > 0,
+    "a slower drag followed by a short release delay still carries through");
+  assert.equal(releaseAngularSpeed(0, 0), 0);
+
+  const early = advanceAngularCoast(speed, 200);
+  assert(early.delta > 0 && early.speed < speed);
+  const settled = advanceAngularCoast(speed, 560);
+  assert.equal(settled.speed, 0);
+  assert(settled.delta > .55 && settled.delta < .77, "a fast flick adds about one ninth of a turn");
+  const reversed = advanceAngularCoast(-speed, 560);
+  assert.equal(reversed.delta, -settled.delta);
+  const remaining = advanceAngularCoast(early.speed, 360);
+  assert(remaining.delta > .13, "there is still a visible turn after the first 200 ms");
+  assert(Math.abs(early.delta + remaining.delta - settled.delta) < 1e-12);
 });
