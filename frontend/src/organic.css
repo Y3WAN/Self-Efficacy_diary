@@ -1,0 +1,324 @@
+/* Percent coordinates scale the shallow bends along each axis. Corner
+   limits preserve a small radius on compact or very elongated elements. */
+@property --organic-contour {
+  syntax: "*";
+  inherits: false;
+}
+
+:root {
+  /* A wide card needs a little more bow along its horizontal edges.
+     Limit it by height so a short card keeps its usable interior. */
+  --panel-bend: min(3%, clamp(0px, 1cqi - 2px, 5px));
+  --panel-edge: calc(0.36% + var(--panel-bend) * .45);
+
+  /* Wide controls still have short ends, where extra bow becomes a bulge. */
+  --field-side-inset: min(0.42%, 1px);
+  --control-side-inset: min(0.72%, 1.15px);
+  --control-block-inset: min(1.95%, 1.5px);
+
+  --contour-sheet: shape(
+    from clamp(min(15%, 5px), 5.5%, 21px) var(--panel-edge),
+    curve to 57% calc(0.076% - var(--panel-bend) * .38) with 26% var(--panel-edge) / 42% calc(0.076% - var(--panel-bend) * .38),
+    curve to calc(100% - clamp(min(15%, 5px), 5.5%, 21px)) var(--panel-edge) with 70% calc(0.076% - var(--panel-bend) * .38) / 75% var(--panel-edge),
+    curve to calc(100% - 0.28%) min(12%, 20px) with calc(100% - calc(clamp(min(15%, 5px), 5.5%, 21px) * .44)) var(--panel-edge) / calc(100% - 0.28%) calc(min(12%, 20px) * .44),
+    curve to calc(100% - 0.098%) 59% with calc(100% - 0.28%) 34% / calc(100% - 0.098%) 48%,
+    curve to calc(100% - 0.28%) calc(100% - min(12%, 20px)) with calc(100% - 0.098%) 70% / calc(100% - 0.28%) 66%,
+    curve to calc(100% - clamp(min(15%, 5px), 5.5%, 21px)) calc(100% - var(--panel-edge)) with calc(100% - 0.28%) calc(100% - calc(min(12%, 20px) * .44)) / calc(100% - calc(clamp(min(15%, 5px), 5.5%, 21px) * .44)) calc(100% - var(--panel-edge)),
+    curve to 43% calc(100% - calc(0.083% - var(--panel-bend) * .36)) with 75% calc(100% - var(--panel-edge)) / 55% calc(100% - calc(0.083% - var(--panel-bend) * .36)),
+    curve to clamp(min(15%, 5px), 5.5%, 21px) calc(100% - var(--panel-edge)) with 29% calc(100% - calc(0.083% - var(--panel-bend) * .36)) / 26% calc(100% - var(--panel-edge)),
+    curve to 0.28% calc(100% - min(12%, 20px)) with calc(clamp(min(15%, 5px), 5.5%, 21px) * .44) calc(100% - var(--panel-edge)) / 0.28% calc(100% - calc(min(12%, 20px) * .44)),
+    curve to 0.104% 41% with 0.28% 66% / 0.104% 51%,
+    curve to 0.28% min(12%, 20px) with 0.104% 30% / 0.28% 34%,
+    curve to clamp(min(15%, 5px), 5.5%, 21px) var(--panel-edge) with 0.28% calc(min(12%, 20px) * .44) / calc(clamp(min(15%, 5px), 5.5%, 21px) * .44) var(--panel-edge), close
+  );
+  --contour-card: shape(
+    from clamp(min(15%, 5px), 4.4%, 16px) var(--panel-edge),
+    curve to 52% calc(0.158% - var(--panel-bend) * .34) with 26% var(--panel-edge) / 37% calc(0.158% - var(--panel-bend) * .34),
+    curve to calc(100% - clamp(min(15%, 5px), 4.4%, 16px)) var(--panel-edge) with 65% calc(0.158% - var(--panel-bend) * .34) / 75% var(--panel-edge),
+    curve to calc(100% - 0.28%) min(11%, 15px) with calc(100% - calc(clamp(min(15%, 5px), 4.4%, 16px) * .44)) var(--panel-edge) / calc(100% - 0.28%) calc(min(11%, 15px) * .44),
+    curve to calc(100% - 0.118%) 55% with calc(100% - 0.28%) 34% / calc(100% - 0.118%) 44%,
+    curve to calc(100% - 0.28%) calc(100% - min(11%, 15px)) with calc(100% - 0.118%) 66% / calc(100% - 0.28%) 66%,
+    curve to calc(100% - clamp(min(15%, 5px), 4.4%, 16px)) calc(100% - var(--panel-edge)) with calc(100% - 0.28%) calc(100% - calc(min(11%, 15px) * .44)) / calc(100% - calc(clamp(min(15%, 5px), 4.4%, 16px) * .44)) calc(100% - var(--panel-edge)),
+    curve to 48% calc(100% - calc(0.133% - var(--panel-bend) * .44)) with 75% calc(100% - var(--panel-edge)) / 60% calc(100% - calc(0.133% - var(--panel-bend) * .44)),
+    curve to clamp(min(15%, 5px), 4.4%, 16px) calc(100% - var(--panel-edge)) with 34% calc(100% - calc(0.133% - var(--panel-bend) * .44)) / 26% calc(100% - var(--panel-edge)),
+    curve to 0.28% calc(100% - min(11%, 15px)) with calc(clamp(min(15%, 5px), 4.4%, 16px) * .44) calc(100% - var(--panel-edge)) / 0.28% calc(100% - calc(min(11%, 15px) * .44)),
+    curve to 0.062% 45% with 0.28% 66% / 0.062% 55%,
+    curve to 0.28% min(11%, 15px) with 0.062% 34% / 0.28% 34%,
+    curve to clamp(min(15%, 5px), 4.4%, 16px) var(--panel-edge) with 0.28% calc(min(11%, 15px) * .44) / calc(clamp(min(15%, 5px), 4.4%, 16px) * .44) var(--panel-edge), close
+  );
+  --contour-fold: shape(
+    from clamp(min(15%, 5px), 4.8%, 19px) var(--panel-edge),
+    curve to 46% calc(0.094% - var(--panel-bend) * .42) with 26% var(--panel-edge) / 31% calc(0.094% - var(--panel-bend) * .42),
+    curve to calc(100% - clamp(min(15%, 5px), 4.8%, 19px)) var(--panel-edge) with 59% calc(0.094% - var(--panel-bend) * .42) / 75% var(--panel-edge),
+    curve to calc(100% - 0.28%) min(13%, 17px) with calc(100% - calc(clamp(min(15%, 5px), 4.8%, 19px) * .44)) var(--panel-edge) / calc(100% - 0.28%) calc(min(13%, 17px) * .44),
+    curve to calc(100% - 0.168%) 49% with calc(100% - 0.28%) 34% / calc(100% - 0.168%) 38%,
+    curve to calc(100% - 0.28%) calc(100% - min(13%, 17px)) with calc(100% - 0.168%) 60% / calc(100% - 0.28%) 66%,
+    curve to calc(100% - clamp(min(15%, 5px), 4.8%, 19px)) calc(100% - var(--panel-edge)) with calc(100% - 0.28%) calc(100% - calc(min(13%, 17px) * .44)) / calc(100% - calc(clamp(min(15%, 5px), 4.8%, 19px) * .44)) calc(100% - var(--panel-edge)),
+    curve to 54% calc(100% - calc(0.18% - var(--panel-bend) * .32)) with 75% calc(100% - var(--panel-edge)) / 66% calc(100% - calc(0.18% - var(--panel-bend) * .32)),
+    curve to clamp(min(15%, 5px), 4.8%, 19px) calc(100% - var(--panel-edge)) with 40% calc(100% - calc(0.18% - var(--panel-bend) * .32)) / 26% calc(100% - var(--panel-edge)),
+    curve to 0.28% calc(100% - min(13%, 17px)) with calc(clamp(min(15%, 5px), 4.8%, 19px) * .44) calc(100% - var(--panel-edge)) / 0.28% calc(100% - calc(min(13%, 17px) * .44)),
+    curve to 0.09% 51% with 0.28% 66% / 0.09% 61%,
+    curve to 0.28% min(13%, 17px) with 0.09% 40% / 0.28% 34%,
+    curve to clamp(min(15%, 5px), 4.8%, 19px) var(--panel-edge) with 0.28% calc(min(13%, 17px) * .44) / calc(clamp(min(15%, 5px), 4.8%, 19px) * .44) var(--panel-edge), close
+  );
+  --contour-room: shape(
+    from clamp(min(15%, 5px), 5%, 25px) var(--panel-edge),
+    curve to 60% calc(0.079% - var(--panel-bend) * .40) with 26% var(--panel-edge) / 45% calc(0.079% - var(--panel-bend) * .40),
+    curve to calc(100% - clamp(min(15%, 5px), 5%, 25px)) var(--panel-edge) with 73% calc(0.079% - var(--panel-bend) * .40) / 75% var(--panel-edge),
+    curve to calc(100% - 0.28%) min(8%, 22px) with calc(100% - calc(clamp(min(15%, 5px), 5%, 25px) * .44)) var(--panel-edge) / calc(100% - 0.28%) calc(min(8%, 22px) * .44),
+    curve to calc(100% - 0.132%) 61% with calc(100% - 0.28%) 34% / calc(100% - 0.132%) 50%,
+    curve to calc(100% - 0.28%) calc(100% - min(8%, 22px)) with calc(100% - 0.132%) 72% / calc(100% - 0.28%) 66%,
+    curve to calc(100% - clamp(min(15%, 5px), 5%, 25px)) calc(100% - var(--panel-edge)) with calc(100% - 0.28%) calc(100% - calc(min(8%, 22px) * .44)) / calc(100% - calc(clamp(min(15%, 5px), 5%, 25px) * .44)) calc(100% - var(--panel-edge)),
+    curve to 40% calc(100% - calc(0.058% - var(--panel-bend) * .38)) with 75% calc(100% - var(--panel-edge)) / 52% calc(100% - calc(0.058% - var(--panel-bend) * .38)),
+    curve to clamp(min(15%, 5px), 5%, 25px) calc(100% - var(--panel-edge)) with 26% calc(100% - calc(0.058% - var(--panel-bend) * .38)) / 26% calc(100% - var(--panel-edge)),
+    curve to 0.28% calc(100% - min(8%, 22px)) with calc(clamp(min(15%, 5px), 5%, 25px) * .44) calc(100% - var(--panel-edge)) / 0.28% calc(100% - calc(min(8%, 22px) * .44)),
+    curve to 0.098% 39% with 0.28% 66% / 0.098% 49%,
+    curve to 0.28% min(8%, 22px) with 0.098% 28% / 0.28% 34%,
+    curve to clamp(min(15%, 5px), 5%, 25px) var(--panel-edge) with 0.28% calc(min(8%, 22px) * .44) / calc(clamp(min(15%, 5px), 5%, 25px) * .44) var(--panel-edge), close
+  );
+  --contour-field: shape(
+    from clamp(min(15%, 5px), 7.5%, 11px) min(1.8%, 1.4px),
+    curve to 57% min(0.72%, 0.56px) with 26% min(1.8%, 1.4px) / 42% min(0.72%, 0.56px),
+    curve to calc(100% - clamp(min(15%, 5px), 7.5%, 11px)) min(1.8%, 1.4px) with 70% min(0.72%, 0.56px) / 75% min(1.8%, 1.4px),
+    curve to calc(100% - var(--field-side-inset)) min(22%, 11px) with calc(100% - calc(clamp(min(15%, 5px), 7.5%, 11px) * .44)) min(1.8%, 1.4px) / calc(100% - var(--field-side-inset)) calc(min(22%, 11px) * .44),
+    curve to calc(100% - calc(var(--field-side-inset) * .64)) 54% with calc(100% - var(--field-side-inset)) 34% / calc(100% - calc(var(--field-side-inset) * .64)) 43%,
+    curve to calc(100% - var(--field-side-inset)) calc(100% - min(22%, 11px)) with calc(100% - calc(var(--field-side-inset) * .64)) 65% / calc(100% - var(--field-side-inset)) 66%,
+    curve to calc(100% - clamp(min(15%, 5px), 7.5%, 11px)) calc(100% - min(1.8%, 1.4px)) with calc(100% - var(--field-side-inset)) calc(100% - calc(min(22%, 11px) * .44)) / calc(100% - calc(clamp(min(15%, 5px), 7.5%, 11px) * .44)) calc(100% - min(1.8%, 1.4px)),
+    curve to 43% calc(100% - min(1.062%, 0.83px)) with 75% calc(100% - min(1.8%, 1.4px)) / 55% calc(100% - min(1.062%, 0.83px)),
+    curve to clamp(min(15%, 5px), 7.5%, 11px) calc(100% - min(1.8%, 1.4px)) with 29% calc(100% - min(1.062%, 0.83px)) / 26% calc(100% - min(1.8%, 1.4px)),
+    curve to var(--field-side-inset) calc(100% - min(22%, 11px)) with calc(clamp(min(15%, 5px), 7.5%, 11px) * .44) calc(100% - min(1.8%, 1.4px)) / var(--field-side-inset) calc(100% - calc(min(22%, 11px) * .44)),
+    curve to calc(var(--field-side-inset) * .69) 46% with var(--field-side-inset) 66% / calc(var(--field-side-inset) * .69) 56%,
+    curve to var(--field-side-inset) min(22%, 11px) with calc(var(--field-side-inset) * .69) 35% / var(--field-side-inset) 34%,
+    curve to clamp(min(15%, 5px), 7.5%, 11px) min(1.8%, 1.4px) with var(--field-side-inset) calc(min(22%, 11px) * .44) / calc(clamp(min(15%, 5px), 7.5%, 11px) * .44) min(1.8%, 1.4px), close
+  );
+  --contour-field-return: shape(
+    from clamp(min(15%, 5px), 7.2%, 10px) min(1.8%, 1.4px),
+    curve to 48% min(0.99%, 0.77px) with 26% min(1.8%, 1.4px) / 33% min(0.99%, 0.77px),
+    curve to calc(100% - clamp(min(15%, 5px), 7.2%, 10px)) min(1.8%, 1.4px) with 61% min(0.99%, 0.77px) / 75% min(1.8%, 1.4px),
+    curve to calc(100% - var(--field-side-inset)) min(23%, 12px) with calc(100% - calc(clamp(min(15%, 5px), 7.2%, 10px) * .44)) min(1.8%, 1.4px) / calc(100% - var(--field-side-inset)) calc(min(23%, 12px) * .44),
+    curve to calc(100% - calc(var(--field-side-inset) * .72)) 57% with calc(100% - var(--field-side-inset)) 34% / calc(100% - calc(var(--field-side-inset) * .72)) 46%,
+    curve to calc(100% - var(--field-side-inset)) calc(100% - min(23%, 12px)) with calc(100% - calc(var(--field-side-inset) * .72)) 68% / calc(100% - var(--field-side-inset)) 66%,
+    curve to calc(100% - clamp(min(15%, 5px), 7.2%, 10px)) calc(100% - min(1.8%, 1.4px)) with calc(100% - var(--field-side-inset)) calc(100% - calc(min(23%, 12px) * .44)) / calc(100% - calc(clamp(min(15%, 5px), 7.2%, 10px) * .44)) calc(100% - min(1.8%, 1.4px)),
+    curve to 52% calc(100% - min(0.648%, 0.5px)) with 75% calc(100% - min(1.8%, 1.4px)) / 64% calc(100% - min(0.648%, 0.5px)),
+    curve to clamp(min(15%, 5px), 7.2%, 10px) calc(100% - min(1.8%, 1.4px)) with 38% calc(100% - min(0.648%, 0.5px)) / 26% calc(100% - min(1.8%, 1.4px)),
+    curve to var(--field-side-inset) calc(100% - min(23%, 12px)) with calc(clamp(min(15%, 5px), 7.2%, 10px) * .44) calc(100% - min(1.8%, 1.4px)) / var(--field-side-inset) calc(100% - calc(min(23%, 12px) * .44)),
+    curve to calc(var(--field-side-inset) * .65) 43% with var(--field-side-inset) 66% / calc(var(--field-side-inset) * .65) 53%,
+    curve to var(--field-side-inset) min(23%, 12px) with calc(var(--field-side-inset) * .65) 32% / var(--field-side-inset) 34%,
+    curve to clamp(min(15%, 5px), 7.2%, 10px) min(1.8%, 1.4px) with var(--field-side-inset) calc(min(23%, 12px) * .44) / calc(clamp(min(15%, 5px), 7.2%, 10px) * .44) min(1.8%, 1.4px), close
+  );
+  --contour-button: shape(
+    from clamp(min(15%, 5px), 8%, 12px) var(--control-block-inset),
+    curve to 54% calc(var(--control-block-inset) * .44) with 26% var(--control-block-inset) / 39% calc(var(--control-block-inset) * .44),
+    curve to calc(100% - clamp(min(15%, 5px), 8%, 12px)) var(--control-block-inset) with 67% calc(var(--control-block-inset) * .44) / 75% var(--control-block-inset),
+    curve to calc(100% - var(--control-side-inset)) min(20%, 11px) with calc(100% - calc(clamp(min(15%, 5px), 8%, 12px) * .44)) var(--control-block-inset) / calc(100% - var(--control-side-inset)) calc(min(20%, 11px) * .44),
+    curve to calc(100% - calc(var(--control-side-inset) * .74)) 51% with calc(100% - var(--control-side-inset)) 34% / calc(100% - calc(var(--control-side-inset) * .74)) 40%,
+    curve to calc(100% - var(--control-side-inset)) calc(100% - min(20%, 11px)) with calc(100% - calc(var(--control-side-inset) * .74)) 62% / calc(100% - var(--control-side-inset)) 66%,
+    curve to calc(100% - clamp(min(15%, 5px), 8%, 12px)) calc(100% - var(--control-block-inset)) with calc(100% - var(--control-side-inset)) calc(100% - calc(min(20%, 11px) * .44)) / calc(100% - calc(clamp(min(15%, 5px), 8%, 12px) * .44)) calc(100% - var(--control-block-inset)),
+    curve to 46% calc(100% - calc(var(--control-block-inset) * .41)) with 75% calc(100% - var(--control-block-inset)) / 58% calc(100% - calc(var(--control-block-inset) * .41)),
+    curve to clamp(min(15%, 5px), 8%, 12px) calc(100% - var(--control-block-inset)) with 32% calc(100% - calc(var(--control-block-inset) * .41)) / 26% calc(100% - var(--control-block-inset)),
+    curve to var(--control-side-inset) calc(100% - min(20%, 11px)) with calc(clamp(min(15%, 5px), 8%, 12px) * .44) calc(100% - var(--control-block-inset)) / var(--control-side-inset) calc(100% - calc(min(20%, 11px) * .44)),
+    curve to calc(var(--control-side-inset) * .67) 49% with var(--control-side-inset) 66% / calc(var(--control-side-inset) * .67) 59%,
+    curve to var(--control-side-inset) min(20%, 11px) with calc(var(--control-side-inset) * .67) 38% / var(--control-side-inset) 34%,
+    curve to clamp(min(15%, 5px), 8%, 12px) var(--control-block-inset) with var(--control-side-inset) calc(min(20%, 11px) * .44) / calc(clamp(min(15%, 5px), 8%, 12px) * .44) var(--control-block-inset), close
+  );
+  --contour-petal: shape(
+    from clamp(min(15%, 5px), 8.5%, 14px) var(--control-block-inset),
+    curve to 47% calc(var(--control-block-inset) * .33) with 26% var(--control-block-inset) / 32% calc(var(--control-block-inset) * .33),
+    curve to calc(100% - clamp(min(15%, 5px), 8.5%, 14px)) var(--control-block-inset) with 60% calc(var(--control-block-inset) * .33) / 75% var(--control-block-inset),
+    curve to calc(100% - var(--control-side-inset)) min(21%, 12px) with calc(100% - calc(clamp(min(15%, 5px), 8.5%, 14px) * .44)) var(--control-block-inset) / calc(100% - var(--control-side-inset)) calc(min(21%, 12px) * .44),
+    curve to calc(100% - calc(var(--control-side-inset) * .76)) 58% with calc(100% - var(--control-side-inset)) 34% / calc(100% - calc(var(--control-side-inset) * .76)) 47%,
+    curve to calc(100% - var(--control-side-inset)) calc(100% - min(21%, 12px)) with calc(100% - calc(var(--control-side-inset) * .76)) 69% / calc(100% - var(--control-side-inset)) 66%,
+    curve to calc(100% - clamp(min(15%, 5px), 8.5%, 14px)) calc(100% - var(--control-block-inset)) with calc(100% - var(--control-side-inset)) calc(100% - calc(min(21%, 12px) * .44)) / calc(100% - calc(clamp(min(15%, 5px), 8.5%, 14px) * .44)) calc(100% - var(--control-block-inset)),
+    curve to 53% calc(100% - calc(var(--control-block-inset) * .52)) with 75% calc(100% - var(--control-block-inset)) / 65% calc(100% - calc(var(--control-block-inset) * .52)),
+    curve to clamp(min(15%, 5px), 8.5%, 14px) calc(100% - var(--control-block-inset)) with 39% calc(100% - calc(var(--control-block-inset) * .52)) / 26% calc(100% - var(--control-block-inset)),
+    curve to var(--control-side-inset) calc(100% - min(21%, 12px)) with calc(clamp(min(15%, 5px), 8.5%, 14px) * .44) calc(100% - var(--control-block-inset)) / var(--control-side-inset) calc(100% - calc(min(21%, 12px) * .44)),
+    curve to calc(var(--control-side-inset) * .65) 42% with var(--control-side-inset) 66% / calc(var(--control-side-inset) * .65) 52%,
+    curve to var(--control-side-inset) min(21%, 12px) with calc(var(--control-side-inset) * .65) 31% / var(--control-side-inset) 34%,
+    curve to clamp(min(15%, 5px), 8.5%, 14px) var(--control-block-inset) with var(--control-side-inset) calc(min(21%, 12px) * .44) / calc(clamp(min(15%, 5px), 8.5%, 14px) * .44) var(--control-block-inset), close
+  );
+  --contour-pebble: shape(
+    from 49% 2%,
+    curve to 98% 47% with 76% 2% / 98% 22%,
+    curve to 54% 98% with 98% 75% / 79% 98%,
+    curve to 2% 52% with 27% 98% / 2% 77%,
+    curve to 49% 2% with 2% 25% / 22% 2%, close
+  );
+  --arc-vertical: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 100' preserveAspectRatio='none'%3E%3Cpath d='M7 0C3 26 1 39 2 62C3 79 7 89 6 100C9 87 5 77 5 62C4 41 5 23 7 0Z'/%3E%3C/svg%3E");
+  --contour-marker: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M5 2C7 2.4 11.7 5.5 12.3 7.5C13 9.9 7.4 13.7 5 14C3.7 14.2 2.9 12.8 4 11.7C5.3 10.4 7.9 8.7 8.3 7.9C7.7 7 5.3 5.5 4.1 4.2C3 3.1 3.8 1.8 5 2Z'/%3E%3C/svg%3E");
+}
+
+:where(#root *) { border-shape: var(--organic-contour, none); }
+
+:where(.auth-card, .celebration-card, .tester-card) {
+  --organic-contour: var(--contour-sheet);
+}
+:where(.auth-card--signup, .profile-avatar-card, .activity-history, .mission-preferences,
+  .ai-card, .trial-mission, .chart-card.design-guide, .tester-progress) {
+  --organic-contour: var(--contour-fold);
+}
+:where(.today-card, .activity-day, .mission-list, .chart-card:not(.design-guide), .diary-entry,
+  .community-card, .profile-info-card, .persona-card, .emotion-report, .timeline-card,
+  .failure-log-item, .mallang-customizer, .design-guide-layout-sample, .tester-source) {
+  --organic-contour: var(--contour-card);
+}
+:where(.today-card, .diary-entry:nth-child(3n + 2), .community-card:nth-child(5n + 2),
+  .failure-log-item:nth-child(5n + 3), .tester-source:nth-child(4n + 3), .about-more:not(.design-guide)) {
+  --organic-contour: var(--contour-fold);
+}
+:where(.main-radar, .mallang-room) { --organic-contour: var(--contour-room); }
+
+:where(input:not([type="checkbox"], [type="radio"]), textarea, select) {
+  --organic-contour: var(--contour-field);
+}
+:where(.auth-field + .auth-field > input, textarea:not(.trial-input), .trial-question:nth-child(2) textarea) {
+  --organic-contour: var(--contour-field-return);
+}
+:where(.auth-btn, .btn, .record-header button, .diary-header button, .diary-save-btn,
+  .diary-actions button, .profile-logout-btn, .celebration-btn, .trial-submit, .trial-next,
+  .trial-mission-actions button, .tester-button, .app-bottom-nav-link, .kebab-dropdown,
+  .trial-tabs, .mallang-customizer-sections, .analysis-head, .reflection-request-btn) {
+  --organic-contour: var(--contour-button);
+}
+:where(.auth-btn--trial, .today-diary-button, .main-analysis-link, .activity-write, .activity-diary,
+  .activity-mission, .activity-status, .mission-done-btn, .elo-stat, .respect-btn, .calendar-controls button,
+  .calendar-day, .grade-btn, .trial-tab, .trial-level-change, .mallang-customizer-sections button,
+  .mallang-shape-option, .mallang-theme-swatch, .mallang-style-preview button, .tester-progress li,
+  .tester-options label > span, .tester-button-secondary, .tester-brand > span, .tester-feature-icon,
+  .tester-elo, .tester-receipt, .tester-sample, .tester-mission, .profile-row--points,
+  .design-guide-list li, .design-guide-swatch, .design-guide-layout-sample span, .notice-box,
+  .analysis-reason, .mission-feedback, .mission-helper-panel, .helper-bubble, .reflection-card,
+  .trial-diary, .auth-error, .chart-tooltip, .app-toast) {
+  --organic-contour: var(--contour-petal);
+}
+:where(.calendar-day:nth-child(5n + 2), .calendar-day:nth-child(7n + 5), .grade-btn:nth-child(2),
+  .survey-group:nth-of-type(even) .grade-btn:nth-child(4), .trial-tab:nth-child(2),
+  .tester-options label:nth-child(4) > span, .mallang-shape-option:nth-child(3),
+  .helper-bubble--assistant, .activity-diary:nth-of-type(3n)) {
+  --organic-contour: var(--contour-button);
+}
+:where(.persona-badge, .status-tag, .timeline-source, .tag, .conf-badge, .trial-badge, .trial-level,
+  .failure-log-badge, .app-bottom-nav-icon, .tester-step-index, .trial-question-num, .calendar-mark--mission,
+  .kebab-btn, .mallang-customize-toggle, .mallang-customizer-close, .mallang-theme-dot, .mallang-theme-check,
+  .growth-tooltip-source i) {
+  --organic-contour: var(--contour-pebble);
+}
+
+@supports (clip-path: shape(from 0 0, curve to 100% 100% with 100% 0, close)) {
+  .button-ripple {
+    --organic-contour: inherit;
+    clip-path: var(--organic-contour, none);
+  }
+}
+
+/* The element remains the rectangular layout and hit area. Only the
+   decoration extends beyond it. The pseudo-element cannot receive input. */
+@supports (border-shape: circle()) {
+  @media (forced-colors: none) {
+    #root :where(.auth-card, .celebration-card, .today-card, .activity-history, .activity-day,
+      .mission-list, .chart-card, .diary-entry, .community-card, .profile-info-card, .profile-avatar-card,
+      .emotion-report, .timeline-card, .failure-log-item, .mallang-customizer, .mallang-room,
+      .mission-preferences, .trial-mission, .design-guide-layout-sample, .tester-card, .tester-progress, .tester-source) {
+      position: relative;
+      container-type: inline-size;
+      isolation: isolate;
+      background: none;
+      border-color: transparent;
+      border-shape: none;
+      box-shadow: none;
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset: var(--surface-inset, -3px);
+        z-index: -1;
+        pointer-events: none;
+        background: var(--surface-background, var(--card));
+        border: var(--surface-stroke, 1px) solid var(--surface-border, var(--border));
+        border-shape: var(--organic-contour);
+        --organic-contour: inherit;
+        box-shadow: var(--surface-shadow, var(--shadow));
+      }
+    }
+
+    :where(.today-card, .diary-entry, .community-card, .profile-info-card, .failure-log-item,
+      .mallang-customizer, .mallang-room, .mission-preferences, .trial-mission) {
+      --surface-shadow: var(--shadow-sm);
+    }
+    .auth-card { --surface-shadow: var(--shadow-md); }
+    .celebration-card { --surface-shadow: 0 12px 48px color-mix(in srgb, var(--shadow-ink) 15%, transparent); }
+    .diary-entry:has(.kebab-dropdown) { z-index: 1; }
+    .community-card::after { transition: box-shadow .15s; }
+    .community-card--cheer { outline: none; }
+    .community-card--cheer::after { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .mission-list.is-spotlight { animation: none; outline: none; }
+    .mission-list.is-spotlight::after { animation: spotlight 2.4s ease-out; }
+    @media (prefers-reduced-motion: reduce) {
+      .mission-list.is-spotlight::after { animation: none; outline: 3px solid var(--accent); }
+    }
+    .community-card:hover { --surface-shadow: var(--shadow); }
+    .diary-entry-selected, .mallang-customizer, .mallang-room { --surface-border: var(--accent-line); }
+    .trial-mission { --surface-stroke: 1.5px; }
+    .profile-avatar-card {
+      --surface-background: linear-gradient(160deg, var(--bg-mint) 0%, var(--card) 60%);
+      --surface-border: color-mix(in srgb, var(--green) 20%, transparent);
+    }
+    .design-guide-layout-sample { --surface-background: var(--bg); --surface-shadow: none; }
+    :where(.tester-card, .tester-progress, .tester-source) {
+      --surface-background: var(--tester-surface);
+      --surface-border: var(--tester-border);
+      --surface-shadow: none;
+    }
+    .tester-card { --surface-shadow: 0 16px 50px #5030470b; }
+    :where(.tester-progress, .tester-source, .mallang-customizer, .design-guide-layout-sample) {
+      --surface-inset: -1px;
+    }
+  }
+}
+
+.timeline-line {
+  width: 8px;
+  transform: translateX(-3px);
+  mask: var(--arc-vertical) center / 100% 100% no-repeat;
+}
+
+:where(.auth-error, .trial-diary) { position: relative; border-left-color: transparent; }
+:where(.auth-error, .trial-diary)::after {
+  content: "";
+  position: absolute;
+  inset-block: 4px 3px;
+  inset-inline-start: -3px;
+  width: 9px;
+  background: var(--accent);
+  mask: var(--arc-vertical) center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+.auth-error::after { background: var(--warning); }
+
+.about-more > summary { list-style: none; }
+.about-more > summary::-webkit-details-marker { display: none; }
+.about-more > summary::before {
+  content: "";
+  display: inline-block;
+  width: .7em;
+  height: .7em;
+  margin-inline-end: .27em;
+  vertical-align: .01em;
+  background: currentColor;
+  mask: var(--contour-marker) center / contain no-repeat;
+}
+.about-more[open] > summary::before { transform: rotate(90deg); }
+
+@supports not (border-shape: circle()) {
+  #root :where(.auth-card, .celebration-card, .tester-card, .tester-progress, .mallang-room, .today-card,
+    .activity-history, .activity-day, .mission-list, .chart-card, .diary-entry, .community-card,
+    .profile-info-card, .profile-avatar-card, .persona-card, .emotion-report, .timeline-card,
+    .failure-log-item, .mallang-customizer, .mission-preferences, .ai-card, .trial-mission,
+    .design-guide-layout-sample, .tester-source) {
+    border-radius: 5% 7% 4% 6% / 12% 8% 14% 7%;
+  }
+  #root :where(input:not([type="checkbox"], [type="radio"]), textarea, select, .auth-btn, .btn,
+    .diary-save-btn, .profile-logout-btn, .today-diary-button, .trial-submit, .trial-next, .tester-button,
+    .activity-diary, .calendar-day, .grade-btn, .trial-tab, .tester-options label > span, .app-toast) {
+    border-radius: 5% 4% 6% 4% / 34% 46% 30% 42%;
+  }
+}

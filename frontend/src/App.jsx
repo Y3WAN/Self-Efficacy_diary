@@ -73,8 +73,8 @@ export default function App() {
         <Toaster
           position="bottom-center"
           toastOptions={{
+            className: "app-toast",
             style: {
-              borderRadius: "12px",
               background: "var(--card)",
               color: "var(--text)",
             },

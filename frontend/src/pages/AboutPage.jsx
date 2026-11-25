@@ -88,7 +88,7 @@ export default function AboutPage() {
                 <span>카드 안쪽 여백</span>
               </div>
               <figcaption className="design-guide-meta">
-                화면 양옆 14–28px · 카드 안쪽과 섹션 사이 14–22px · 카드 모서리 16px
+                화면 양옆 14–28px · 카드 안쪽 18–26px · 섹션 사이 14–22px
               </figcaption>
             </figure>
           </div>

@@ -78,7 +78,7 @@
   --app-width: 800px;
   --page-gutter: clamp(14px, 4vw, 28px);
   --section-gap: clamp(14px, 3vw, 22px);
-  --card-padding: clamp(14px, 3.6vw, 22px);
+  --card-padding: clamp(18px, 4.2vw, 26px);
   --control-height: 44px;
   --header-height: 60px;
   --focus-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.18);
@@ -227,7 +227,7 @@ h1, .community-title, .diary-header h2 {
 .trial-input {
   width: 100%;
   min-height: var(--control-height);
-  padding: 10px 13px;
+  padding: 10px 16px;
   border: 1px solid var(--control-border);
   border-radius: var(--radius-sm);
   background: var(--bg);
