@@ -76,7 +76,7 @@ export default function DiaryCalendar({
       <div
         className="calendar-grid calendar-grid--week"
         role="group"
-        aria-label="날짜별 기록 열기 (좌우로 밀어서 주 이동)"
+        aria-label="지난 기록 열기 (좌우로 밀어서 주 이동)"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >

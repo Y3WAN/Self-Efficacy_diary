@@ -1,0 +1,12 @@
+/* 글씨 드래그(선택)·끌기 막기. 입력칸은 그대로 쓸 수 있게 둔다. */
+html, body, body * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none;
+}
+input, textarea, [contenteditable="true"], [contenteditable="true"] * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default;
+}
+img, a, svg { -webkit-user-drag: none; }

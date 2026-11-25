@@ -17,7 +17,7 @@ const FLICK_THRESHOLD = 40;
 const FLICK_MAX_MS = 280;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const dayDifference = (start, end) => (Date.parse(end) - Date.parse(start)) / MS_PER_DAY;
-const MISSION_STATUS = { done: "완료", skipped: "어려웠어요", expired: "기한 지남" };
+const MISSION_STATUS = { done: "해냈어요", skipped: "어려워요", expired: "기한 지남" };
 const DAY_LABEL = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "UTC", year: "numeric", month: "long", day: "numeric", weekday: "long",
 });
@@ -311,7 +311,7 @@ function RecordCarousel({ date, today }) {
         <button ref={backRef} type="button" className="record-back" onClick={returnToCalendar}>
           <Icon name="arrowLeft" /> 달력
         </button>
-        <h1>하루 기록</h1>
+        <h1>그날의 기록</h1>
         <div className="record-arrows">
           <button type="button" aria-label="이전 날짜" disabled={!previous} onClick={() => moveSlide(-1)}><Icon name="chevronLeft" /></button>
           <button type="button" aria-label="다음 날짜" disabled={!next} onClick={() => moveSlide(1)}><Icon name="chevronRight" /></button>
@@ -337,7 +337,7 @@ function RecordCarousel({ date, today }) {
           event.preventDefault();
           event.stopPropagation();
         }}
-        aria-label="날짜별 기록"
+        aria-label="그날의 기록"
         role="group"
       >
         {dates.map((slideDate, index) => (

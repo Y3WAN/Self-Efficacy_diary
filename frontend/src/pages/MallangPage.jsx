@@ -486,20 +486,21 @@ export default function MallangPage() {
     <AppBar />
     <main className={customizing ? "mallang-content mallang-content--customizing" : "mallang-content"}>
       {import.meta.env.DEV && params.has("inspect") && <output ref={inspect} id="mallang-inspect" hidden />}
-      <h1>사이버 말랑이</h1>
+      <h1>마음 쉬기</h1>
+      <p className="mallang-intro">속상하거나 긴장될 때 말랑이를 꾹꾹 눌러 보세요.</p>
       <div className="mallang-controls">
         <button type="button" role="switch" aria-checked={isWaxMode} className="mallang-wax-toggle" onClick={toggle}>
-          왁뿌볼<span className="mallang-wax-track" aria-hidden="true" />
+          껍질 깨기<span className="mallang-wax-track" aria-hidden="true" />
         </button>
         {isWaxMode && <button type="button" className="mallang-wax-reset" disabled={!waxShell.preview && !waxShell.fractures}
-          onClick={() => controller.current.reset()}>껍질 복원</button>}
+          onClick={() => controller.current.reset()}>껍질 다시 씌우기</button>}
         {import.meta.env.DEV && params.has("style") && <div className="mallang-style-preview">
           {["original", "2d"].map((style) => <button key={style} type="button" aria-pressed={appearance === style}
             onClick={() => { const next = new URLSearchParams(params); next.set("style", style); setParams(next, { replace: true }); }}>
             {style === "2d" ? "2D" : "기본"}</button>)}
         </div>}
         <button ref={customizeButton} type="button" className="mallang-customize-toggle"
-          aria-label="사말이 꾸미기" aria-expanded={customizing} aria-controls={customizing ? customizerId : undefined}
+          aria-label="말랑이 꾸미기" aria-expanded={customizing} aria-controls={customizing ? customizerId : undefined}
           onClick={() => setCustomizing((open) => !open)}>
           <Icon name="pencil" />
         </button>
@@ -515,7 +516,7 @@ export default function MallangPage() {
               <div ref={deformation} className="mallang-deformation">
                 <canvas ref={canvas} className="mallang-material-canvas" aria-hidden="true" />
                 <button ref={control} type="button" draggable={false} className="mallang-body"
-                  aria-label={isWaxMode && waxShell.pieces.length ? "왁스 껍질 길게 누르기" : "말랑이 누르기"}
+                  aria-label={isWaxMode && waxShell.pieces.length ? "껍질 길게 누르기" : "말랑이 누르기"}
                   aria-disabled={busy || undefined}
                   onPointerMove={(e) => controller.current.move(e)}
                   onPointerUp={(e) => controller.current.end(e)} onPointerCancel={(e) => controller.current.end(e)}

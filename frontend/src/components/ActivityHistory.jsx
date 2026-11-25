@@ -56,7 +56,7 @@ export default function ActivityHistory({ today }) {
 
   return (
     <section className="activity-history" aria-labelledby="activity-title" ref={calendarRef}>
-      <h2 id="activity-title" className="section-title">일기·미션 기록</h2>
+      <h2 id="activity-title" className="section-title">지난 기록</h2>
       <DiaryCalendar
         weekStart={weekStart}
         selectedDate={selectedDate}

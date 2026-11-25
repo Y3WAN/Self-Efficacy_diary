@@ -117,7 +117,7 @@ async def _create_instant_mission(diary: Diary, user: User, db: AsyncSession) ->
     target_var = next((v for v in ranked if v not in used), ranked[0])
 
     level = target_level(user.elo if user.elo is not None else BASE_RATING)
-    content, reason = await generate_mission_draft(
+    content, reason, helper = await generate_mission_draft(
         target_var,
         level,
         diary.content,
@@ -132,6 +132,7 @@ async def _create_instant_mission(diary: Diary, user: User, db: AsyncSession) ->
         user_id=user.id,
         content=content,
         reason=reason or None,
+        helper=helper or None,
         target_var=target_var,
         status="active",
         difficulty=LEVEL_RATINGS[level],

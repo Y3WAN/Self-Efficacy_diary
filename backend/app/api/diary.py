@@ -9,7 +9,8 @@ from app.core.deps import get_current_user
 from app.core.timeutil import today_kst
 from app.api.mission import MissionResponse
 from app.services.reflection_service import reflect_diary
-from pydantic import BaseModel
+from app.services.compose_service import compose_diary
+from pydantic import BaseModel, Field
 from typing import Optional
 
 router = APIRouter(prefix="/api/diaries", tags=["diaries"])
@@ -18,6 +19,19 @@ router = APIRouter(prefix="/api/diaries", tags=["diaries"])
 class ReflectResponse(BaseModel):
     reflection: ReflectionOut
     mission: Optional[MissionResponse] = None
+
+
+class ComposeAnswer(BaseModel):
+    question: str = Field(..., max_length=100)
+    answer: str = Field("", max_length=300)
+
+
+class ComposeRequest(BaseModel):
+    answers: list[ComposeAnswer] = Field(..., min_length=1, max_length=5)
+
+
+class ComposeResponse(BaseModel):
+    content: str
 
 
 @router.get("", response_model=MonthDiariesResponse)
@@ -71,6 +85,21 @@ async def get_diaries_by_date(
         .order_by(Diary.created_at)
     )
     return result.scalars().all()
+
+
+@router.post("/compose", response_model=ComposeResponse)
+async def compose(
+    body: ComposeRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """질문에 대한 짧은 답들을 일기 한 편으로 엮어 돌려준다. 저장은 하지 않는다(저장은 POST /api/diaries)."""
+    if not any(a.answer.strip() for a in body.answers):
+        raise HTTPException(status_code=422, detail="답을 하나 이상 적어 주세요.")
+    try:
+        content = await compose_diary([(a.question, a.answer) for a in body.answers])
+    except Exception:
+        raise HTTPException(status_code=502, detail="AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.")
+    return ComposeResponse(content=content)
 
 
 @router.post("", response_model=DiaryResponse, status_code=201)

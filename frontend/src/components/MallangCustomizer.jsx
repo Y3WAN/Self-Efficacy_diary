@@ -34,7 +34,7 @@ export default function MallangCustomizer({ id, look, onChange, onClose }) {
       if (event.key === "Escape") { event.stopPropagation(); onClose(); }
     }}>
     <header className="mallang-customizer-header">
-      <h2 id={id + "-title"}>사말이 꾸미기</h2>
+      <h2 id={id + "-title"}>말랑이 꾸미기</h2>
       <button type="button" className="mallang-customizer-close" aria-label="꾸미기 닫기" onClick={onClose}>
         <Icon name="close" />
       </button>
@@ -57,7 +57,7 @@ export default function MallangCustomizer({ id, look, onChange, onClose }) {
           </button>
         ))}
       </div>
-      <p>앱 전체와 사말이의 색이 함께 바뀌어요.</p>
+      <p>앱 전체와 말랑이의 색이 함께 바뀌어요.</p>
     </> : <FaceOptions field={section} look={look} onChange={onChange} />}
   </section>;
 }

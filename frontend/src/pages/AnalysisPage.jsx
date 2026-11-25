@@ -7,33 +7,23 @@ import { SOURCES } from "../utils/sources";
 
 const pct = (v) => Math.round(v * 100);
 
-function confidenceLevel(c) {
-  if (c >= 0.7) return { text: "높음", cls: "conf--high" };
-  if (c >= 0.3) return { text: "보통", cls: "conf--mid" };
-  return { text: "낮음", cls: "conf--low" };
-}
-
+// 점수·확신도 숫자는 보여 주지 않는다. 막대 길이와 AI가 찾은 문장만 보여 준다.
 function AnalysisCard({ a, defaultOpen }) {
   const [open, setOpen] = useState(defaultOpen);
-  const conf = confidenceLevel(a.confidence);
 
   return (
     <div className="chart-card analysis-card">
       <button type="button" className="analysis-head" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className="analysis-date">{a.date.slice(5).replace("-", "/")}</span>
-        <span className="analysis-score">
-          {a.composite_score != null ? `${pct(a.composite_score)}점` : "그래프에 안 넣음"}
-        </span>
-        <span className={`conf-badge ${conf.cls}`}>AI 확신 {pct(a.confidence)}% · {conf.text}</span>
         <Icon name={open ? "chevronUp" : "chevronDown"} className="analysis-toggle" />
       </button>
 
-      {a.is_initial && <p className="analysis-note">가입 설문으로 정한 시작 점수예요.</p>}
+      {a.is_initial && <p className="analysis-note">가입할 때 답한 내용으로 시작했어요.</p>}
       {!a.is_reflected && (
         <p className="analysis-note analysis-note--warn">
           {a.evidence_sources
-            ? "AI가 판단하기 어려워 성장 그래프에 반영하지 않았어요. (일기가 짧으면 판단 근거가 부족해요)"
-            : "일기에서 4가지 경험의 근거를 찾지 못해 성장 그래프에 반영하지 않았어요."}
+            ? "이 일기는 AI도 잘 모르겠대요. 그래프에는 넣지 않았어요."
+            : "이 일기에서는 4가지 경험을 찾지 못해 그래프에 넣지 않았어요."}
         </p>
       )}
 
@@ -46,17 +36,17 @@ function AnalysisCard({ a, defaultOpen }) {
             return (
               <div key={s.key} className={`analysis-row${hasEvidence ? "" : " analysis-row--none"}`}>
                 <div className="analysis-row-top">
-                  <span className="analysis-label">{s.label}</span>
-                  <span className="analysis-val">{hasEvidence ? pct(score) : "일기에 없음"}</span>
+                  <span className="analysis-label">{s.label} <em className="analysis-desc">{s.desc}</em></span>
+                  {!hasEvidence && <span className="analysis-val">일기에 없음</span>}
                 </div>
                 <div className="analysis-bar"><div style={{ width: hasEvidence ? `${pct(score)}%` : 0 }} /></div>
-                {hasEvidence && ev && <p className="analysis-evidence">{ev}</p>}
+                {hasEvidence && ev && <p className="analysis-evidence">“{ev}”</p>}
               </div>
             );
           })}
           {a.reasoning && !a.is_initial && (
             <div className="analysis-reason">
-              <strong>AI가 이렇게 본 이유</strong>
+              <strong>AI 한마디</strong>
               <p>{a.reasoning}</p>
             </div>
           )}
@@ -77,7 +67,7 @@ export default function AnalysisPage() {
       <AppBar />
       <main className="main-content">
         <header className="page-heading">
-          <h1>AI가 이렇게 판단한 이유</h1>
+          <h1>AI가 일기에서 찾은 문장</h1>
         </header>
         {isLoading && <div className="chart-empty">불러오는 중...</div>}
         {!isLoading && !data.length && (

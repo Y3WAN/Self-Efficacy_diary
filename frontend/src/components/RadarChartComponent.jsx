@@ -11,7 +11,7 @@ import { readMallangCustomization } from "../utils/mallangCustomization";
 import { getMallangPalette, rgbColor } from "../utils/mallangTheme";
 import { SOURCES, SOURCE_BY_KEY } from "../utils/sources";
 
-const CHART_MARGIN = { top: 24, right: 86, bottom: 24, left: 86 };
+const CHART_MARGIN = { top: 40, right: 92, bottom: 40, left: 92 };
 
 // A cubic Bézier approximation of a quarter ellipse.
 const QUARTER_ELLIPSE_HANDLE = (4 * (Math.SQRT2 - 1)) / 3;
@@ -63,7 +63,7 @@ function RadarMallang({ points = [] }) {
       className="radar-mallang"
       role="button"
       tabIndex={0}
-      aria-label="사말이 누르기"
+      aria-label="말랑이 누르기"
       onClick={(event) => pressRadarMallang(event.currentTarget)}
       onKeyDown={(event) => {
         if (event.key !== "Enter" && event.key !== " ") return;
@@ -98,15 +98,13 @@ function RadarMallang({ points = [] }) {
 
 function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
-  const { key, score, days } = payload[0]?.payload ?? {};
+  const { key, days } = payload[0]?.payload ?? {};
   const info = SOURCE_BY_KEY[key];
   if (!info) return null;
 
   return (
     <div className="chart-tooltip">
-      <strong>
-        {info.label} — {(score * 100).toFixed(0)}점
-      </strong>
+      <strong>{info.label}</strong>
       <p>{info.desc}</p>
       <p>
         {days ? `최근 7일 중 일기에 나온 날 ${days}일` : "최근 7일 일기에는 없어서 예전 기록으로 계산했어요"}
@@ -127,18 +125,21 @@ function spotlightMissions() {
 }
 
 // 축 글자를 누르면 그 원천을 키울 수 있는 화면으로 이동
-function SourceTick({ x, y, payload, textAnchor, onPick }) {
+// 이론 이름 아래에 쉬운 말을 한 줄 더. 맨 위 글자는 원 밖으로 올라가게 한 줄만큼 위로 올린다.
+function SourceTick({ x, y, payload, textAnchor, index, onPick }) {
   const s = SOURCES.find((src) => src.label === payload.value);
+  const top = index === 0 ? y - 16 : y;
   const go = () => s && onPick(s);
   return (
     <text
-      x={x} y={y} textAnchor={textAnchor} dominantBaseline="central"
+      x={x} y={top} textAnchor={textAnchor} dominantBaseline="central"
       className="radar-tick" role="link" tabIndex={0}
       aria-label={`${payload.value} 관련 화면으로 이동`}
       onClick={go}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } }}
     >
-      {payload.value}
+      <tspan>{payload.value}</tspan>
+      {s?.short && <tspan className="radar-tick-short" x={x} dy={17}>{s.short}</tspan>}
     </text>
   );
 }
@@ -165,7 +166,7 @@ export default function RadarChartComponent() {
   }));
 
   return (
-    <ResponsiveContainer className="radar-plot" width="100%" height={220}>
+    <ResponsiveContainer className="radar-plot" width="100%" height={250}>
       <RadarChart data={chartData} margin={CHART_MARGIN} outerRadius="100%" startAngle={90} endAngle={-270}>
         <PolarGrid gridType="circle" stroke="var(--divider)" />
         <PolarAngleAxis
