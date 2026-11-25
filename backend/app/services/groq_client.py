@@ -21,6 +21,9 @@ RATE_LIMIT_WAITS = (4, 8)
 
 
 async def chat_json(messages: list[dict]) -> dict:
+    if settings.LLM_PROVIDER == "claude_code":
+        from app.services.claude_code_client import chat_json_claude_code
+        return await chat_json_claude_code(messages)
     for wait in (*RATE_LIMIT_WAITS, None):
         try:
             resp = await get_groq().chat.completions.create(
