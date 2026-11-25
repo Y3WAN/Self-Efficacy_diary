@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import client from "../api/client";
 
-const EXAMPLE = "나는 요즘 코딩 공부를 하고 있다. 미션은 10분 안에 끝낼 수 있는 연습으로 만든다. 밖에 나가야 하는 미션은 주지 않는다.";
+const LOADING_PLACEHOLDER = "최근 일기를 보고 예시를 만드는 중이에요…";
+const FALLBACK_PLACEHOLDER = "예: 미션은 10분 안에 끝낼 수 있게 만든다.";
 
 export default function PromptPage() {
   const navigate = useNavigate();
@@ -16,6 +17,16 @@ export default function PromptPage() {
     queryKey: ["user-prompt"],
     queryFn: ({ signal }) => client.get("/api/user/prompt", { signal }).then((r) => r.data),
   });
+  // 일기를 보고 AI가 만든 예시. 입력칸이 비어 있을 때만 흐린 글씨로 보인다.
+  const suggestion = useQuery({
+    queryKey: ["user-prompt-suggestion"],
+    queryFn: ({ signal }) => client.get("/api/user/prompt/suggestion", { signal }).then((r) => r.data),
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
+  const placeholder = suggestion.isPending
+    ? LOADING_PLACEHOLDER
+    : suggestion.data?.suggestion || FALLBACK_PLACEHOLDER;
   const saved = data?.custom_prompt ?? "";
   const text = draft ?? saved;
 
@@ -45,18 +56,8 @@ export default function PromptPage() {
             직접 적은 지침과 규칙을 AI가 새 미션을 만들 때마다 읽고 따라요.
             요즘 하는 일, 관심사, 쓸 수 있는 시간, 피하고 싶은 것을 적어 두세요.
             비워 두면 기본 규칙으로 미션을 만들어요.
+            입력칸의 흐린 글씨는 최근 일기를 보고 AI가 추천한 예시예요.
           </p>
-          <div className="mission-preferences-example">
-            <p><strong>작성 예시</strong> {EXAMPLE}</p>
-            {data && !text.trim() && (
-              <button
-                type="button"
-                className="mission-done-btn"
-                onClick={() => setDraft(EXAMPLE)}
-                disabled={mutation.isPending}
-              >예시 넣기</button>
-            )}
-          </div>
 
           {isPending && <p className="mission-empty">저장한 지침을 불러오는 중이에요.</p>}
           {isError && !data && (
@@ -68,7 +69,7 @@ export default function PromptPage() {
                 id="mission-preferences-text"
                 aria-describedby="mission-preferences-help"
                 className="diary-textarea"
-                placeholder="예: 미션은 10분 안에 끝낼 수 있게 만든다."
+                placeholder={placeholder}
                 value={text}
                 onChange={(event) => setDraft(event.target.value)}
               />
