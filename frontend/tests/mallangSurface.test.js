@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
 import { bareSurfaceContact, createMallangMaterial, membranePath, membraneRadii, membraneRadiusAt, MATERIAL } from "../src/utils/mallangMaterial.js";
-import { createWaxShell, fractureWaxShell, markWaxShell } from "../src/utils/waxShell.js";
 import { createMallangSurface } from "../src/utils/mallangSurface.js";
 import { advanceMotion, beginPull, MAX_VISUAL_TETHER_DISTANCE, PULL_RADIUS, pulledCircle, updatePull } from "../src/utils/mallangMotion.js";
 
@@ -74,19 +73,6 @@ test("multiple waves coexist, keep independent parameters and have a finite life
   assert.equal(m.state.waves.length,MATERIAL.maxWaves);
   run(m,300,7500);
   assert.equal(m.state.waves.length,0);assert.equal(m.state.active,false);
-});
-test("shell support and removed support alter the same deforming contents", () => {
-  const shell=createWaxShell(100,94,123), soft=createMallangMaterial(), wax=createMallangMaterial();
-  wax.setShell(shell);
-  for(const m of [soft,wax]) {m.touch(100,100,0);run(m,0,1600);}
-  const supported=wax.sample(100,100);
-  assert(Math.abs(supported)<Math.abs(soft.sample(100,100))*.5);
-  const contact={x:100,y:100};
-  let broken=fractureWaxShell(markWaxShell(shell,contact),contact).shell;
-  while(broken.pieces.length)broken=fractureWaxShell(broken,contact).shell;
-  wax.setShell(broken);run(wax,1600,3200);
-  assert(wax.sample(100,100)<supported-1,"removing a shell must release its constraint");
-  assert(Math.abs(wax.state.signedHeight)<.05);
 });
 test("one continuous contour contains the tip and remains finite through absorption", () => {
   const m=createMallangMaterial();m.touch(190,100,0);run(m,0,1500);
@@ -174,8 +160,8 @@ test("the renderer preserves the dent trail within the current outline", (t) => 
   globalThis.document={createElement:()=>({getContext:()=>context,toDataURL(){calls.encodes++;throw Error("PNG encoding");}})};
   globalThis.window={devicePixelRatio:2};globalThis.Path2D=class {constructor(path){this.path=path;}};
   t.after(()=>{globalThis.document=originalDocument;globalThis.window=originalWindow;globalThis.Path2D=originalPath;});
-  const m=createMallangMaterial(),canvas={getContext:()=>context},overlay={getContext:()=>context};
-  const renderer=createMallangSurface(canvas,m,overlay);
+  const m=createMallangMaterial(),canvas={getContext:()=>context};
+  const renderer=createMallangSurface(canvas,m);
   function green(x, y) {
     const { data, width } = calls.lastPixels;
     const step = 400 / (width - 1);
@@ -373,8 +359,8 @@ test("the renderer preserves the dent trail within the current outline", (t) => 
     assert(renderer.sampleHeight(150, 100) < -10, "speed changes leave the held dent intact");
   }
 
-  assert.equal(calls.pixels,2);assert.equal(calls.encodes,0);assert(calls.clips>=15);
-  assert.equal(canvas.width,overlay.width);
+  assert.equal(calls.pixels,1);assert.equal(calls.encodes,0);assert(calls.clips>=15);
+  assert.equal(canvas.width,800);assert.equal(canvas.height,800);
 });
 test("measured material workload has bounded memory under a prolonged input", (t) => {
   const m=createMallangMaterial();m.touch(100,100,0);const started=performance.now();

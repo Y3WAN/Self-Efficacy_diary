@@ -2,7 +2,7 @@ import { useState } from "react";
 import Icon from "./Icon";
 import { MallangEyes, MallangMouth } from "./MallangFace";
 import { MALLANG_EYES, MALLANG_MOUTHS } from "../utils/mallangCustomization";
-import { getMallangPalette, getMallangWaxPalette, MALLANG_THEMES, rgbColor } from "../utils/mallangTheme";
+import { getMallangPalette, MALLANG_THEMES, rgbColor } from "../utils/mallangTheme";
 
 const sections = [
   { id: "eyes", label: "눈" },
@@ -28,11 +28,6 @@ function FaceOptions({ field, look, onChange }) {
 }
 
 function swatchBackground(theme, surface) {
-  if (surface === "wax") {
-    const { light, middle, rim, dark } = getMallangWaxPalette(theme);
-    return `radial-gradient(ellipse 72% 72% at 35.5% 26.5%, ${light}, ${middle} 43%, ${rim} 80%, ${dark})`;
-  }
-
   const { skin, skinLight, skinEdge, flat } = getMallangPalette(theme);
   if (surface === "2d") return rgbColor(flat);
   return `linear-gradient(135deg, ${rgbColor(skinLight, .65)}, ${rgbColor(skinLight, 0)} 50%),

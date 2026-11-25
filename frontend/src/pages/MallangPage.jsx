@@ -1,7 +1,6 @@
 import { useState, useEffect, useId, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import AppBar from "../components/AppBar";
-import WaxShell from "../components/WaxShell";
 import Icon from "../components/Icon";
 import MallangFace from "../components/MallangFace";
 import MallangCustomizer from "../components/MallangCustomizer";
@@ -9,12 +8,10 @@ import { applySavedMallangTheme, readMallangCustomization, saveMallangCustomizat
 import { bareSurfaceContact, createMallangMaterial, materialContact, membraneRadii, membraneRadiusAt } from "../utils/mallangMaterial";
 import { createMallangSurface } from "../utils/mallangSurface";
 import { getMallangPalette } from "../utils/mallangTheme";
-import { createWaxShell, fractureWaxShell, markWaxShell, waxKeyboardPoint } from "../utils/waxShell";
 import { BLOB_CENTER, BODY_RADIUS, PULL_RADIUS, STOP_SPEED, advanceAngularCoast, advanceMotion, beginPull,
   dragRotationDelta, positionFromPoint, pullTarget, releaseAngularSpeed, springDisplacement, updatePull } from "../utils/mallangMotion";
 import { createMallangAudio } from "../utils/mallangAudio";
 
-const WAX_MODE_KEY = "codemyworld.mallang.wax";
 const RETURNING_TIP_HIT_PADDING = 6;
 const GRAB_REST_SPEED = 0.001;
 const GRAB_REST_DISPLACEMENT = 0.04;
@@ -24,22 +21,11 @@ const POINTER_SPEED_DECAY_MS = 60;
 const FACE_SAMPLE_DISTANCE = 6;
 const FACE_SLOPE_PULL = 3.8;
 const FACE_DEPTH_OFFSET = 0.22;
-const WAX_MARK_LEAD_MS = 70;
-const WAX_BREAK_HOLD_MS = 720;
-const WAX_SHED_HOLD_MS = 540;
-const WAX_OPENING_MS = 345;
-const WAX_FALL_MS = 590;
-const WAX_CRUMB_FALL_MS = 320;
-const WAX_RUB_DISTANCE = 28;
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
 function pointerSpeedAt(motion, now) {
   return motion ? motion.pointerSpeed *
     Math.exp(-Math.max(0, now - motion.pointerMovedAt) / POINTER_SPEED_DECAY_MS) : 0;
-}
-
-function readWaxMode() {
-  try { return localStorage.getItem(WAX_MODE_KEY) === "true"; } catch { return false; }
 }
 
 function projectFacePoint(sample, x, y) {
@@ -80,25 +66,21 @@ export default function MallangPage() {
   const appearance = import.meta.env.DEV && params.get("style") === "2d" ? "2d" : "original";
   const runtime = useRef(null);
   const [audio] = useState(createMallangAudio);
-  const [isWaxMode, setIsWaxMode] = useState(readWaxMode);
-  const [waxShell, setWaxShell] = useState(() => createWaxShell(BLOB_CENTER, BODY_RADIUS));
-  const initial = useRef({ shell: waxShell, mode: isWaxMode });
   const [look, setLook] = useState(readMallangCustomization);
   const [customizing, setCustomizing] = useState(false);
-  const canvas = useRef(null), overlay = useRef(null), character = useRef(null), bounds = useRef(null);
-  const deformation = useRef(null), face = useRef(null), shellElement = useRef(null), control = useRef(null), controller = useRef(null);
+  const canvas = useRef(null), character = useRef(null), bounds = useRef(null);
+  const deformation = useRef(null), face = useRef(null), control = useRef(null), controller = useRef(null);
   const inspect = useRef(null);
   const customizeButton = useRef(null);
   const customizerId = useId();
 
   useEffect(() => {
-    const r = { material: createMallangMaterial(), audio, shell: initial.current.shell,
-      mode: initial.current.mode, frame: null, motion: null, input: null, pressFollowsTether: false,
-      rotation: 0, waxMark: null, records: [], costs: [], frames: 0 };
+    const r = { material: createMallangMaterial(), frame: null, motion: null, input: null,
+      pressFollowsTether: false, rotation: 0, records: [], costs: [], frames: 0 };
     runtime.current = r;
     const material = r.material;
     const palette = getMallangPalette(readMallangCustomization().theme);
-    const surface = createMallangSurface(canvas.current, material, overlay.current, palette);
+    const surface = createMallangSurface(canvas.current, material, palette);
     const faceParts = Array.from(face.current.querySelectorAll("[data-surface-point]"), (element) => {
       const [x, y] = element.dataset.surfacePoint.split(" ").map(Number);
       return { element, x, y };
@@ -108,14 +90,8 @@ export default function MallangPage() {
     let disposed = false;
     r.material.state.reducedMotion = reduced();
     material.reset(performance.now());
-    material.setShell(r.mode ? r.shell : null);
     r.surface = surface;
 
-    function updateShell(shell, topology = true) {
-      r.shell = shell;
-      if (topology) material.setShell(r.mode ? shell : null);
-      setWaxShell(shell);
-    }
     function request() {
       if (!disposed && r.frame === null) r.frame = requestAnimationFrame(frame);
     }
@@ -157,15 +133,8 @@ export default function MallangPage() {
         character.current.style.left = r.motion.position.x + "%";
         character.current.style.top = r.motion.position.y + "%";
       }
-      const sampleFaceHeight = material.state.reducedMotion ? () => 0
-        : material.state.shell ? material.sample : surface?.sampleHeight ?? material.sample;
+      const sampleFaceHeight = material.state.reducedMotion ? () => 0 : surface?.sampleHeight ?? material.sample;
       paintFace(faceParts, sampleFaceHeight);
-      for (const node of shellElement.current?.querySelectorAll("[data-piece-id]") ?? []) {
-        const piece = r.shell.pieces.find((p) => String(p.id) === node.dataset.pieceId);
-        if (!piece?.opening) continue;
-        const z = material.sample(piece.center.x, piece.center.y);
-        node.setAttribute("transform", "translate(0 " + (z * .16).toFixed(3) + ")");
-      }
     }
     r.paint = paint;
     function record(cost) {
@@ -185,62 +154,14 @@ export default function MallangPage() {
         rimAtContact: dent ? membraneRadiusAt(rim, bearing) : BODY_RADIUS,
         rimOpposite: dent ? membraneRadiusAt(rim, bearing + Math.PI) : BODY_RADIUS,
         displaced: state.displaced, raised: state.raised, signedHeight: state.signedHeight,
-        trail: state.nodes.length, waves: state.waves.length, pieces: r.mode ? r.shell.pieces.length : 0,
-        chips: r.shell.chips.length, tip: r.motion?.pull ?? null, relief: material.rimLoad(),
+        trail: state.nodes.length, waves: state.waves.length, tip: r.motion?.pull ?? null, relief: material.rimLoad(),
         motionMode: r.motion?.mode ?? null, rotation: r.rotation,
         x: r.motion?.position.x, y: r.motion?.position.y, vx: r.motion?.vx ?? 0, vy: r.motion?.vy ?? 0 });
       if (r.records.length > 300) r.records.shift();
       if (inspect.current) inspect.current.textContent = JSON.stringify({
         active: material.state.active || !!moving(), frames: r.frames,
-        costs: r.costs, records: r.records, mode: r.mode, seed: r.shell.seed,
+        costs: r.costs, records: r.records,
       });
-    }
-    function breakWax(point, now) {
-      const broken = fractureWaxShell(r.shell, point);
-      if (!broken) return;
-      const shell = broken.shell;
-      const animate = !reduced();
-      if (broken.traces && animate) {
-        shell.opening = { traces: broken.traces, hairlines: broken.hairlines, expiresAt: now + WAX_OPENING_MS };
-      }
-      if (broken.loose && animate) {
-        const loose = { ...broken.loose, fadeMs: WAX_FALL_MS, expiresAt: now + WAX_FALL_MS };
-        const crumbs = broken.crumbs.map((crumb) => ({ ...crumb, fadeMs: WAX_CRUMB_FALL_MS,
-          expiresAt: now + WAX_CRUMB_FALL_MS }));
-        shell.chips = [...shell.chips, loose, ...crumbs];
-      }
-      updateShell(shell);
-      material.impulse(point.x, point.y, broken.strength * .2, now);
-      audio.play(broken.sound, broken.strength);
-    }
-    function startWaxPress(point, now) {
-      audio.prepareWax();
-      if (!r.shell.preview && !r.shell.fractures && !r.waxMark) r.waxMark = { point, at: now + WAX_MARK_LEAD_MS };
-      r.input.waxPress = {
-        point, lastShed: null, nextBreakAt: now + (r.shell.fractures ? WAX_SHED_HOLD_MS : WAX_BREAK_HOLD_MS),
-      };
-    }
-    function advanceWax(now) {
-      if (r.waxMark && now >= r.waxMark.at) {
-        updateShell(markWaxShell(r.shell, r.waxMark.point), false);
-        r.waxMark = null;
-        audio.play("waxSmall", .2);
-        return;
-      }
-      const opening = r.shell.opening;
-      if (opening && now >= opening.expiresAt) updateShell({ ...r.shell, opening: null }, false);
-      if (r.shell.chips.some((chip) => chip.expiresAt <= now)) {
-        updateShell({ ...r.shell, chips: r.shell.chips.filter((chip) => chip.expiresAt > now) }, false);
-      }
-      const press = r.input?.waxPress;
-      if (!press?.point || r.shell.opening || !r.shell.pieces.length || now < press.nextBreakAt) return;
-      if (press.lastShed && Math.hypot(press.point.x - press.lastShed.x,
-        press.point.y - press.lastShed.y) < WAX_RUB_DISTANCE) return;
-      // After splitting the plate network, a held press can loosen one neighboring plate.
-      // More shedding requires a new hold or moving across the cracks.
-      if (r.shell.fractures) press.lastShed = press.point;
-      press.nextBreakAt = now + WAX_SHED_HOLD_MS;
-      breakWax(press.point, now);
     }
     function advance(now) {
       material.state.reducedMotion = reduced();
@@ -283,7 +204,7 @@ export default function MallangPage() {
         r.impactPaint = { x: r.impact.x * left * left, y: r.impact.y * left * left, rotation: r.rotation };
         if (!left) { r.impact = null; r.impactPaint = null; }
       }
-      if (r.input && !r.input.wax && !r.input.sounded && material.contactDepth() >= .12) {
+      if (r.input && !r.input.sounded && material.contactDepth() >= .12) {
         r.input.sounded = true; audio.play("press", material.contactDepth());
       }
     }
@@ -304,103 +225,75 @@ export default function MallangPage() {
       r.frame = null;
       const started = performance.now();
       advance(now);
-      if (r.mode) advanceWax(now);
       paint();
       record(performance.now() - started);
-      if (moving() || material.state.active || surface?.recovering || r.impact ||
-        r.waxMark || r.input?.waxPress?.point || r.shell.opening || r.shell.chips.length) request();
+      if (moving() || material.state.active || surface?.recovering || r.impact) request();
     }
     function cancel(reason) {
       const captured = r.input?.id;
       if (r.frame !== null) cancelAnimationFrame(r.frame);
       r.frame = null; r.input = null; r.motion = null; r.impact = null; r.impactPaint = null;
       r.pressFollowsTether = false;
-      r.waxMark = null;
       r.cancelReason = reason?.type ?? "reset";
       if (captured !== undefined && control.current?.hasPointerCapture(captured)) control.current.releasePointerCapture(captured);
       material.reset(performance.now());
       surface?.reset();
       audio.stop();
-      if (!disposed && (r.shell.opening || r.shell.chips.length)) {
-        updateShell({ ...r.shell, opening: null, chips: [] }, false);
-      }
       character.current?.classList.remove("mallang-character--dragging");
       paint();
       if (!disposed) record(0);
     }
     function down(event) {
       if (r.input || event.button !== 0 || !event.isPrimary) return;
-      if (r.mode && !r.shell.pieces.length && r.shell.chips.length) return;
       const raw = bodyPoint(point(event.clientX, event.clientY));
       if (!hit(raw)) return;
       const now = performance.now();
       const previousMotion = r.motion;
       const wasReturning = !!previousMotion?.pull;
       audio.prepare();
-      const wax = r.mode && r.shell.pieces.length > 0;
-      const local = wax ? contactPoint(raw) : bareSurfaceContact(wasReturning ? bodyPoint(pullTarget(previousMotion)) : raw);
-      r.pressFollowsTether = !wax;
-      r.input = { id: event.pointerId, wax };
+      const local = bareSurfaceContact(wasReturning ? bodyPoint(pullTarget(previousMotion)) : raw);
+      r.pressFollowsTether = true;
+      r.input = { id: event.pointerId };
       if (!control.current.contains(event.target)) event.preventDefault();
       control.current.setPointerCapture(event.pointerId);
       material.touch(local.x, local.y, now);
-      if (wax) { startWaxPress(local, now); r.motion = null; }
-      else {
-        const body = character.current.getBoundingClientRect();
-        const motion = { mode: "grab", vx: previousMotion?.vx ?? 0, vy: previousMotion?.vy ?? 0,
-          position: previousMotion?.position, pointer: { x: event.clientX, y: event.clientY },
-          pointerSpeed: 0, angularSpeed: 0, pointerMovedAt: now,
-          lastFrame: now, pull: previousMotion?.pull ?? null, pullStartRadius: contactPoint(raw).radius,
-          tetherPoint: wasReturning ? previousMotion.tetherPoint : null,
-          tetherSpeed: wasReturning ? previousMotion.tetherSpeed : null };
-        geometry(motion);
-        motion.position ??= positionFromPoint(body.left + body.width / 2, body.top + body.height / 2, motion.rect);
-        if (!wasReturning) beginPull(motion, motion.pullStartRadius);
-        r.motion = motion;
-      }
+      const body = character.current.getBoundingClientRect();
+      const motion = { mode: "grab", vx: previousMotion?.vx ?? 0, vy: previousMotion?.vy ?? 0,
+        position: previousMotion?.position, pointer: { x: event.clientX, y: event.clientY },
+        pointerSpeed: 0, angularSpeed: 0, pointerMovedAt: now,
+        lastFrame: now, pull: previousMotion?.pull ?? null, pullStartRadius: contactPoint(raw).radius,
+        tetherPoint: wasReturning ? previousMotion.tetherPoint : null,
+        tetherSpeed: wasReturning ? previousMotion.tetherSpeed : null };
+      geometry(motion);
+      motion.position ??= positionFromPoint(body.left + body.width / 2, body.top + body.height / 2, motion.rect);
+      if (!wasReturning) beginPull(motion, motion.pullStartRadius);
+      r.motion = motion;
       request();
     }
     function move(event) {
       if (r.input?.id !== event.pointerId) return;
       const now = performance.now();
       const motion = r.motion;
-      if (motion?.mode === "grab") {
-        const pointer = { x: event.clientX, y: event.clientY };
-        const elapsed = Math.max(1, now - motion.pointerMovedAt);
-        const sampleTime = Math.min(elapsed, POINTER_SPEED_WINDOW_MS);
-        const weight = Math.exp(-elapsed / POINTER_SPEED_SMOOTHING_MS);
-        if (!reduced()) {
-          const { rect, position, bodySize } = motion;
-          const center = { x: rect.left + position.x / 100 * rect.width,
-            y: rect.top + position.y / 100 * rect.height };
-          const radius = BODY_RADIUS * bodySize / (BLOB_CENTER * 2);
-          const turn = dragRotationDelta(motion.pointer, pointer, center, radius);
-          r.rotation = (r.rotation + turn) % (2 * Math.PI);
-          const previousSpeed = turn * motion.angularSpeed < 0 ? 0 : motion.angularSpeed;
-          motion.angularSpeed = previousSpeed * weight + turn / sampleTime * (1 - weight);
-        }
-        const dx = pointer.x - motion.pointer.x, dy = pointer.y - motion.pointer.y;
-        const speed = 1000 * Math.hypot(dx, dy) / sampleTime;
-        motion.pointerSpeed = motion.pointerSpeed * weight + speed * (1 - weight);
-        motion.pointerMovedAt = now;
-        motion.pointer = pointer;
-      } else {
-        const raw = bodyPoint(point(event.clientX, event.clientY));
-        if (Math.hypot(raw.x - BLOB_CENTER, raw.y - BLOB_CENTER) > 96) {
-          r.input.waxPress.point = null;
-          material.release(now, false);
-        } else {
-          const local = contactPoint(raw);
-          const press = r.input.waxPress;
-          if (!press.point) {
-            press.nextBreakAt = now + (r.shell.fractures ? WAX_SHED_HOLD_MS : WAX_BREAK_HOLD_MS);
-            press.lastShed = null;
-          }
-          press.point = local;
-          if (material.state.contact) material.move(local.x, local.y, now);
-          else material.touch(local.x, local.y, now);
-        }
+      if (motion?.mode !== "grab") return;
+      const pointer = { x: event.clientX, y: event.clientY };
+      const elapsed = Math.max(1, now - motion.pointerMovedAt);
+      const sampleTime = Math.min(elapsed, POINTER_SPEED_WINDOW_MS);
+      const weight = Math.exp(-elapsed / POINTER_SPEED_SMOOTHING_MS);
+      if (!reduced()) {
+        const { rect, position, bodySize } = motion;
+        const center = { x: rect.left + position.x / 100 * rect.width,
+          y: rect.top + position.y / 100 * rect.height };
+        const radius = BODY_RADIUS * bodySize / (BLOB_CENTER * 2);
+        const turn = dragRotationDelta(motion.pointer, pointer, center, radius);
+        r.rotation = (r.rotation + turn) % (2 * Math.PI);
+        const previousSpeed = turn * motion.angularSpeed < 0 ? 0 : motion.angularSpeed;
+        motion.angularSpeed = previousSpeed * weight + turn / sampleTime * (1 - weight);
       }
+      const dx = pointer.x - motion.pointer.x, dy = pointer.y - motion.pointer.y;
+      const speed = 1000 * Math.hypot(dx, dy) / sampleTime;
+      motion.pointerSpeed = motion.pointerSpeed * weight + speed * (1 - weight);
+      motion.pointerMovedAt = now;
+      motion.pointer = pointer;
       request();
     }
     function end(event) {
@@ -410,11 +303,10 @@ export default function MallangPage() {
       const now = performance.now();
       const motion = r.motion;
       if (motion?.mode !== "grab") advance(now);
-      if (r.input.wax) advanceWax(now);
       surface?.setReleaseSpeed(motion?.mode === "grab" ? pointerSpeedAt(motion, now) : 0);
       const ripple = !reduced() && !surface?.hasStretchedContact;
       const strength = material.release(now, ripple, ripple ? surface?.releaseWaveAnchor() : null);
-      if (!r.input.wax) audio.play("refill", strength);
+      audio.play("refill", strength);
       r.input = null;
       if (motion?.mode === "grab") {
         if (motion.pull) audio.play("retract", motion.pull.radius / PULL_RADIUS);
@@ -430,16 +322,13 @@ export default function MallangPage() {
     function keyDown(event) {
       if (event.key !== " " && event.key !== "Enter") return;
       event.preventDefault();
-      if (event.repeat || r.input || (r.mode && !r.shell.pieces.length && r.shell.chips.length)) return;
-      const wax = r.mode && r.shell.pieces.length > 0;
-      const local = wax ? waxKeyboardPoint(r.shell) : { x: BLOB_CENTER, y: BLOB_CENTER };
+      if (event.repeat || r.input) return;
       r.pressFollowsTether = false;
-      r.input = { key: event.key, wax };
+      r.input = { key: event.key };
       if (r.motion) r.motion.angularSpeed = 0;
       audio.prepare();
       const now = performance.now();
-      material.touch(local.x, local.y, now);
-      if (wax) startWaxPress(local, now);
+      material.touch(BLOB_CENTER, BLOB_CENTER, now);
       request();
     }
     function hidden() { if (document.visibilityState === "hidden") cancel(); }
@@ -450,16 +339,12 @@ export default function MallangPage() {
     }
     const resize = new ResizeObserver(() => { if (r.input || moving()) cancel(); else paint(); });
     resize.observe(bounds.current);
-    controller.current = { down, move, end, keyDown, cancel,
-      mode(enabled) { cancel(); r.mode = enabled; material.setShell(enabled ? r.shell : null); request(); },
-      reset() { cancel(); updateShell(createWaxShell(BLOB_CENTER, BODY_RADIUS)); request(); } };
+    controller.current = { down, move, end, keyDown, cancel };
     window.addEventListener("blur", cancel);
     document.addEventListener("visibilitychange", hidden);
     media.addEventListener("change", preference);
     if (import.meta.env.DEV) window.__mallangInspect = () => ({
       active: r.frame !== null, records: r.records.slice(), costs: r.costs.slice(), frames: r.frames,
-      mode: r.mode, seed: r.shell.seed, shellPieces: r.shell.pieces.length,
-      waxTarget: waxKeyboardPoint(r.shell),
       contact: material.state.contact, reducedMotion: material.state.reducedMotion });
     paint();
     return () => {
@@ -478,12 +363,6 @@ export default function MallangPage() {
     runtime.current?.paint();
   }, [appearance, look.theme]);
 
-  function toggle() {
-    const enabled = !isWaxMode;
-    if (enabled) audio.prepareWax();
-    controller.current.mode(enabled); setIsWaxMode(enabled);
-    try { localStorage.setItem(WAX_MODE_KEY, String(enabled)); } catch { /* Current visit remains usable. */ }
-  }
   function updateLook(change) {
     setLook(saveMallangCustomization({ ...look, ...change }));
   }
@@ -492,9 +371,6 @@ export default function MallangPage() {
     customizeButton.current?.focus();
   }
 
-  const hasWaxShell = isWaxMode && waxShell.pieces.length > 0;
-  const isShellBroken = isWaxMode && !hasWaxShell;
-  const busy = isShellBroken && waxShell.chips.length > 0;
   return <div className={`mallang-page mallang-page--${appearance}`}>
     <AppBar />
     <main className={customizing ? "mallang-content mallang-content--customizing" : "mallang-content"}>
@@ -502,11 +378,6 @@ export default function MallangPage() {
       <h1>마음 쉬기</h1>
       <p className="mallang-intro">속상하거나 긴장될 때 말랑이를 꾹꾹 눌러 보세요.</p>
       <div className="mallang-controls">
-        <button type="button" role="switch" aria-checked={isWaxMode} className="mallang-wax-toggle" onClick={toggle}>
-          껍질 깨기<span className="mallang-wax-track" aria-hidden="true" />
-        </button>
-        {isWaxMode && <button type="button" className="mallang-wax-reset" disabled={!waxShell.preview && !waxShell.fractures}
-          onClick={() => controller.current.reset()}>껍질 다시 씌우기</button>}
         {import.meta.env.DEV && params.has("style") && <div className="mallang-style-preview">
           {["original", "2d"].map((style) => <button key={style} type="button" aria-pressed={appearance === style}
             onClick={() => { const next = new URLSearchParams(params); next.set("style", style); setParams(next, { replace: true }); }}>
@@ -518,19 +389,14 @@ export default function MallangPage() {
           <Icon name="pencil" />
         </button>
       </div>
-      <p className="mallang-status" role="status">
-        {isShellBroken && !busy && "말랑이가 나왔어요."}
-      </p>
       <div className="mallang-play-area">
         <section className="mallang-room" aria-label="말랑이 놀이터" onPointerDown={(e) => controller.current.down(e)}>
           <div ref={bounds} className="mallang-bounds">
             <div ref={character} className="mallang-character" style={{ left: "50%", top: "50%" }}>
-              {isWaxMode && !waxShell.fractures && <span className="mallang-ground-shadow" aria-hidden="true" />}
               <div ref={deformation} className="mallang-deformation">
                 <canvas ref={canvas} className="mallang-material-canvas" aria-hidden="true" />
                 <button ref={control} type="button" draggable={false} className="mallang-body"
-                  aria-label={hasWaxShell ? "껍질 길게 누르기" : "말랑이 누르기"}
-                  aria-disabled={busy || undefined}
+                  aria-label="말랑이 누르기"
                   onPointerMove={(e) => controller.current.move(e)}
                   onPointerUp={(e) => controller.current.end(e)} onPointerCancel={(e) => controller.current.end(e)}
                   onLostPointerCapture={(e) => controller.current.end(e)}
@@ -539,13 +405,11 @@ export default function MallangPage() {
                   onBlur={() => controller.current.cancel({ type: "control-blur" })}>
                   <span ref={face} className="mallang-face"><MallangFace look={look} /></span>
                 </button>
-                {isWaxMode && <WaxShell shell={waxShell} themeId={look.theme} shellRef={shellElement} />}
-                <canvas ref={overlay} className="mallang-material-canvas mallang-material-light" aria-hidden="true" />
               </div>
             </div>
           </div>
         </section>
-        {customizing && <MallangCustomizer id={customizerId} look={look} surface={hasWaxShell ? "wax" : appearance}
+        {customizing && <MallangCustomizer id={customizerId} look={look} surface={appearance}
           onChange={updateLook} onClose={closeCustomizer} />}
       </div>
     </main>

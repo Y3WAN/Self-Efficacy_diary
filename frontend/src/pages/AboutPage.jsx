@@ -11,7 +11,6 @@ const SOURCES = [
   ["프론트엔드", "React, Vite, Recharts, TanStack Query, Zustand, React Router (MIT License)"],
   ["백엔드", "FastAPI, SQLAlchemy, APScheduler, PostgreSQL"],
   ["글꼴", "물방울체 (유정연·스스로넷), 주아체 (우아한형제들)"],
-  ["말랑이 효과음", <a href="https://www.youtube.com/shorts/WIzw3eDxDA0">VIVAASMR 쇼츠</a>],
 ];
 
 const BRAND_COLORS = [

@@ -55,24 +55,6 @@ const rosePalette = {
   mouth: [145, 70, 95],
   cheeks: [219, 120, 155],
   eyeGlint: [255, 246, 251],
-  waxFlat: [255, 206, 223],
-  waxLight: [255, 232, 242],
-  waxMid: [246, 204, 223],
-  waxRim: [231, 165, 196],
-  waxDark: [201, 125, 166],
-  waxSheen: [255, 249, 253],
-  waxShade: [122, 51, 88],
-};
-
-const roseWaxPalette = {
-  light: "#ffe3ee",
-  middle: "#f3bfd6",
-  rim: "#dc8bb3",
-  dark: "#ad507e",
-  gloss: "#fff6fc",
-  edge: "#9a4d76",
-  pieceLine: "#fdd4e8",
-  crack: "#813858",
 };
 
 export function getMallangTheme(id) {
@@ -112,23 +94,10 @@ function createBodyPalette(theme) {
   };
 }
 
-function createWaxPalette(theme) {
-  if (theme === defaultTheme) return roseWaxPalette;
-  return Object.fromEntries(Object.entries(roseWaxPalette).map(([name, hex]) => {
-    const channels = hex.slice(1).match(/../g).map((channel) => parseInt(channel, 16));
-    return [name, rgbColor(tintColor(channels, theme.hue - defaultTheme.hue, theme.saturation))];
-  }));
-}
-
 const palettes = new Map(MALLANG_THEMES.map((theme) => [theme.id, createBodyPalette(theme)]));
-const waxPalettes = new Map(MALLANG_THEMES.map((theme) => [theme.id, createWaxPalette(theme)]));
 
 export function getMallangPalette(id) {
   return palettes.get(id) ?? rosePalette;
-}
-
-export function getMallangWaxPalette(id) {
-  return waxPalettes.get(id) ?? roseWaxPalette;
 }
 
 export function rgbColor(channels, alpha = 1) {

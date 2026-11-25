@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createMallangMaterial, materialContact, membraneRadii, membraneRadiusAt, MATERIAL } from "../src/utils/mallangMaterial.js";
 import { springDisplacement, updatePull } from "../src/utils/mallangMotion.js";
-import { createWaxShell } from "../src/utils/waxShell.js";
 
 const { radius, rimExpansion } = MATERIAL;
 const pointAt = (angle, distance) => ({ x: 100 + Math.cos(angle) * distance, y: 100 + Math.sin(angle) * distance });
@@ -146,17 +145,4 @@ test("the small tip emerges before the inflated edge without pulling the body pr
   assert.equal(material.state.active, false);
   assert(material.state.height.every(height => height === 0));
   assert(membraneRadii(material).every(value => value === radius));
-});
-
-test("shell support keeps its local dwell response during a slow rim stroke", () => {
-  const material = createMallangMaterial(); material.setShell(createWaxShell(100, 94, 123));
-  material.touch(100, 100, 0); run(material, 0, 1200);
-  for (let frame = 1; frame <= 225; frame++) {
-    const now = 1200 + frame * 16;
-    material.move(100 + frame * 0.4, 100, now); material.advance(now);
-  }
-  assert(material.contactDepth() < 0.9, "a covered shell must not inherit sustained rim pressure");
-  assert(Math.abs(material.state.signedHeight) < 0.05);
-  material.release(4800); run(material, 4800, 11000);
-  assert.equal(material.state.active, false);
 });

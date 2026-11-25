@@ -154,61 +154,15 @@ function paintBarePixels(pixels, radii, reliefField, samples, flat, grooveOnly, 
   }
 }
 
-function paintWaxPixels(pixels, material, radii, slopeX, slopeY, { gloss, waxShade }) {
-  const { height, coverage } = material.state;
-  const n = MATERIAL.grid, step = MATERIAL.extent / (n - 1);
-  for (let row = 0; row < n; row++) for (let col = 0; col < n; col++) {
-    const i = row * n + col;
-    const left = row * n + Math.max(0, col - 1), right = row * n + Math.min(n - 1, col + 1);
-    const top = Math.max(0, row - 1) * n + col, bottom = Math.min(n - 1, row + 1) * n + col;
-    // There is no flat material outside the free boundary.
-    slopeX[i] = ((coverage[right] ? height[right] : height[i]) -
-      (coverage[left] ? height[left] : height[i])) / (2 * step);
-    slopeY[i] = ((coverage[bottom] ? height[bottom] : height[i]) -
-      (coverage[top] ? height[top] : height[i])) / (2 * step);
-  }
-  for (let row = 0; row < n; row++) for (let col = 0; col < n; col++) {
-    const i = row * n + col, p = i * 4;
-    const dx = MATERIAL.origin + col * step - MATERIAL.center;
-    const dy = MATERIAL.origin + row * step - MATERIAL.center;
-    const distance = Math.hypot(dx, dy);
-    const radius = membraneRadiusAt(radii, Math.atan2(dy, dx));
-    const edge = smooth((distance - MATERIAL.waxRimLightStart) / (radius - MATERIAL.waxRimLightStart));
-    const scale = distance > 0 ? 1 - (radius - MATERIAL.radius) * edge / distance : 1;
-    const sx = MATERIAL.center + dx * scale, sy = MATERIAL.center + dy * scale;
-    const hx = edge ? material.sample(sx, sy, slopeX) : slopeX[i];
-    const hy = edge ? material.sample(sx, sy, slopeY) : slopeY[i];
-    const h = edge ? material.sample(sx, sy) : height[i];
-    const lighting = (hx * .62 + hy * .78) / Math.sqrt(1 + hx * hx + hy * hy);
-    const tone = lighting > 0 ? gloss : waxShade;
-    pixels.data[p] = tone[0];
-    pixels.data[p + 1] = tone[1];
-    pixels.data[p + 2] = tone[2];
-    pixels.data[p + 3] = Math.min(165, Math.abs(lighting) * 300 + Math.max(0, -h) * 48) *
-      smooth((radius - distance) / 5);
-  }
-}
-
-function createSurfacePaint(context, palette) {
-  const gradient = context.createRadialGradient(62, 43, 8, 95, 100, 145);
-  gradient.addColorStop(0, rgbColor(palette.waxLight));
-  gradient.addColorStop(.44, rgbColor(palette.waxMid));
-  gradient.addColorStop(.8, rgbColor(palette.waxRim));
-  gradient.addColorStop(1, rgbColor(palette.waxDark));
-  const sheen = context.createRadialGradient(61, 49, 3, 61, 49, 61);
-  sheen.addColorStop(0, rgbColor(palette.waxSheen, .58));
-  sheen.addColorStop(1, rgbColor(palette.waxSheen, 0));
+function createSurfacePaint(palette) {
   return {
-    gradient, sheen,
     shadow: rgbColor(palette.castShadow, .15),
     fill: rgbColor(palette.edgeFill),
-    waxFlat: rgbColor(palette.waxFlat),
-    waxStroke: rgbColor(palette.edgeStroke, .24),
-    bareStroke: rgbColor(palette.edgeStroke, .10),
+    stroke: rgbColor(palette.edgeStroke, .10),
   };
 }
 
-export function createMallangSurface(canvas, material, overlay = null, palette = getMallangPalette()) {
+export function createMallangSurface(canvas, material, palette = getMallangPalette()) {
   const context = canvas.getContext("2d");
   if (!context) return null;
   const shadeCanvas = document.createElement("canvas");
@@ -229,25 +183,14 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
   let waveOrigins = new WeakMap();
   const surfaceWaves = [];
   const waveBounds = { left: 0, top: 0, right: 0, bottom: 0 };
-  const fieldPixels = shadeContext.createImageData(MATERIAL.grid, MATERIAL.grid);
-  const slopeX = new Float32Array(MATERIAL.grid ** 2), slopeY = new Float32Array(MATERIAL.grid ** 2);
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.width = canvas.height = Math.round(VIEW_SIZE * dpr);
-  const lightContext = overlay?.getContext("2d");
-  if (overlay) overlay.width = overlay.height = canvas.width;
-  let paint = createSurfacePaint(context, palette);
+  let paint = createSurfacePaint(palette);
   let outline = "", path, renderedRadii = null, flat = false;
 
-  function clear(target) {
-    target.setTransform(dpr, 0, 0, dpr, -VIEW_ORIGIN * dpr, -VIEW_ORIGIN * dpr);
-    target.clearRect(VIEW_ORIGIN, VIEW_ORIGIN, VIEW_SIZE, VIEW_SIZE);
-  }
-
-  function drawWaxLighting(target, radii) {
-    paintWaxPixels(fieldPixels, material, radii, slopeX, slopeY, palette);
-    shadeContext.putImageData(fieldPixels, 0, 0);
-    target.drawImage(shadeCanvas, 0, 0, MATERIAL.grid, MATERIAL.grid,
-      MATERIAL.origin, MATERIAL.origin, MATERIAL.extent, MATERIAL.extent);
+  function clear() {
+    context.setTransform(dpr, 0, 0, dpr, -VIEW_ORIGIN * dpr, -VIEW_ORIGIN * dpr);
+    context.clearRect(VIEW_ORIGIN, VIEW_ORIGIN, VIEW_SIZE, VIEW_SIZE);
   }
 
   function reset() {
@@ -262,8 +205,8 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
   }
 
   function releaseWaveAnchor() {
-    const { contact, shell } = material.state;
-    if (!contact || shell) return null;
+    const { contact } = material.state;
+    if (!contact) return null;
     if (lastContactPose?.startedAt === contact.startedAt) {
       return waveAnchor(lastContactPose.relief, lastContactPose.radii);
     }
@@ -410,12 +353,10 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
   const rim = { center: MATERIAL.center, radiusAt };
 
   function draw(pull = null, impact = null, reliefTip = null, dragSpeed = 0) {
-    const { shell, contact, time } = material.state;
-    const intactWax = shell && !shell.fractures;
+    const { contact, time } = material.state;
     const load = material.rimLoad();
-    const exposedContact = shell && contact && { x: contact.x, y: contact.y, depth: material.contactDepth() };
-    let relief = intactWax ? null : contactRelief(load ?? exposedContact, reliefTip);
-    if (!shell) updateRetraction(contact, load);
+    let relief = contactRelief(load, reliefTip);
+    updateRetraction(contact, load);
     let catchProgress = 1;
     if (regrab) {
       catchProgress = smooth((time - regrab.startedAt) / MATERIAL.rimRegrabMs);
@@ -428,7 +369,7 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
           sizeDepth: (start.sizeDepth ?? start.depth) * (1 - catchProgress) + relief.depth * catchProgress };
       }
     }
-    if (!shell) recordDentTrail(relief, time, dragSpeed);
+    recordDentTrail(relief, time, dragSpeed);
     let radii = retraction ? membraneRadii(material, null, impact, null)
       : membraneRadii(material, pull, impact, load);
     if (retraction) ({ radii, relief } = retract(radii, time));
@@ -437,51 +378,38 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
     renderedRadii = radii;
     const next = membranePath(radii);
     if (next !== outline) { outline = next; path = new Path2D(next); }
-    clear(context);
-    if (lightContext) clear(lightContext);
-    if (!intactWax) {
-      context.save();
-      // Cast the soft shadow from the current contour, including the drawn-out end.
-      context.shadowColor = paint.shadow;
-      context.shadowBlur = 17 * dpr;
-      context.shadowOffsetY = 6 * dpr;
-      context.fillStyle = paint.fill;
-      context.fill(path);
-      context.restore();
-    }
-    context.save(); context.clip(path);
-    if (intactWax) {
-      context.fillStyle = flat ? paint.waxFlat : paint.gradient;
-      context.fillRect(VIEW_ORIGIN, VIEW_ORIGIN, VIEW_SIZE, VIEW_SIZE);
-      if (!flat) { context.fillStyle = paint.sheen; context.fillRect(VIEW_ORIGIN, VIEW_ORIGIN, VIEW_SIZE, VIEW_SIZE); }
-      const target = lightContext ?? context;
-      if (lightContext) { target.save(); target.clip(path); }
-      drawWaxLighting(target, radii);
-      if (lightContext) target.restore();
-    } else {
-      waveBounds.left = waveBounds.top = Infinity;
-      waveBounds.right = waveBounds.bottom = -Infinity;
-      for (let index = 0; index < radii.length; index++) {
-        const angle = index / radii.length * Math.PI * 2;
-        const x = MATERIAL.center + Math.cos(angle) * radii[index];
-        const y = MATERIAL.center + Math.sin(angle) * radii[index];
-        waveBounds.left = Math.min(waveBounds.left, x - SHADE_STEP * 2);
-        waveBounds.right = Math.max(waveBounds.right, x + SHADE_STEP * 2);
-        waveBounds.top = Math.min(waveBounds.top, y - SHADE_STEP * 2);
-        waveBounds.bottom = Math.max(waveBounds.bottom, y + SHADE_STEP * 2);
-      }
-      reliefField.update({ contact: relief, trail: trailPoints, now: time,
-        waves: mapWaves(radii), bounds: waveBounds, rim });
-      const grooveOnly = trailPoints.length > 0 || retraction?.remaining > 0 ||
-        !!(contact && (stretched || (lastContactPose?.startedAt === contact.startedAt && lastContactPose.grooveOnly)));
-      lastContactPose = contact && relief ? { startedAt: contact.startedAt, time, relief, radii, stretched, grooveOnly } : null;
-      paintBarePixels(barePixels, radii, reliefField, bareSamples, flat, grooveOnly, palette);
-      shadeContext.putImageData(barePixels, 0, 0);
-      const origin = VIEW_ORIGIN - SHADE_STEP / 2, extent = SHADE_GRID * SHADE_STEP;
-      context.drawImage(shadeCanvas, origin, origin, extent, extent);
-    }
+    clear();
+    context.save();
+    // Cast the soft shadow from the current contour, including the drawn-out end.
+    context.shadowColor = paint.shadow;
+    context.shadowBlur = 17 * dpr;
+    context.shadowOffsetY = 6 * dpr;
+    context.fillStyle = paint.fill;
+    context.fill(path);
     context.restore();
-    context.strokeStyle = intactWax ? paint.waxStroke : paint.bareStroke;
+    context.save(); context.clip(path);
+    waveBounds.left = waveBounds.top = Infinity;
+    waveBounds.right = waveBounds.bottom = -Infinity;
+    for (let index = 0; index < radii.length; index++) {
+      const angle = index / radii.length * Math.PI * 2;
+      const x = MATERIAL.center + Math.cos(angle) * radii[index];
+      const y = MATERIAL.center + Math.sin(angle) * radii[index];
+      waveBounds.left = Math.min(waveBounds.left, x - SHADE_STEP * 2);
+      waveBounds.right = Math.max(waveBounds.right, x + SHADE_STEP * 2);
+      waveBounds.top = Math.min(waveBounds.top, y - SHADE_STEP * 2);
+      waveBounds.bottom = Math.max(waveBounds.bottom, y + SHADE_STEP * 2);
+    }
+    reliefField.update({ contact: relief, trail: trailPoints, now: time,
+      waves: mapWaves(radii), bounds: waveBounds, rim });
+    const grooveOnly = trailPoints.length > 0 || retraction?.remaining > 0 ||
+      !!(contact && (stretched || (lastContactPose?.startedAt === contact.startedAt && lastContactPose.grooveOnly)));
+    lastContactPose = contact && relief ? { startedAt: contact.startedAt, time, relief, radii, stretched, grooveOnly } : null;
+    paintBarePixels(barePixels, radii, reliefField, bareSamples, flat, grooveOnly, palette);
+    shadeContext.putImageData(barePixels, 0, 0);
+    const origin = VIEW_ORIGIN - SHADE_STEP / 2, extent = SHADE_GRID * SHADE_STEP;
+    context.drawImage(shadeCanvas, origin, origin, extent, extent);
+    context.restore();
+    context.strokeStyle = paint.stroke;
     context.lineWidth = .7; context.stroke(path);
     return outline;
   }
@@ -496,7 +424,7 @@ export function createMallangSurface(canvas, material, overlay = null, palette =
       if (palette === nextPalette) return;
       palette = nextPalette;
       bareSamples = createBareSamples(palette);
-      paint = createSurfacePaint(context, palette);
+      paint = createSurfacePaint(palette);
     },
-    dispose() { clear(context); if (lightContext) clear(lightContext); } };
+    dispose: clear };
 }

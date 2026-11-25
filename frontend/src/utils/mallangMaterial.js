@@ -1,16 +1,14 @@
 // Material coordinates: a 200-unit body; time: milliseconds; height: visual units.
 import { MAX_TETHER_DISTANCE, pullExtension, softLimitDistance } from "./mallangPull.js";
 import { FULL_PRESS_MS, TAP_DEPTH, pressDepth, pressRecoveryDuration, smoothStep } from "./surfacePress.js";
-import { containsWaxPiece } from "./waxShell.js";
 
 export const MATERIAL = Object.freeze({
   radius: 94, center: 100, grid: 57, extent: 224, origin: -12,
-  maxDent: 15, spring: 118, damping: 21, coupling: 22,
+  maxDent: 15, spring: 900, damping: 47, coupling: 22,
   maxTrail: 72, spacing: 3, maxWaves: 12,
   waveSpeed: 75.2, waveWidth: 94 * 0.19 * 1.1, waveTravel: 195,
-  softSpring: 900, softDamping: 47,
   rimExpansion: 14, rimFadeStart: 6, rimFadeEnd: 58,
-  rimRegrabMs: 72, reliefLimitStart: 47, reliefLimit: 74, pullCrownDistance: 19, pullCrownRatio: .34, waxRimLightStart: 55,
+  rimRegrabMs: 72, reliefLimitStart: 47, reliefLimit: 74, pullCrownDistance: 19, pullCrownRatio: .34,
 });
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const smooth = (x) => smoothStep(clamp(x, 0, 1));
@@ -37,22 +35,18 @@ export function createMallangMaterial() {
   const height = new Float32Array(N * N), velocity = new Float32Array(N * N);
   const target = new Float32Array(N * N), dent = new Float32Array(N * N);
   const bulge = new Float32Array(N * N), coverage = new Float32Array(N * N);
-  const rigidity = new Float32Array(N * N);
   const nodes = [], waves = [];
   let releasedRim = null;
   const state = { height, velocity, target, coverage, nodes, waves, contact: null,
     time: 0, active: false, sloshX: 0, sloshY: 0, energy: 0,
-    displaced: 0, raised: 0, signedHeight: 0, reducedMotion: false, shell: null };
+    displaced: 0, raised: 0, signedHeight: 0, reducedMotion: false };
 
-  function setCoverage(radius) {
-    const offset = MATERIAL.center - MATERIAL.origin;
-    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-      coverage[y * N + x] = smooth((radius - Math.hypot(x * STEP - offset, y * STEP - offset)) / 5);
-    }
+  // The surface grid also covers the region exposed by an outward press.
+  const coverageRadius = MATERIAL.radius + MATERIAL.rimExpansion + STEP;
+  const offset = MATERIAL.center - MATERIAL.origin;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    coverage[y * N + x] = smooth((coverageRadius - Math.hypot(x * STEP - offset, y * STEP - offset)) / 5);
   }
-  // The bare surface grid also covers the region exposed by an outward press.
-  const softRadius = MATERIAL.radius + MATERIAL.rimExpansion + STEP;
-  setCoverage(softRadius);
 
   function sample(x, y, field = height) {
     const gx = clamp((x - MATERIAL.origin) / STEP, 0, N - 1);
@@ -67,7 +61,6 @@ export function createMallangMaterial() {
     if (node.leftAt === null) {
       const contact = state.contact;
       if (!contact) return pressDepth(node.dwell);
-      if (state.shell) return Math.max(TAP_DEPTH, pressDepth(node.dwell)) * contact.pressure;
       return Math.max(TAP_DEPTH, pressDepth(contact.held), contact.inheritedDepth) * contact.pressure;
     }
     const t = clamp((now - node.leftAt) / pressRecoveryDuration(node.depth), 0, 1);
@@ -75,7 +68,6 @@ export function createMallangMaterial() {
   }
 
   function rimLoad(now = state.time) {
-    if (state.shell) return null;
     const contact = state.contact;
     if (!contact) {
       if (!releasedRim) return null;
@@ -93,7 +85,7 @@ export function createMallangMaterial() {
 
   function touch(x, y, now) {
     const previous = nodes.at(-1);
-    const inheritedDepth = !state.shell && previous?.leftAt != null
+    const inheritedDepth = previous?.leftAt != null
       ? depthOf(previous, now) * (1 - smooth(Math.hypot(x - previous.x, y - previous.y) / 42)) : 0;
     const rim = rimLoad(state.time);
     const rimStart = rim?.depth > 0 ? rim : null;
@@ -120,13 +112,12 @@ export function createMallangMaterial() {
     let head = nodes.at(-1);
     if (head && Math.hypot(x - contact.anchorX, y - contact.anchorY) < MATERIAL.spacing) {
       head.x = x; head.y = y;
-      if (state.shell) head.dwell *= Math.exp(-distance / 11);
       state.contact = { ...contact, x, y, lastAt: now };
       state.active = true;
       return;
     }
     // A long hold at one spot does not age the path of the next drag before it is drawn.
-    const trailElapsed = state.shell ? elapsed : Math.min(elapsed, MAX_BARE_TRAIL_INTERVAL_MS);
+    const trailElapsed = Math.min(elapsed, MAX_BARE_TRAIL_INTERVAL_MS);
     const steps = Math.max(1, Math.ceil(distance / MATERIAL.spacing));
     const count = Math.min(steps, MATERIAL.maxTrail);
     const initialDwell = head?.dwell ?? 0;
@@ -134,7 +125,7 @@ export function createMallangMaterial() {
       const t = step / count;
       if (head) {
         // Keep the departing path shallow while the held contact carries its full depth.
-        head.depth = depthOf(head, now) * (state.shell ? 1 : BARE_TRAIL_DEPTH_RATIO);
+        head.depth = depthOf(head, now) * BARE_TRAIL_DEPTH_RATIO;
         head.leftAt = now - trailElapsed * (1 - t);
       }
       head = { x: contact.x + dx * t, y: contact.y + dy * t,
@@ -168,26 +159,6 @@ export function createMallangMaterial() {
     return strength;
   }
 
-  function setShell(shell) {
-    const covered = !!shell?.pieces.length;
-    if (covered !== !!state.shell) setCoverage(covered ? MATERIAL.radius : softRadius);
-    state.shell = covered ? shell : null;
-    rigidity.fill(0);
-    if (!covered) return;
-    // Rasterized only when topology changes, never on every animation frame.
-    for (const piece of shell.pieces) {
-      const x0 = clamp(Math.floor((piece.left + 12) / STEP), 0, N - 1);
-      const x1 = clamp(Math.ceil((piece.right + 12) / STEP), 0, N - 1);
-      const y0 = clamp(Math.floor((piece.top + 12) / STEP), 0, N - 1);
-      const y1 = clamp(Math.ceil((piece.bottom + 12) / STEP), 0, N - 1);
-      for (let row = y0; row <= y1; row++) for (let col = x0; col <= x1; col++) {
-        const x = col * STEP - 12, y = row * STEP - 12;
-        if (containsWaxPiece(piece, x, y)) rigidity[row * N + col] = piece.opening ? 0.44 : 0.73;
-      }
-    }
-    state.active = true;
-  }
-
   function targets(now) {
     dent.fill(0); bulge.fill(0); target.fill(0);
     for (let n = nodes.length - 1; n >= 0; n--) {
@@ -204,12 +175,12 @@ export function createMallangMaterial() {
         if (!coverage[i]) continue;
         const dx = col * STEP - 12 - node.x, dy = row * STEP - 12 - node.y;
         const q = Math.hypot(dx, dy) / radius;
-        const depression = depth * (1 - smooth(q)) * (1 - rigidity[i]);
+        const depression = depth * (1 - smooth(q));
         dent[i] = Math.max(dent[i], depression);
         const lagX = dx + state.sloshX, lagY = dy + state.sloshY;
         const bq = Math.hypot(lagX, lagY) / radius;
         const ring = smooth((bq - 0.45) / 0.5) * (1 - smooth((bq - 1) / 0.85));
-        bulge[i] = Math.max(bulge[i], depth * ring * (1 - rigidity[i] * 0.7));
+        bulge[i] = Math.max(bulge[i], depth * ring);
       }
     }
     let removed = 0, positive = 0;
@@ -261,8 +232,7 @@ export function createMallangMaterial() {
     state.sloshX *= Math.exp(-wallElapsed / 230); state.sloshY *= Math.exp(-wallElapsed / 230);
     targets(now);
     let remaining = elapsed / 1000;
-    const spring = state.shell ? MATERIAL.spring : MATERIAL.softSpring;
-    const damping = state.shell ? MATERIAL.damping : MATERIAL.softDamping;
+    const { spring, damping } = MATERIAL;
     while (remaining > 0) {
       const dt = Math.min(remaining, 1 / 120);
       const drag = Math.exp(-damping * dt);
@@ -320,7 +290,7 @@ export function createMallangMaterial() {
     state.sloshX = state.sloshY = state.energy = state.displaced = state.raised = state.signedHeight = 0;
   }
 
-  return { state, sample, touch, move, release, advance, wave, impulse, setShell, reset, rimLoad,
+  return { state, sample, touch, move, release, advance, wave, impulse, reset, rimLoad,
     contactDepth: () => { const head = nodes.at(-1); return head ? depthOf(head, state.time) : 0; } };
 }
 
@@ -333,11 +303,7 @@ export function membraneRadii(material, pull = null, impact = null, load = mater
   const expansion = rimExpansion * (load?.depth ?? 0) * outwardWeight(Math.hypot(dx, dy));
   for (let n = 0; n < radii.length; n++) {
     const angle = n / radii.length * Math.PI * 2;
-    let flex = expansion * radialProfile(angle, pressAngle);
-    if (material.state.shell) {
-      const rimHeight = material.sample(center + Math.cos(angle) * 85, center + Math.sin(angle) * 85);
-      flex = clamp(rimHeight * (rimHeight > 0 ? 1.5 : 0.55), -10, 10);
-    }
+    const flex = expansion * radialProfile(angle, pressAngle);
     let squash = 0;
     if (impact) {
       const worldAngle = angle + (impact.rotation ?? 0);
@@ -345,7 +311,7 @@ export function membraneRadii(material, pull = null, impact = null, load = mater
       squash = Math.abs(impact.x) * (3 * vertical - 7 * horizontal) +
         Math.abs(impact.y) * (3 * horizontal - 7 * vertical);
     }
-    radii[n] = material.state.shell ? Math.min(104, radius + flex + squash) : radius + flex + squash;
+    radii[n] = radius + flex + squash;
   }
   if (pull?.radius > 0) {
     const dx = pull.x - center, dy = pull.y - center;

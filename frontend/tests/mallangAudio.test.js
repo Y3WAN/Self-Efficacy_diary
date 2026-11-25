@@ -1,17 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import { Buffer } from "node:buffer";
 import { setImmediate } from "node:timers/promises";
 
-// Node does not load MP3 imports; only asset URLs are substituted, leaving the audio implementation intact.
-const source = (await readFile(new URL("../src/utils/mallangAudio.js", import.meta.url), "utf8"))
-  .replace(/^import (\w+) from "([^"]+\.mp3)";$/gm, (_, name, url) => `const ${name} = ${JSON.stringify(url)};`);
-const { createMallangAudio } =
-  await import("data:text/javascript;base64," + Buffer.from(source).toString("base64"));
+import { createMallangAudio } from "../src/utils/mallangAudio.js";
 
 function audioHarness(t, options = {}) {
-  const contexts = [], starts = [], fetches = [], warnings = [], gains = [], storage = new Map();
+  const contexts = [], starts = [], gains = [], storage = new Map();
   const automation = () => ({ value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {},
     setValueCurveAtTime() {}, setTargetAtTime(value) { this.value = value; } });
   class Context {
@@ -29,24 +23,20 @@ function audioHarness(t, options = {}) {
     createOscillator() { return { frequency: automation(), connect() {}, disconnect() {}, stop() {},
       start: (...args) => starts.push({ kind: "oscillator", args }) }; }
     resume() { return options.resume ? options.resume(this) : Promise.resolve(); }
-    decodeAudioData() { return Promise.resolve({ duration: 0.2 }); }
     close() { this.state = "closed"; return Promise.resolve(); }
   }
   const originals = new Map();
   const values = { window: { AudioContext: Context }, localStorage: {
     getItem: (key) => { if (options.storageDenied) throw new Error("denied"); return storage.get(key) ?? null; },
-    setItem: (key, value) => { if (options.storageDenied) throw new Error("denied"); storage.set(key, value); } },
-    fetch: async (url) => { fetches.push(url); return { ok: !options.fetchFailed, status: 503,
-      arrayBuffer: async () => new ArrayBuffer(8) }; } };
+    setItem: (key, value) => { if (options.storageDenied) throw new Error("denied"); storage.set(key, value); } } };
   for (const [key, value] of Object.entries(values)) {
     originals.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
     Object.defineProperty(globalThis, key, { value, configurable: true, writable: true });
   }
-  t.mock.method(console, "warn", (...args) => warnings.push(args));
   t.after(() => { for (const [key, descriptor] of originals) {
     if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key];
   } });
-  return { contexts, starts, fetches, warnings, gains, storage, options, flush: async () => { await setImmediate(); await setImmediate(); } };
+  return { contexts, starts, gains, storage, options, flush: async () => { await setImmediate(); await setImmediate(); } };
 }
 
 test("effects use the fixed 60% gain even when a previous visit saved mute", async (t) => {
@@ -66,22 +56,6 @@ test("a pending unlock cannot play after close, and StrictMode-style reuse can r
   assert.equal(h.starts.length, 0);
   h.options.resume = null; audio.play("press"); await h.flush();
   assert.equal(h.contexts.length, 2); assert(h.starts.length > 0); audio.close();
-});
-
-test("wax assets are cached and cleared when the context closes", async (t) => {
-  const h = audioHarness(t), audio = createMallangAudio();
-  audio.prepareWax(); await h.flush(); assert.equal(h.fetches.length, 3);
-  audio.play("waxLarge"); audio.play("waxMedium"); await h.flush();
-  assert.equal(h.fetches.length, 3); assert.equal(h.starts.length, 2);
-  audio.close(); audio.prepareWax(); await h.flush(); assert.equal(h.fetches.length, 6); audio.close();
-});
-
-test("failed wax downloads are reported, stay silent and can retry", async (t) => {
-  const h = audioHarness(t, { fetchFailed: true }), audio = createMallangAudio();
-  audio.play("waxLarge"); await h.flush();
-  assert.equal(h.starts.length, 0); assert.equal(h.warnings.length, 1);
-  h.options.fetchFailed = false; audio.play("waxLarge"); await h.flush();
-  assert.equal(h.fetches.length, 2); assert.equal(h.starts.length, 1); audio.close();
 });
 
 test("rapid cue bursts are bounded and stop cancels pending unlock work", async (t) => {

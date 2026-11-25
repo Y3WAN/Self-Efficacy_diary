@@ -12,8 +12,8 @@ const next = () => new Promise(requestAnimationFrame);
 const inspect = () => window.__mallangInspect();
 const snapshot = () => {
   const state=inspect(),last=state.records.at(-1),cost=state.costs.slice().sort((a,b)=>a-b);
-  return {active:state.active,frames:state.frames,pieces:state.shellPieces,last,
-    p95:cost[Math.floor(cost.length*.95)]??0,seed:state.seed};
+  return {active:state.active,frames:state.frames,last,
+    p95:cost[Math.floor(cost.length*.95)]??0};
 };
 async function run(name,setRunning,setReport) {
     setRunning(true);setReport({name,status:"running"});await next();
@@ -26,7 +26,6 @@ async function run(name,setRunning,setReport) {
       bubbles:true,cancelable:true,isPrimary:true,pointerId:101,pointerType:"touch",button:0,
       buttons:type==="pointerup"||type==="pointercancel"?0:1,
       clientX:rect.left+x/200*rect.width,clientY:rect.top+y/200*rect.height,pressure:.5}));
-    const key=(type)=>body.dispatchEvent(new KeyboardEvent(type,{key:" ",bubbles:true,cancelable:true}));
     const before=snapshot();const started=performance.now();
     let checks={};
     try {
@@ -125,49 +124,6 @@ async function run(name,setRunning,setReport) {
         send("pointerup");await wait(3600);
         const s=snapshot();checks={finite:Number.isFinite(s.last.center),balanced:Math.abs(s.last.signedHeight)<.05,settled:!s.active};
       }
-      if(name==="wax") {
-        const toggle=document.querySelector("[role=switch]");
-        if(toggle.getAttribute("aria-checked")!=="true"){toggle.click();await next();}
-        const reset=document.querySelector(".mallang-wax-reset");if(!reset.disabled){reset.click();await next();}
-        send("pointerdown");send("pointerup");await wait(200);
-        const lightCracks=inspect().shellPieces===1&&document.querySelectorAll(".mallang-wax-hairline").length===2;
-        send("pointerdown");await wait(850);send("pointerup");await wait(360);
-        const firstFragments=inspect().shellPieces;
-        const allStillAttached=firstFragments>=7&&document.querySelectorAll(".mallang-wax-chip").length===0;
-        let presses=0;
-        let crumbs=inspect().reducedMotion;
-        while(inspect().shellPieces&&presses<firstFragments) {
-          key("keydown");await wait(640);
-          crumbs ||= document.querySelectorAll(".mallang-wax-crumb").length>0;
-          key("keyup");await wait(30);presses++;
-        }
-        await wait(3500);
-        const cleared=inspect().shellPieces===0&&!document.querySelector(".mallang-wax-shell");
-        const noAnimation=!inspect().active;
-        reset.click();await next();
-        checks={lightCracks,allStillAttached,crumbs,cleared,noAnimation,
-          restored:inspect().shellPieces===1&&reset.disabled,presses};
-      }
-      if(name==="switch") {
-        send("pointerdown");await wait(400);
-        const pieces=inspect().shellPieces,seed=inspect().seed;
-        document.querySelector("[role=switch]").click();await next();
-        const modeClean=!inspect().contact;
-        document.querySelector("[role=switch]").click();await next();
-        await wait(100);
-        checks={modeClean,noContact:!inspect().contact,progressPreserved:inspect().shellPieces===pieces,
-          seedPreserved:inspect().seed===seed};
-      }
-      if(name==="wax-drag") {
-        const toggle=document.querySelector("[role=switch]");
-        if(toggle.getAttribute("aria-checked")!=="true"){toggle.click();await next();}
-        const reset=document.querySelector(".mallang-wax-reset");if(!reset.disabled){reset.click();await next();}
-        send("pointerdown",50,100);await wait(850);
-        const first=inspect().shellPieces;
-        for(let i=1;i<=45;i++){send("pointermove",50+i*2,100);await wait(30);}
-        const last=inspect().shellPieces;send("pointerup",140,100);await wait(3500);
-        checks={firstCrack:first>=7,pathShed:last<first,persists:inspect().shellPieces===last,settled:!inspect().active};
-      }
       if(name==="burst") {
         for(let i=0;i<20;i++){send("pointerdown",100,100);await wait(24);send("pointerup",100,100);await wait(22);}
         await wait(3600);const s=snapshot();checks={settled:!s.active,noWaves:s.last.waves===0,bounded:s.last.trail<=72};
@@ -185,7 +141,7 @@ async function run(name,setRunning,setReport) {
           coexist:together.waves>=2,finished:after.last.waves===0&&!after.active,
           restored:after.last.center===0&&after.last.trail===0};
       }
-      setReport({name,status:Object.entries(checks).every(([k,v])=>k==="presses"||v===true)?"pass":"FAIL",
+      setReport({name,status:Object.values(checks).every(value=>value===true)?"pass":"FAIL",
         checks,before,after:snapshot(),elapsed:Math.round(performance.now()-started),
         timeline:inspect().records.filter((_,index)=>index%6===0),
         input:"DOM-injected touch PointerEvents; real pointer capture is tested separately"});
@@ -215,7 +171,7 @@ export default function Harness() {
       <p>개발용 입력 재현 (프로덕션 빌드 제외)</p>
       <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
         <button type="button" disabled={running} onClick={suite}>suite</button>
-        {["rim-transition","hold","edge","rub","turn","spin","pull","cancel","empty","low-frame","wax","wax-drag","switch","burst","ripples"].map((name)=>
+        {["rim-transition","hold","edge","rub","turn","spin","pull","cancel","empty","low-frame","burst","ripples"].map((name)=>
           <button type="button" key={name} disabled={running} onClick={()=>run(name,setRunning,reportResult)}>{name}</button>)}
       </div>
       <button id="ordinary-test" type="button" onClick={()=>setClicks((v)=>v+1)}>일반 버튼 {clicks}</button>

@@ -1,13 +1,7 @@
-import largeWaxClip from "../assets/wax-audio/large.mp3";
-import mediumWaxClip from "../assets/wax-audio/medium.mp3";
-import smallWaxClip from "../assets/wax-audio/small.mp3";
-
 const EFFECTS_VOLUME = .6;
 const SILENCE = 0.0001;
 const MAX_CUE_WAIT_MS = 180;
 const MIN_CUE_GAP_SECONDS = 0.035;
-
-const WAX_CLIPS = { waxLarge: largeWaxClip, waxMedium: mediumWaxClip, waxSmall: smallWaxClip };
 
 function vary(amount) {
   return 1 + (Math.random() * 2 - 1) * amount;
@@ -125,14 +119,11 @@ function playSound(voice, name, start, strength) {
 
 export function createMallangAudio() {
   let context = null;
-  let master;
   let voice;
   let nextOnset = 0;
   let generation = 0;
-  let loadingController = null;
   const sources = new Set();
   const lastCue = new Map();
-  const waxClips = new Map();
 
   function track(source) {
     if (sources.size >= 24) {
@@ -161,8 +152,7 @@ export function createMallangAudio() {
       } catch {
         return null;
       }
-      master = context.createGain();
-      loadingController = new AbortController();
+      const master = context.createGain();
       master.gain.value = EFFECTS_VOLUME ** 1.4;
       const compressor = context.createDynamicsCompressor();
       compressor.threshold.value = -14;
@@ -175,67 +165,22 @@ export function createMallangAudio() {
     return active.state === "running" ? Promise.resolve(active) : active.resume().then(() => active, () => null);
   }
 
-  function loadWaxClip(active, name) {
-    if (waxClips.has(name)) return waxClips.get(name);
-    const loading = fetch(WAX_CLIPS[name], { signal: loadingController?.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error("Could not load " + name + ": " + response.status);
-        return response.arrayBuffer();
-      })
-      .then((data) => active.decodeAudioData(data))
-      .catch((error) => {
-        if (active === context) {
-          waxClips.delete(name);
-          console.warn("왁뿌볼 효과음을 불러오지 못했습니다.", error);
-        }
-        return null;
-      });
-    waxClips.set(name, loading);
-    return loading;
-  }
-
-  function playWaxClip(active, buffer, start, strength) {
-    const source = active.createBufferSource();
-    const gain = active.createGain();
-    source.buffer = buffer;
-    if (source.playbackRate) source.playbackRate.value = vary(0.035);
-    gain.gain.value = 0.8 + 0.2 * strength;
-    source.connect(gain);
-    gain.connect(master);
-    source.onended = () => {
-      source.disconnect();
-      gain.disconnect();
-    };
-    track(source);
-    source.start(start);
-  }
-
   return {
     // Called directly by a trusted pointer/key handler, before any RAF or await.
     // Safari can require this timing even though the cue itself is state-driven.
     prepare() { void unlock(); },
-    prepareWax() {
-      unlock()?.then((active) => {
-        if (!active || active !== context) return;
-        for (const name of Object.keys(WAX_CLIPS)) void loadWaxClip(active, name);
-      });
-    },
     play(name, strength = 0.5, delay = 0) {
       const requestedAt = performance.now();
       const requestedGeneration = generation;
-      unlock()?.then(async (active) => {
-        if (!active || active !== context) return;
-        const isWax = Object.hasOwn(WAX_CLIPS, name);
-        const clip = isWax ? await loadWaxClip(active, name) : null;
-        if ((isWax && !clip) || requestedGeneration !== generation || active !== context ||
+      unlock()?.then((active) => {
+        if (!active || requestedGeneration !== generation || active !== context ||
           performance.now() - requestedAt > MAX_CUE_WAIT_MS) return;
-        if (active.currentTime - (lastCue.get(name) ?? -Infinity) < (isWax ? 0.075 : 0.09)) return;
+        if (active.currentTime - (lastCue.get(name) ?? -Infinity) < 0.09) return;
         if (nextOnset - active.currentTime > 0.15) return;
         const start = Math.max(nextOnset, active.currentTime + 0.012 + delay);
         nextOnset = start + MIN_CUE_GAP_SECONDS;
         lastCue.set(name, active.currentTime);
-        if (clip) playWaxClip(active, clip, start, strength);
-        else playSound(voice, name, start, strength);
+        playSound(voice, name, start, strength);
       });
     },
     stop,
@@ -243,8 +188,6 @@ export function createMallangAudio() {
       stop();
       const active = context;
       context = null;
-      loadingController?.abort(); loadingController = null;
-      waxClips.clear();
       nextOnset = 0;
       void active?.close().catch(() => null);
     },

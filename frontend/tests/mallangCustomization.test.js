@@ -59,7 +59,7 @@ test("each theme has distinct app accents and character colors", () => {
   for (const role of ["background", "surface", "softAccent"]) {
     assert.equal(new Set(MALLANG_THEMES.map(({ app }) => app[role])).size, 8);
   }
-  for (const color of ["skin", "skinEdge", "groove", "cheeks", "waxMid"]) {
+  for (const color of ["skin", "skinEdge", "groove", "cheeks"]) {
     assert.equal(new Set(MALLANG_THEMES.map(({ id }) => rgbColor(getMallangPalette(id)[color]))).size, 8);
   }
 });
