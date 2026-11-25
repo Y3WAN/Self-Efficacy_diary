@@ -1,6 +1,7 @@
+import json
 import logging
 from calendar import monthrange
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,12 +10,13 @@ from sqlalchemy.exc import IntegrityError
 from app.db.session import get_db
 from app.db.models import Diary, Mission, User, Respect
 from app.core.deps import get_current_user
-from app.core.timeutil import KST
+from app.core.timeutil import KST, today_kst
 from app.api.auth import TRIAL_PREFIX
 from app.services.elo_service import (
     BASE_RATING, LEVEL_RATINGS, apply_result, level_for_rating,
 )
 from app.services.mission_service import generate_mission_draft
+from app.services.helper_service import MAX_HELP_TURNS, ask_helper, load_chat, remaining_turns
 from pydantic import BaseModel, StringConstraints
 
 logger = logging.getLogger(__name__)
@@ -32,6 +34,10 @@ class MissionResponse(BaseModel):
     diary_id: Optional[int] = None
     reflection: Optional[str] = None
     created_at: datetime
+    help_remaining: int = MAX_HELP_TURNS
+    help_messages: list[dict] = []
+    can_postpone: bool = True
+    postponed_until: Optional[date] = None
 
     model_config = {"from_attributes": True}
 
@@ -40,6 +46,9 @@ class MissionResponse(BaseModel):
         res = cls.model_validate(mission)
         if mission.difficulty is not None:
             res.level = level_for_rating(mission.difficulty)
+        res.help_remaining = remaining_turns(mission)
+        res.help_messages = load_chat(mission)
+        res.can_postpone = mission.postponed_until is None
         return res
 
 
@@ -82,7 +91,9 @@ async def list_missions(
         .where(Mission.user_id == current_user.id, Mission.status == "active")
         .order_by(Mission.created_at)
     )
-    missions = list(result.scalars().all())
+    today = today_kst()
+    # 미룬 미션은 미룬 날이 되기 전까지 오늘의 미션에서 뺀다.
+    missions = [m for m in result.scalars().all() if m.postponed_until is None or m.postponed_until <= today]
     if include_history:
         history = await db.execute(
             select(Mission)
@@ -215,6 +226,51 @@ async def skip_mission(
     await db.commit()
     await db.refresh(mission)
     return _result_response(mission, before, after)
+
+
+class HelpRequest(BaseModel):
+    message: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=300)]
+
+
+@router.post("/{mission_id}/help", response_model=MissionResponse)
+async def ask_mission_helper(
+    mission_id: int,
+    body: HelpRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """'어려워요' → AI 조력자 상담. 미션 하나당 MAX_HELP_TURNS번까지."""
+    mission = await _get_active_mission(mission_id, current_user, db)
+    if remaining_turns(mission) <= 0:
+        raise HTTPException(status_code=409, detail="상담 기회를 모두 썼어요")
+
+    reply = await ask_helper(mission, body.message)
+    if not reply:
+        raise HTTPException(status_code=502, detail="AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.")
+
+    chat = load_chat(mission)
+    chat += [{"role": "user", "content": body.message}, {"role": "assistant", "content": reply}]
+    mission.help_chat = json.dumps(chat, ensure_ascii=False)
+    mission.help_count = (mission.help_count or 0) + 1
+    await db.commit()
+    await db.refresh(mission)
+    return MissionResponse.of(mission)
+
+
+@router.post("/{mission_id}/postpone", response_model=MissionResponse)
+async def postpone_mission(
+    mission_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """내일로 미루기. 실패로 세지 않는다(ELO 그대로). 미션당 1번."""
+    mission = await _get_active_mission(mission_id, current_user, db)
+    if mission.postponed_until is not None:
+        raise HTTPException(status_code=409, detail="이미 한 번 미룬 미션이에요")
+    mission.postponed_until = today_kst() + timedelta(days=1)
+    await db.commit()
+    await db.refresh(mission)
+    return MissionResponse.of(mission)
 
 
 class RetargetRequest(BaseModel):

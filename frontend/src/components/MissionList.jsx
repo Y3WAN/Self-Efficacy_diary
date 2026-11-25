@@ -29,14 +29,110 @@ function ResultModal({ result, onClose }) {
 }
 
 
+// '어려워요' → AI 조력자 상담. 미션 하나당 물어볼 수 있는 횟수가 정해져 있고, 다 쓰면 내일로 미룰 수 있다.
+function HelperPanel({ mission, onClose, onGiveUp }) {
+  const qc = useQueryClient();
+  const [message, setMessage] = useState("");
+  const remaining = mission.help_remaining ?? 0;
+  const chat = mission.help_messages ?? [];
+
+  const replaceMission = (updated) =>
+    qc.setQueryData(["missions", "active"], (old) => old?.map((m) => (m.id === updated.id ? updated : m)));
+
+  const ask = useMutation({
+    mutationFn: (text) => client.post(`/api/missions/${mission.id}/help`, { message: text }).then((r) => r.data),
+    onSuccess: (updated) => { setMessage(""); replaceMission(updated); },
+    onError: (error) => {
+      toast.error(error.response?.status === 409 ? "상담 기회를 모두 썼어요." : "조력자의 답을 받지 못했어요. 잠시 후 다시 물어봐 주세요.");
+      qc.invalidateQueries({ queryKey: ["missions"] });
+    },
+  });
+
+  const postpone = useMutation({
+    mutationFn: () => client.post(`/api/missions/${mission.id}/postpone`).then((r) => r.data),
+    onSuccess: async () => {
+      toast.success("내일 오늘의 미션에 다시 보여 드릴게요.");
+      onClose();
+      await qc.invalidateQueries({ queryKey: ["missions"] });
+    },
+    onError: () => toast.error("미루지 못했어요."),
+  });
+
+  const busy = ask.isPending || postpone.isPending;
+
+  return (
+    <section className="mission-helper-panel" aria-label="AI 조력자">
+      <p className="helper-intro">
+        <Icon name="user" /> 어디서 막혔는지 편하게 적어 주세요. 같이 더 작은 첫 걸음을 찾아볼게요.
+      </p>
+      {chat.length > 0 && (
+        <ol className="helper-chat">
+          {chat.map((turn, index) => (
+            <li key={index} className={`helper-bubble helper-bubble--${turn.role}`}>{turn.content}</li>
+          ))}
+        </ol>
+      )}
+      {ask.isPending && (
+        <ol className="helper-chat" aria-live="polite">
+          <li className="helper-bubble helper-bubble--user">{ask.variables}</li>
+          <li className="helper-bubble helper-bubble--assistant helper-bubble--pending">답을 생각하고 있어요…</li>
+        </ol>
+      )}
+
+      {remaining > 0 ? (
+        <form
+          className="helper-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const text = message.trim();
+            if (text && !busy) ask.mutate(text);
+          }}
+        >
+          <label htmlFor={`helper-input-${mission.id}`} className="helper-remaining">
+            조력자에게 {remaining}번 더 물어볼 수 있어요
+          </label>
+          <textarea
+            id={`helper-input-${mission.id}`}
+            className="mission-feedback-input"
+            maxLength={300}
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            placeholder={chat.length ? "더 궁금한 점을 적어 주세요" : "예) 어디서부터 시작해야 할지 모르겠어요"}
+            disabled={busy}
+          />
+          <button type="submit" className="mission-done-btn" disabled={busy || !message.trim()}>물어보기</button>
+        </form>
+      ) : (
+        <p className="helper-remaining">
+          상담 기회를 모두 썼어요. {mission.can_postpone ? "지금 해 보기 어렵다면 내일로 미뤄도 괜찮아요." : ""}
+        </p>
+      )}
+
+      <div className="mission-actions helper-actions">
+        <button type="button" className="mission-done-btn" disabled={busy} onClick={onClose}>해 볼게요</button>
+        {mission.can_postpone && (
+          <button type="button" className="mission-done-btn helper-postpone-btn" disabled={busy} onClick={() => postpone.mutate()}>
+            내일로 미루기
+          </button>
+        )}
+        <button type="button" className="mission-skip-btn" disabled={busy} onClick={onGiveUp}>이번 미션은 그만할래요</button>
+      </div>
+    </section>
+  );
+}
+
+
 export default function MissionList({ missions, isPending, isError, onRetry }) {
   const qc = useQueryClient();
   const [result, setResult] = useState(null);
+  // AI 조력자 상담창이 열린 미션 id
+  const [helperId, setHelperId] = useState(null);
   // 회고 입력창이 열린 미션: { id, action: "complete" | "skip" }
   const [pending, setPending] = useState(null);
   const [note, setNote] = useState("");
 
-  const openFeedback = (id, action) => { setPending({ id, action }); setNote(""); };
+  const openFeedback = (id, action) => { setHelperId(null); setPending({ id, action }); setNote(""); };
+  const openHelper = (id) => { setPending(null); setHelperId(id); };
 
   const updateMission = useMutation({
     mutationFn: ({ id, action, reflection }) =>
@@ -115,6 +211,12 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
                       >취소</button>
                     </div>
                   </form>
+                ) : helperId === mission.id ? (
+                  <HelperPanel
+                    mission={mission}
+                    onClose={() => setHelperId(null)}
+                    onGiveUp={() => openFeedback(mission.id, "skip")}
+                  />
                 ) : (
                   <div className="mission-actions">
                     <button
@@ -125,7 +227,7 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
                     <button
                       className="mission-skip-btn"
                       disabled={updateMission.isPending}
-                      onClick={() => openFeedback(mission.id, "skip")}
+                      onClick={() => openHelper(mission.id)}
                     >어려워요</button>
                   </div>
                 )}

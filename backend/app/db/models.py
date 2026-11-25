@@ -112,6 +112,9 @@ class Mission(Base):
     diary_id = Column(BigInteger, ForeignKey("diaries.id", ondelete="SET NULL"), nullable=True)  # 일기 직후 생성된 미션
     reflection = Column(Text, nullable=True)  # 완료·포기 시 남긴 한 줄 회고
     is_everyday = Column(Boolean, nullable=False, default=False, server_default="false")  # 해 보려던 일이 없는 일상 일기로 만든 미션
+    help_count = Column(Integer, nullable=False, default=0, server_default="0")  # AI 조력자에게 물어본 횟수
+    help_chat = Column(Text, nullable=True)  # AI 조력자 상담 기록 (JSON 배열)
+    postponed_until = Column(Date, nullable=True)  # 미룬 날(KST). 이날부터 다시 보인다. 미루기는 미션당 1번
     created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
     completed_at = Column(DateTime(timezone=True), nullable=True)
 

@@ -2214,6 +2214,32 @@ body:has(.mallang-page) { overflow-x: clip; }
 }
 .mission-feedback .mission-actions { flex-direction: row; align-items: center; gap: 12px; }
 
+/* AI 조력자 상담창 */
+.mission-helper-panel {
+  flex-basis: 100%;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-sky);
+}
+.helper-intro { margin: 0; line-height: 1.5; color: var(--text); }
+.helper-chat { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.helper-bubble {
+  max-width: 88%;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.helper-bubble--user { justify-self: end; background: var(--card); border: 1px solid var(--border); }
+.helper-bubble--assistant { justify-self: start; background: var(--card); border: 1px solid var(--accent-line, var(--border)); }
+.helper-bubble--pending { color: var(--text-muted); }
+.helper-form { display: grid; gap: 8px; justify-items: start; }
+.helper-remaining { margin: 0; font-size: 0.9rem; color: var(--text-muted); }
+.helper-actions { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+
 .reflection-card {
   margin-top: 14px;
   padding: 14px 16px;

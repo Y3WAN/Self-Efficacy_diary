@@ -266,7 +266,12 @@ async def expire_stale_missions(user: User, db: AsyncSession) -> int:
         .where(Mission.user_id == user.id, Mission.status == "active", Mission.created_at < cutoff)
         .order_by(Mission.created_at)
     )
-    stale = result.scalars().all()
+    # 미룬 미션은 다시 보이기 시작한 날부터 기한을 다시 센다.
+    last_shown_day = today_kst() - timedelta(days=MISSION_EXPIRE_DAYS)
+    stale = [
+        m for m in result.scalars().all()
+        if m.postponed_until is None or m.postponed_until <= last_shown_day
+    ]
     for mission in stale:
         mission.status = "expired"
     return len(stale)
