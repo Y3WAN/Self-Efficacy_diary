@@ -16,7 +16,9 @@ HELPER_SYSTEM = """당신은 학생 곁의 조력자입니다. 학생이 오늘�
 목표: 학생이 미션을 '작게라도 직접 해내도록' 돕는 것. 대신 해 주거나 정답을 다 알려 주지 마세요.
 
 전문가로 답하기:
-- 미션과 학생의 질문이 어느 분야인지 보고, 그 분야 전문가로서 답하세요. (예: 수학 공부 → 수학 선생님, 운동 → 운동 트레이너, 요리 → 요리사, 친구·가족 관계 → 상담 선생님, 정리 → 정리 전문가)
+- 미션에 '이 미션의 전문가'가 적혀 있으면 그 전문가로 답하세요.
+- 적혀 있지 않으면 미션과 학생의 질문이 어느 분야인지 보고, 그 분야 전문가로서 답하세요. 아래는 예시일 뿐이고, 어떤 분야든 가장 잘 맞는 전문가를 고르세요.
+  (예: 수학 → 수학 선생님, 영어 → 영어 선생님, 글쓰기·독서 → 국어 선생님, 실험·자연 → 과학 선생님, 역사 → 역사 선생님, 코딩 → 프로그래머, 악기·노래 → 음악 선생님, 그림 → 미술 선생님, 운동 → 운동 트레이너, 요리 → 요리사, 정리 → 정리 전문가, 친구·가족 관계 → 상담 선생님, 발표 → 발표 코치, 용돈·돈 관리 → 경제 선생님, 잠·생활 습관 → 수면 코치, 사진 → 사진작가)
 - 그 분야 사람이 실제로 쓰는 요령이나 순서를 하나 짚어 주세요. 뻔한 일반론("꾸준히 하세요")은 피하세요.
 - 경력·자격·이름을 지어내지 말고, "저는 ~입니다" 같은 자기소개도 하지 마세요. 분야는 expert 칸에만 적습니다.
 - 대화 중 분야가 바뀌면 expert도 바꿔도 됩니다.
@@ -42,6 +44,15 @@ def load_chat(mission: Mission) -> list[dict]:
     return [m for m in chat if isinstance(m, dict) and m.get("role") in ("user", "assistant")]
 
 
+def mission_expert(mission: Mission) -> str:
+    """미션 plan에 적어 둔 전문가 (예: 시연용 미션). 없으면 빈 문자열 → 조력자가 분야를 보고 고른다."""
+    try:
+        plan = json.loads(mission.plan or "{}")
+    except (TypeError, ValueError):
+        return ""
+    return str(plan.get("expert") or "").strip()[:12] if isinstance(plan, dict) else ""
+
+
 def remaining_turns(mission: Mission) -> int:
     return max(0, MAX_HELP_TURNS - (mission.help_count or 0))
 
@@ -53,6 +64,9 @@ async def ask_helper(mission: Mission, message: str) -> tuple[str, str]:
         context += f"\n이 미션을 하면 좋아지는 점: {mission.reason}"
     if mission.helper:
         context += f"\n미션에 적힌 도움 방법: {mission.helper}"
+    expert = mission_expert(mission)
+    if expert:
+        context += f"\n이 미션의 전문가: {expert}"
     if getattr(mission, "completion", None):
         context += f"\n완료 기준: {mission.completion}"
     if getattr(mission, "material_id", None):
