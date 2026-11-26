@@ -580,24 +580,20 @@ h1, .community-title, .diary-header h2 {
 .calendar-marks {
   display: flex;
   justify-content: center;
-  gap: 4px;
-  min-height: 6px;
+  gap: 2px;
+  min-height: 11px;
 }
 .calendar-mark {
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 11px;
+  height: 11px;
+  flex: none;
 }
-.calendar-mark--diary {
-  border-radius: 50%;
-  background: var(--accent);
-}
-.calendar-mark--mission {
-  border-radius: 1px;
-  background: var(--green-ink);
-}
-.calendar-day[data-selected="true"] .calendar-mark--diary { background: var(--accent-soft); }
-.calendar-day[data-selected="true"] .calendar-mark--mission { background: color-mix(in srgb, var(--green) 28%, var(--card)); }
+.calendar-legend .calendar-mark { width: 13px; height: 13px; }
+.calendar-mark--diary { color: var(--accent); }
+.calendar-mark--mission { color: var(--green-ink); }
+.calendar-day[data-selected="true"] .calendar-mark--diary { color: var(--accent-soft); }
+.calendar-day[data-selected="true"] .calendar-mark--mission { color: color-mix(in srgb, var(--green) 28%, var(--card)); }
 .calendar-legend, .calendar-legend > span {
   display: flex;
   align-items: center;
@@ -2174,16 +2170,6 @@ body:has(.mallang-page) { overflow-x: clip; }
 ═══════════════════════════════════════════════════════ */
 .mission-item { flex-wrap: wrap; }
 .mission-body { flex: 1; min-width: 0; }
-.mission-reason {
-  margin-top: 4px;
-  line-height: 1.5;
-  color: var(--text-muted);
-}
-.mission-helper {
-  margin-top: 4px;
-  line-height: 1.5;
-  color: var(--blue-ink, var(--text-muted));
-}
 .celebration-helper {
   margin: 6px 0 0;
   line-height: 1.5;
@@ -2237,6 +2223,23 @@ body:has(.mallang-page) { overflow-x: clip; }
 .helper-bubble--assistant { justify-self: start; background: var(--card); border: 1px solid var(--accent-line, var(--border)); }
 .helper-bubble--pending { color: var(--text-muted); }
 .helper-form { display: grid; gap: 8px; justify-items: start; }
+.helper-input-row { display: flex; align-items: flex-end; gap: 8px; width: 100%; }
+.helper-input-row .mission-feedback-input { flex: 1; min-width: 0; }
+.helper-send-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+}
+.helper-send-btn .app-icon { width: 20px; height: 20px; }
+.helper-send-btn:disabled { opacity: 0.4; cursor: default; }
+.helper-expert { display: block; margin-bottom: 2px; color: var(--accent); font-size: 12px; font-weight: 700; }
 .helper-remaining { margin: 0; font-size: 0.9rem; color: var(--text-muted); }
 .helper-actions { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 
@@ -2630,3 +2633,45 @@ body:has(.mallang-page) { overflow-x: clip; }
 .stack-note { margin: 0; color: var(--text-soft); font-size: .85rem; }
 @keyframes stack-drop { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .stack-book { animation: none; } }
+
+/* ── 분야별 미션: 완료 기준·자료·확인 질문·답 남기기 (MissionTask) ── */
+.mission-task { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.mission-completion { margin: 0; font-size: .86rem; color: var(--green-ink); display: flex; gap: 6px; align-items: flex-start; }
+.mission-material, .mission-guide, .mission-clarify, .mission-answer-result {
+  border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; background: var(--card);
+}
+.mission-material-title, .mission-guide-title { margin: 0 0 6px; font-weight: 700; font-size: .9rem; color: var(--text); }
+.mission-material-passage { margin: 0 0 8px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
+.mission-material-question { margin: 8px 0 6px; font-weight: 600; color: var(--text); }
+.mission-material-steps { margin: 0 0 6px; padding-left: 20px; line-height: 1.7; color: var(--text); }
+.mission-material-example { margin: 0 0 6px; color: var(--text-muted); font-size: .88rem; }
+.mission-choices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.mission-choice {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
+  border: 1px solid var(--divider); cursor: pointer; color: var(--text);
+}
+.mission-choice--picked { border-color: var(--accent); background: var(--accent-soft); }
+.mission-choice--answer { border-color: var(--green); }
+.mission-choice-tag { margin-left: auto; font-size: .76rem; color: var(--green-ink); font-weight: 700; }
+.mission-source { margin: 8px 0 0; font-size: .75rem; color: var(--text-soft); }
+.mission-guide { background: var(--warning-bg); border-color: var(--warning); color: var(--warning-text); }
+.mission-guide p { margin: 0; line-height: 1.6; }
+.mission-guide .mission-source { margin-top: 8px; color: var(--warning-text); }
+.mission-clarify { background: var(--blue-bg); border-color: var(--blue); }
+.mission-clarify-question { margin: 0; font-weight: 700; color: var(--blue-ink); }
+.mission-clarify-hint { margin: 2px 0 8px; font-size: .8rem; color: var(--text-muted); }
+.mission-clarify-options, .mission-scale { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.mission-clarify-form { display: flex; gap: 6px; margin-top: 8px; }
+.mission-clarify-form .mission-feedback-input { flex: 1; min-width: 0; min-height: 0; }
+.mission-chip {
+  border: 1px solid var(--control-border); background: var(--card); color: var(--text);
+  border-radius: 999px; padding: 6px 12px; font-size: .86rem; cursor: pointer;
+}
+.mission-chip--on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.mission-chip:disabled { opacity: .55; cursor: default; }
+.mission-scale-hint { font-size: .78rem; color: var(--text-soft); }
+.mission-answer { display: flex; flex-direction: column; gap: 8px; }
+.mission-answer-prompt { font-size: .86rem; color: var(--text-muted); }
+.mission-grade { margin: 0 0 4px; font-weight: 700; color: var(--coral); }
+.mission-grade--ok { color: var(--green-ink); }
+.mission-feedback-text { margin: 0; line-height: 1.6; color: var(--text); }

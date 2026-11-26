@@ -13,8 +13,8 @@ from app.db.models import Diary, DiaryReflection, Mission, User
 from app.services.elo_service import BASE_RATING, LEVEL_RATINGS, target_level
 from app.services.groq_client import chat_json
 from app.services.mission_service import (
+    draft_mission,
     expire_stale_missions,
-    generate_mission_draft,
     get_recent_reflections,
     load_source_profile,
 )
@@ -129,7 +129,7 @@ async def _create_instant_mission(diary: Diary, user: User, db: AsyncSession, ev
     target_var = next((v for v in ranked if v not in used), ranked[0])
 
     level = target_level(user.elo if user.elo is not None else BASE_RATING)
-    content, reason, helper = await generate_mission_draft(
+    draft = await draft_mission(
         target_var,
         level,
         diary.content,
@@ -138,20 +138,18 @@ async def _create_instant_mission(diary: Diary, user: User, db: AsyncSession, ev
         await get_recent_reflections(user.id, db),
         everyday=everyday,
     )
-    if not content:
+    if not draft.content:
         return None
 
     mission = Mission(
         user_id=user.id,
-        content=content,
-        reason=reason or None,
-        helper=helper or None,
         target_var=target_var,
         status="active",
         difficulty=LEVEL_RATINGS[level],
         diary_id=diary.id,
         is_everyday=everyday,
     )
+    draft.apply_to(mission)
     db.add(mission)
     return mission
 

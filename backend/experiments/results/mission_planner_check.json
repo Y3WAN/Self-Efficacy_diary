@@ -1,0 +1,239 @@
+[
+  {
+    "case": "국어",
+    "short": "국어 공부를 하는데 집중이 덜 됐다.",
+    "long": "저녁 먹고 국어 문제집을 펴서 비문학 지문을 읽기 시작했다. 그런데 두 번째 문단쯤부터 자꾸 딴생각이 나고 같은 줄을 몇 번이나 다시 읽었다. 30분 앉아 있었는데 실제로 푼 건 한 문제뿐이라 좀 허무했다. 내일은 집중해서 풀고 싶다.",
+    "extraction_short": {
+      "domain": "study",
+      "intended_task": "국어 공부를 하는 것",
+      "blocker": "공부할 때 집중이 잘 되지 않았다",
+      "blocker_type": "focus",
+      "conditions": {
+        "subject": "국어"
+      },
+      "safety": "none"
+    },
+    "extraction_long": {
+      "domain": "study",
+      "intended_task": "국어 문제집 비문학 지문 읽고 풀기",
+      "blocker": "두 번째 문단쯤부터 딴생각이 나서 같은 줄을 반복해 읽었다",
+      "blocker_type": "focus",
+      "conditions": {
+        "subject": "국어",
+        "material_name": "국어 문제집",
+        "stuck_point": "비문학 지문 두 번째 문단",
+        "available_time": "30분"
+      },
+      "safety": "none"
+    },
+    "same_direction": true,
+    "draft": {
+      "content": "화면의 지문을 읽고 답을 고른 뒤, 그 근거를 지문에서 찾아 한 줄로 적어 보세요",
+      "reason": "한 문제를 끝까지 풀어 보면 국어 공부에 다시 집중하기 쉬워져요.",
+      "helper": "",
+      "completion": "고른 답의 근거를 한 줄로 정리했다",
+      "domain": "study",
+      "material_id": "study.ko.read.01",
+      "plan": {
+        "branch": "planned",
+        "level": 2,
+        "kb_version": "2026-11-26",
+        "extraction": {
+          "domain": "study",
+          "intended_task": "국어 공부를 하는 것",
+          "blocker": "공부할 때 집중이 잘 되지 않았다",
+          "blocker_type": "focus",
+          "conditions": {
+            "subject": "국어"
+          },
+          "safety": "none"
+        },
+        "domain": "study",
+        "blocker_type": "focus",
+        "material_id": "study.ko.read.01",
+        "response_type": "choice",
+        "response_prompt": "답을 고르고, 그렇게 고른 근거를 지문에서 찾아 한 줄로 적어 주세요.",
+        "clarify": null,
+        "checks": []
+      }
+    },
+    "feedback": {
+      "choice": 0,
+      "correct": false,
+      "text": "봉숭아를 해마다 심는다고 첫 문장에 나와서",
+      "feedback": "\"해마다 심는다\"는 첫 문장은 찾으셨는데, 이 문장은 꽃을 심는 일을 말할 뿐 시들지 않은 까닭은 아닙니다. '시들지 않았다' 바로 앞의 '그래서 ... 요일마다 물 줄 사람을 정했다'가 까닭입니다. 다음엔 문제 속 결과(시들지 않았다)를 먼저 표시하고, 그 바로 앞 문장을 살펴보세요."
+    }
+  },
+  {
+    "case": "운동",
+    "short": "집에 오면 운동을 자꾸 미룬다.",
+    "long": "요즘 체력이 떨어진 것 같아서 운동을 하기로 했다. 그런데 학원 끝나고 집에 오면 피곤해서 '조금만 쉬고 해야지' 하다가 결국 폰만 보고 잠든다. 오늘도 운동복까지 꺼내 놓고 못 했다. 매번 미루는 내가 좀 답답하다.",
+    "extraction_short": {
+      "domain": "exercise",
+      "intended_task": "운동",
+      "blocker": "집에 오면 운동을 자꾸 미룬다",
+      "blocker_type": "no_time",
+      "conditions": {
+        "place": "집"
+      },
+      "safety": "none"
+    },
+    "extraction_long": {
+      "domain": "exercise",
+      "intended_task": "운동을 하기로 했다",
+      "blocker": "학원 끝나고 집에 오면 피곤해서 쉬다가 운동을 미룬다",
+      "blocker_type": "no_time",
+      "conditions": {
+        "place": "집"
+      },
+      "safety": "none"
+    },
+    "same_direction": true,
+    "draft": {
+      "content": "집에서 이미 할 줄 아는 동작 하나를 골라 2분 동안 해 보세요",
+      "reason": "아주 작게 시작하면 미루던 운동의 첫걸음이 한결 가벼워져요.",
+      "helper": "",
+      "completion": "익숙한 동작 하나를 2분 동안 했다",
+      "domain": "exercise",
+      "material_id": null,
+      "plan": {
+        "branch": "fallback",
+        "level": 2,
+        "kb_version": "2026-11-26",
+        "extraction": {
+          "domain": "exercise",
+          "intended_task": "운동",
+          "blocker": "집에 오면 운동을 자꾸 미룬다",
+          "blocker_type": "no_time",
+          "conditions": {
+            "place": "집"
+          },
+          "safety": "none"
+        },
+        "domain": "exercise",
+        "blocker_type": "no_time",
+        "material_id": null,
+        "response_type": "scale_text",
+        "response_prompt": "해 보니 부담이 어땠는지 1(가벼움)~5(힘듦)로 고르고, 한 줄로 적어 주세요.",
+        "clarify": {
+          "key": "available_time",
+          "question": "운동에 쓸 수 있는 시간은 몇 분쯤인가요?",
+          "options": [
+            {
+              "label": "5분",
+              "value": "5분"
+            },
+            {
+              "label": "10분",
+              "value": "10분"
+            },
+            {
+              "label": "20분 이상",
+              "value": "20분 이상"
+            }
+          ]
+        },
+        "checks": []
+      }
+    },
+    "after_clarify": {
+      "content": "오늘 해 본 적 있는 동작 하나를 정해 2분만 바로 해 보세요",
+      "reason": "",
+      "helper": "",
+      "completion": "익숙한 동작 하나를 2분 동안 했다",
+      "domain": "exercise",
+      "material_id": null,
+      "plan": {
+        "branch": "planned",
+        "level": 2,
+        "kb_version": "2026-11-26",
+        "extraction": {
+          "domain": "exercise",
+          "intended_task": "운동",
+          "blocker": "집에 오면 운동을 자꾸 미룬다",
+          "blocker_type": "no_time",
+          "conditions": {
+            "place": "집",
+            "available_time": "10분"
+          },
+          "safety": "none",
+          "clarified": true
+        },
+        "domain": "exercise",
+        "blocker_type": "no_time",
+        "material_id": null,
+        "response_type": "scale_text",
+        "response_prompt": "해 보니 부담이 어땠는지 1(가벼움)~5(힘듦)로 고르고, 한 줄로 적어 주세요.",
+        "clarify": null,
+        "checks": [
+          "empty_content_registry",
+          "llm_failed_registry_content"
+        ]
+      }
+    }
+  },
+  {
+    "case": "인간관계",
+    "short": "친구가 사람들 앞에서 내 별명을 불러서 불편하다.",
+    "long": "점심시간에 같은 반 친구가 다른 애들 앞에서 내가 싫어하는 별명을 크게 불렀다. 다들 웃어서 나도 그냥 웃어 넘겼는데 집에 와서도 계속 신경이 쓰였다. 친구가 나쁜 뜻으로 그런 건 아닌 것 같은데, 그 별명은 안 불렀으면 좋겠다. 어떻게 말해야 할지 모르겠다.",
+    "extraction_short": {
+      "domain": "relationship",
+      "intended_task": "",
+      "blocker": "친구가 사람들 앞에서 별명을 불러서 불편한데 말하기 어렵다",
+      "blocker_type": "hard_to_say",
+      "conditions": {
+        "who": "친구",
+        "behavior": "사람들 앞에서 별명을 부름"
+      },
+      "safety": "none"
+    },
+    "extraction_long": {
+      "domain": "relationship",
+      "intended_task": "",
+      "blocker": "싫어하는 별명을 부르지 말라고 어떻게 말해야 할지 모른다",
+      "blocker_type": "hard_to_say",
+      "conditions": {
+        "who": "같은 반 친구",
+        "behavior": "다른 애들 앞에서 싫어하는 별명을 크게 부름",
+        "desired_change": "그 별명을 부르지 않기"
+      },
+      "safety": "none"
+    },
+    "same_direction": true,
+    "draft": {
+      "content": "화면의 카드 순서대로 별명 부르는 친구에게 바라는 변화를 한 문장으로 써서 소리 내어 읽어 보세요",
+      "reason": "불편한 마음을 친구의 행동 중심으로 정리해서 말할 준비가 쉬워져요.",
+      "helper": "",
+      "completion": "바라는 변화를 한 문장으로 쓰고 소리 내어 한 번 읽었다",
+      "domain": "relationship",
+      "material_id": "relationship.card.request.01",
+      "plan": {
+        "branch": "planned",
+        "level": 2,
+        "kb_version": "2026-11-26",
+        "extraction": {
+          "domain": "relationship",
+          "intended_task": "",
+          "blocker": "친구가 사람들 앞에서 별명을 불러서 불편한데 말하기 어렵다",
+          "blocker_type": "hard_to_say",
+          "conditions": {
+            "who": "친구",
+            "behavior": "사람들 앞에서 별명을 부름"
+          },
+          "safety": "none"
+        },
+        "domain": "relationship",
+        "blocker_type": "hard_to_say",
+        "material_id": "relationship.card.request.01",
+        "response_type": "text",
+        "response_prompt": "상대에게 할 부탁 한 문장을 적어 주세요.",
+        "clarify": null,
+        "checks": []
+      }
+    },
+    "feedback": {
+      "text": "너 진짜 왜 그래? 나 그 별명 싫어.",
+      "feedback": "\"나 그 별명 싫어.\"라고 내 마음을 분명히 적으셨어요. 다만 \"너 진짜 왜 그래?\"는 상대 탓처럼 들릴 수 있고, 어떤 행동을 바라는지는 아직 없어요. 이 문장을 \"그 별명으로 부를 때 불편했어, 앞으로는 내 이름으로 불러 줄래?\"로 바꿔 소리 내어 한 번 읽어 보세요."
+    }
+  }
+]

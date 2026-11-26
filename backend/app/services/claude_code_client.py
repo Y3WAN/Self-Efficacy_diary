@@ -35,10 +35,11 @@ def _parse_json(text: str) -> dict:
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        start, end = text.find("{"), text.rfind("}")
-        if start == -1 or end <= start:
+        start = text.find("{")
+        if start == -1:
             raise
-        return json.loads(text[start:end + 1])
+        # JSON 뒤에 설명이나 두 번째 JSON이 붙어 와도 첫 객체만 읽는다
+        return json.JSONDecoder().raw_decode(text[start:])[0]
 
 
 def _run(system: str, prompt: str) -> dict:

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import BrandMark from "../components/BrandMark";
+import MissionTask from "../components/MissionTask";
 import { todayKST } from "../utils/date";
 
 // 부스 체험 전용 화면: 질문 3개에 답하면 AI가 일기로 엮고, 그 일기를 분석(오늘 해낸 것 + 미션)한다.
@@ -274,7 +275,14 @@ export default function TrialPage() {
                     {missionBusy ? "AI가 난이도를 바꾼 미션을 만들고 있어요…" : result.mission.content}
                   </p>
                   {!missionBusy && result.mission.reason && <p className="reflection-mission-reason">{result.mission.reason}</p>}
-                  {!missionBusy && result.mission.helper && <p className="mission-helper">🤝 막히면: {result.mission.helper}</p>}
+                  {!missionBusy && (
+                    <MissionTask
+                      mission={result.mission}
+                      post={(path, body) => api.post(path, body, auth(token)).then((r) => r.data)}
+                      onUpdated={(mission) => setResult((prev) => ({ ...prev, mission }))}
+                      onError={setMissionError}
+                    />
+                  )}
 
                   <p className="trial-mission-question">이 미션, 할 수 있을 것 같나요?</p>
                   <div className="trial-mission-actions">

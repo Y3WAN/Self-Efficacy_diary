@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import client from "../api/client";
+import MissionTask from "./MissionTask";
 
 // 점수 대신 담백한 한마디. 해낸 미션을 그대로 짚어 준다.
 function ResultModal({ result, onClose }) {
@@ -69,7 +70,10 @@ function HelperPanel({ mission, onClose, onGiveUp }) {
       {chat.length > 0 && (
         <ol className="helper-chat">
           {chat.map((turn, index) => (
-            <li key={index} className={`helper-bubble helper-bubble--${turn.role}`}>{turn.content}</li>
+            <li key={index} className={`helper-bubble helper-bubble--${turn.role}`}>
+              {turn.expert && <span className="helper-expert">{turn.expert}</span>}
+              {turn.content}
+            </li>
           ))}
         </ol>
       )}
@@ -92,16 +96,20 @@ function HelperPanel({ mission, onClose, onGiveUp }) {
           <label htmlFor={`helper-input-${mission.id}`} className="helper-remaining">
             조력자에게 {remaining}번 더 물어볼 수 있어요
           </label>
-          <textarea
-            id={`helper-input-${mission.id}`}
-            className="mission-feedback-input"
-            maxLength={300}
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-            placeholder={chat.length ? "더 궁금한 점을 적어 주세요" : "예) 어디서부터 시작해야 할지 모르겠어요"}
-            disabled={busy}
-          />
-          <button type="submit" className="mission-done-btn" disabled={busy || !message.trim()}>물어보기</button>
+          <div className="helper-input-row">
+            <textarea
+              id={`helper-input-${mission.id}`}
+              className="mission-feedback-input"
+              maxLength={300}
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              placeholder={chat.length ? "더 궁금한 점을 적어 주세요" : "예) 어디서부터 시작해야 할지 모르겠어요"}
+              disabled={busy}
+            />
+            <button type="submit" className="helper-send-btn" aria-label="전송" disabled={busy || !message.trim()}>
+              <Icon name="arrowUp" />
+            </button>
+          </div>
         </form>
       ) : (
         <p className="helper-remaining">
@@ -176,8 +184,13 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
               <li key={mission.id} className="mission-item">
                 <div className="mission-body">
                   <p className="mission-content">{mission.content}</p>
-                  {mission.reason && <p className="mission-reason"><Icon name="bulb" /> {mission.reason}</p>}
-                  {mission.helper && <p className="mission-helper"><Icon name="user" /> 막히면: {mission.helper}</p>}
+                  <MissionTask
+                    mission={mission}
+                    post={(path, body) => client.post(path, body).then((r) => r.data)}
+                    onUpdated={(updated) =>
+                      qc.setQueryData(["missions", "active"], (old) => old?.map((m) => (m.id === updated.id ? updated : m)))}
+                    onError={(message) => toast.error(message)}
+                  />
                 </div>
                 {pending?.id === mission.id ? (
                   <form

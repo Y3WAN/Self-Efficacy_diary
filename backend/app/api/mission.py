@@ -15,7 +15,9 @@ from app.api.auth import TRIAL_PREFIX
 from app.services.elo_service import (
     BASE_RATING, LEVEL_RATINGS, apply_result, level_for_rating,
 )
-from app.services.mission_service import generate_mission_draft
+from app.services.mission_service import draft_mission, load_plan
+from app.services.mission_kb import public_guide, public_material
+from app.services.mission_planner import feedback_for, grade_choice
 from app.services.helper_service import MAX_HELP_TURNS, ask_helper, load_chat, remaining_turns
 from pydantic import BaseModel, StringConstraints
 
@@ -38,6 +40,17 @@ class MissionResponse(BaseModel):
     help_messages: list[dict] = []
     can_postpone: bool = True
     postponed_until: Optional[date] = None
+    # 분야별 미션 (기존 미션은 모두 기본값 → 예전 화면·클라이언트와 호환)
+    kind: str = "action"  # action | help(안전이 걸린 상황의 도움 요청 안내)
+    domain: Optional[str] = None
+    completion: Optional[str] = None
+    material: Optional[dict] = None  # 미션 화면에 함께 보여 줄 지문·문제·카드 (정답은 답을 남긴 뒤에만)
+    help_guide: Optional[dict] = None
+    response_type: str = "none"  # choice | text | scale_text | none
+    response_prompt: Optional[str] = None
+    clarify: Optional[dict] = None  # 미션을 맞추려고 한 가지 확인하는 질문 (답하면 사라짐)
+    attempts: list[dict] = []
+    attempts_remaining: int = 0
 
     model_config = {"from_attributes": True}
 
@@ -49,7 +62,33 @@ class MissionResponse(BaseModel):
         res.help_remaining = remaining_turns(mission)
         res.help_messages = load_chat(mission)
         res.can_postpone = mission.postponed_until is None
+        plan = load_plan(mission)
+        attempts = load_attempts(mission)
+        res.kind = plan.get("kind", "action")
+        res.material = public_material(mission.material_id, reveal_answer=bool(attempts))
+        res.help_guide = public_guide(plan.get("guide_id"))
+        res.response_type = plan.get("response_type", "none")
+        res.response_prompt = plan.get("response_prompt") or None
+        res.clarify = plan.get("clarify") if not attempts else None
+        res.attempts = attempts
+        res.attempts_remaining = max(0, max_attempts(res.response_type) - len(attempts))
         return res
+
+
+MAX_ATTEMPTS = 3
+
+
+def max_attempts(response_type: str) -> int:
+    """객관식은 답을 남기면 정답이 공개되므로 한 번, 글·부담 기록은 세 번까지."""
+    return {"none": 0, "choice": 1}.get(response_type, MAX_ATTEMPTS)
+
+
+def load_attempts(mission: Mission) -> list[dict]:
+    try:
+        attempts = json.loads(mission.answer or "[]")
+    except (TypeError, ValueError):
+        return []
+    return [a for a in attempts if isinstance(a, dict)] if isinstance(attempts, list) else []
 
 
 class MissionFeedback(BaseModel):
@@ -188,7 +227,6 @@ class MissionStackResponse(BaseModel):
     skipped_count: int
     postponed_count: int  # 미뤘던 적이 있는 끝난 미션
     waiting_count: int  # 지금 미뤄 둔 미션 (아직 책이 아님)
-    everyone_done_count: int  # 모두가 해낸 미션 수 (함께 해낸 미션과 연동)
 
 
 STACK_LIMIT = 200
@@ -234,14 +272,12 @@ async def mission_stack(
             Mission.postponed_until > today_kst(),
         )
     )
-    everyone = await db.scalar(select(func.count()).select_from(Mission).where(Mission.status == "done"))
     return MissionStackResponse(
         books=books,
         done_count=counts.get("done", 0),
         skipped_count=counts.get("skipped", 0),
         postponed_count=postponed or 0,
         waiting_count=waiting or 0,
-        everyone_done_count=everyone or 0,
     )
 
 
@@ -263,6 +299,14 @@ def _result_response(mission: Mission, elo_before: int, elo_after: int) -> Missi
     )
 
 
+def _apply_elo(user: User, mission: Mission, won: bool, db: AsyncSession) -> tuple[int, int]:
+    """도움 요청 안내 미션은 실력과 상관없으므로 ELO에 넣지 않는다. 나머지는 기존과 같다."""
+    if load_plan(mission).get("kind") == "help":
+        rating = user.elo if user.elo is not None else BASE_RATING
+        return rating, rating
+    return apply_result(user, mission, won=won, db=db)
+
+
 @router.post("/{mission_id}/complete", response_model=MissionResultResponse)
 async def complete_mission(
     mission_id: int,
@@ -276,7 +320,7 @@ async def complete_mission(
     mission.completed_at = datetime.now(timezone.utc)
     _apply_feedback(mission, body)
     current_user.points = (current_user.points or 0) + 100
-    before, after = apply_result(current_user, mission, won=True, db=db)
+    before, after = _apply_elo(current_user, mission, won=True, db=db)
     await db.commit()
     await db.refresh(mission)
     return _result_response(mission, before, after)
@@ -295,7 +339,7 @@ async def skip_mission(
     mission.status = "skipped"
     mission.completed_at = datetime.now(timezone.utc)
     _apply_feedback(mission, body)
-    before, after = apply_result(current_user, mission, won=False, db=db)
+    before, after = _apply_elo(current_user, mission, won=False, db=db)
     await db.commit()
     await db.refresh(mission)
     return _result_response(mission, before, after)
@@ -317,12 +361,15 @@ async def ask_mission_helper(
     if remaining_turns(mission) <= 0:
         raise HTTPException(status_code=409, detail="상담 기회를 모두 썼어요")
 
-    reply = await ask_helper(mission, body.message)
+    reply, expert = await ask_helper(mission, body.message)
     if not reply:
         raise HTTPException(status_code=502, detail="AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.")
 
     chat = load_chat(mission)
-    chat += [{"role": "user", "content": body.message}, {"role": "assistant", "content": reply}]
+    answer = {"role": "assistant", "content": reply}
+    if expert:
+        answer["expert"] = expert
+    chat += [{"role": "user", "content": body.message}, answer]
     mission.help_chat = json.dumps(chat, ensure_ascii=False)
     mission.help_count = (mission.help_count or 0) + 1
     await db.commit()
@@ -371,22 +418,142 @@ async def retarget_mission(
     if new_level == level:
         raise HTTPException(status_code=409, detail="이미 가장 어려운 단계예요" if body.harder else "이미 가장 쉬운 단계예요")
 
-    diary_text = ""
-    if mission.diary_id is not None:
-        diary = await db.get(Diary, mission.diary_id)
-        diary_text = diary.content if diary else ""
+    plan = load_plan(mission)
+    if plan.get("kind") == "help":
+        raise HTTPException(status_code=409, detail="도움 요청 안내는 난이도를 바꾸지 않아요")
 
-    content, reason, helper = await generate_mission_draft(
-        mission.target_var, new_level, diary_text, [mission.content],
+    draft = await draft_mission(
+        mission.target_var, new_level, await _diary_text(mission, db), [mission.content],
         everyday=bool(mission.is_everyday),
+        extraction=plan.get("extraction"),  # 같은 일기에서 이미 뽑은 상황을 다시 쓴다
     )
-    if not content:
+    if not draft.content:
         raise HTTPException(status_code=502, detail="AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.")
 
-    mission.content = content
-    mission.reason = reason or None
-    mission.helper = helper or None
+    draft.apply_to(mission)
+    mission.answer = None
     mission.difficulty = LEVEL_RATINGS[new_level]
+    await db.commit()
+    await db.refresh(mission)
+    return MissionResponse.of(mission)
+
+
+async def _diary_text(mission: Mission, db: AsyncSession) -> str:
+    if mission.diary_id is None:
+        return ""
+    diary = await db.get(Diary, mission.diary_id)
+    return diary.content if diary else ""
+
+
+class ClarifyRequest(BaseModel):
+    answer: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60)]
+
+
+@router.post("/{mission_id}/clarify", response_model=MissionResponse)
+async def clarify_mission(
+    mission_id: int,
+    body: ClarifyRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """미션이 달라질 정보 한 가지에 답하면, 같은 난이도로 그 답에 맞춘 미션으로 바꾼다.
+
+    실제로 해 본 결과가 아니므로 ELO는 그대로 두고, 확인은 미션당 한 번만 한다.
+    """
+    mission = await _get_active_mission(mission_id, current_user, db)
+    plan = load_plan(mission)
+    clarify = plan.get("clarify")
+    extraction = plan.get("extraction")
+    if not clarify or not isinstance(extraction, dict) or load_attempts(mission):
+        raise HTTPException(status_code=409, detail="지금은 확인할 질문이 없어요")
+
+    extraction = {**extraction, "conditions": dict(extraction.get("conditions") or {}), "clarified": True}
+    if clarify["key"] == "blocker_type":
+        values = {o["value"] for o in clarify.get("options", [])}
+        labels = {o["label"]: o["value"] for o in clarify.get("options", [])}
+        value = body.answer if body.answer in values else labels.get(body.answer)
+        if value is None:
+            raise HTTPException(status_code=422, detail="보기 중에서 골라 주세요")
+        extraction["blocker_type"] = value
+    else:
+        extraction["conditions"][clarify["key"]] = body.answer
+
+    level = level_for_rating(mission.difficulty if mission.difficulty is not None else BASE_RATING)
+    draft = await draft_mission(
+        mission.target_var, level, await _diary_text(mission, db), [mission.content],
+        (current_user.custom_prompt or "").strip(), extraction=extraction,
+    )
+    if not draft.content:
+        raise HTTPException(status_code=502, detail="AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.")
+    draft.apply_to(mission)
+    await db.commit()
+    await db.refresh(mission)
+    return MissionResponse.of(mission)
+
+
+class AnswerRequest(BaseModel):
+    choice: Optional[int] = None  # 객관식 보기 번호 (0부터)
+    scale: Optional[int] = None  # 부담 정도 1~5
+    text: Optional[Annotated[str, StringConstraints(strip_whitespace=True, max_length=300)]] = None
+
+
+@router.post("/{mission_id}/answer", response_model=MissionResponse)
+async def answer_mission(
+    mission_id: int,
+    body: AnswerRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """미션 화면에서 남긴 답·수행 결과 → 객관식은 등록된 정답으로 채점, 피드백은 그 답을 짚어 준다.
+
+    피드백은 조력자 대화에도 남겨, '어려워요'를 누르면 그 답을 이어서 물어볼 수 있다.
+    조력자 상담 횟수는 쓰지 않는다. 완료(ELO)는 기존처럼 학생이 '해냈어요'로 정한다.
+    """
+    mission = await _get_active_mission(mission_id, current_user, db)
+    plan = load_plan(mission)
+    response_type = plan.get("response_type", "none")
+    if response_type == "none":
+        raise HTTPException(status_code=409, detail="답을 남기는 미션이 아니에요")
+    attempts = load_attempts(mission)
+    if len(attempts) >= max_attempts(response_type):
+        raise HTTPException(status_code=409, detail="이미 답을 남겼어요")
+
+    attempt: dict = {}
+    if response_type == "choice":
+        material = public_material(mission.material_id)
+        if body.choice is None or material is None or not 0 <= body.choice < len(material["choices"]):
+            raise HTTPException(status_code=422, detail="보기 중에서 하나를 골라 주세요")
+        attempt["choice"] = body.choice
+        attempt["correct"] = grade_choice(mission.material_id, body.choice)
+    if response_type == "scale_text":
+        if body.scale is None or not 1 <= body.scale <= 5:
+            raise HTTPException(status_code=422, detail="부담 정도를 1~5 중에서 골라 주세요")
+        attempt["scale"] = body.scale
+    if body.text:
+        attempt["text"] = body.text
+    if response_type == "text" and not body.text:
+        raise HTTPException(status_code=422, detail="해 본 내용을 적어 주세요")
+
+    attempt["feedback"] = await feedback_for(plan, mission.content, mission.completion or "", attempt)
+    attempt["at"] = datetime.now(timezone.utc).isoformat()
+    attempts.append(attempt)
+    mission.answer = json.dumps(attempts, ensure_ascii=False)
+
+    # 조력자 흐름 재사용: 답과 피드백을 상담 기록에 남긴다 (상담 횟수는 그대로)
+    summary = []
+    if "choice" in attempt:
+        material = public_material(mission.material_id)
+        summary.append(f"내 답: {attempt['choice'] + 1}번 {material['choices'][attempt['choice']]}")
+    if "scale" in attempt:
+        summary.append(f"부담: {attempt['scale']}/5")
+    if attempt.get("text"):
+        summary.append(attempt["text"])
+    chat = load_chat(mission)
+    chat += [
+        {"role": "user", "content": " · ".join(summary), "kind": "answer"},
+        {"role": "assistant", "content": attempt["feedback"], "kind": "feedback"},
+    ]
+    mission.help_chat = json.dumps(chat, ensure_ascii=False)
     await db.commit()
     await db.refresh(mission)
     return MissionResponse.of(mission)

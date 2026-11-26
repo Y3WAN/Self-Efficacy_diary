@@ -48,6 +48,11 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS help_chat TEXT"))
         await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS postponed_until DATE"))
         await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS is_everyday BOOLEAN NOT NULL DEFAULT FALSE"))
+        await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS domain VARCHAR(20)"))
+        await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS completion TEXT"))
+        await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS material_id VARCHAR(60)"))
+        await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS plan TEXT"))
+        await conn.execute(text("ALTER TABLE missions ADD COLUMN IF NOT EXISTS answer TEXT"))
 
     from app.jobs.catch_up import catch_up, midnight_job, morning_job, MORNING_HOUR
 

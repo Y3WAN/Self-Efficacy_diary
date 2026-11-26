@@ -115,6 +115,11 @@ class Mission(Base):
     help_count = Column(Integer, nullable=False, default=0, server_default="0")  # AI 조력자에게 물어본 횟수
     help_chat = Column(Text, nullable=True)  # AI 조력자 상담 기록 (JSON 배열)
     postponed_until = Column(Date, nullable=True)  # 미룬 날(KST). 이날부터 다시 보인다. 미루기는 미션당 1번
+    domain = Column(String(20), nullable=True)  # 분야별 미션: study / exercise / relationship (기존 미션은 NULL)
+    completion = Column(Text, nullable=True)  # 학생이 스스로 확인할 완료 기준
+    material_id = Column(String(60), nullable=True)  # 미션 화면에 함께 보여 줄 등록 자료 ID (mission_kb.json)
+    plan = Column(Text, nullable=True)  # 뽑은 상황·고른 기준·저장 전 확인 결과 (JSON)
+    answer = Column(Text, nullable=True)  # 학생이 남긴 답과 받은 피드백 (JSON 배열)
     created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
     completed_at = Column(DateTime(timezone=True), nullable=True)
 

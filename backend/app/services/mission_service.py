@@ -1,5 +1,7 @@
+import json
 import logging
 import re
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -8,6 +10,8 @@ from app.core.timeutil import KST, today_kst
 from app.services.groq_client import chat_json
 from app.services.elo_service import BASE_RATING, LEVEL_GUIDES, LEVEL_RATINGS, target_level
 from app.services.scoring import PROFILE_DAYS, rank_sources_from_profile, source_profile
+from app.services import mission_planner as planner
+from app.services.mission_kb import get_kb
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +161,14 @@ def rank_mission_sources(scores: dict[str, float]) -> list[str]:
     return weak_vars or [min(scores, key=scores.get)]
 
 
+def _clean_helper(helper: str, diary_text: str) -> str:
+    # 일기에 없는 형제자매를 지어낸 조력자 줄은 버린다 (지시문으로는 완전히 막히지 않았음)
+    invented = [w for w in SIBLING_WORDS if w in helper and w not in diary_text]
+    if invented or helper in ('""', "''"):
+        return ""
+    return helper
+
+
 async def generate_mission_draft(
     target_var: str,
     level: int,
@@ -166,8 +178,10 @@ async def generate_mission_draft(
     recent_reflections: str = "",
     everyday: bool = False,
 ) -> tuple[str, str, str]:
-    """미션 내용, '왜 이 미션인지', '막히면 도와줄 사람'을 함께 만든다. 실패하면 ("", "", "").
-    everyday: 해 보려던 일이 없는 일상 일기 → 문제 찾기 대신 그날 일을 즐겁게 이어 가는 미션 지시문을 쓴다."""
+    """(기존 방식) 미션 내용, '왜 이 미션인지', '막히면 도와줄 사람'을 함께 만든다. 실패하면 ("", "", "").
+    everyday: 해 보려던 일이 없는 일상 일기 → 문제 찾기 대신 그날 일을 즐겁게 이어 가는 미션 지시문을 쓴다.
+    분야별 자료·완료 기준이 필요 없는 곳(테스터 공통 미션), 일상 일기, 분야에 맞지 않는 일기에 쓴다.
+    앱의 미션 생성은 draft_mission()을 쓴다."""
     current_block = "\n".join(f"- {content}" for content in existing_contents) or "없음"
     user_prompt = (
         f"타겟 원천: {target_var}\n"
@@ -189,13 +203,129 @@ async def generate_mission_draft(
     problem = str(data.get("problem", "") or "").strip()
     content = _fix_tone(str(data.get("content", "") or "").strip())
     reason = str(data.get("reason", "") or "").strip()[:120]
-    helper = str(data.get("helper", "") or "").strip()[:80]
-    # 일기에 없는 형제자매를 지어낸 조력자 줄은 버린다 (지시문으로는 완전히 막히지 않았음)
-    invented = [w for w in SIBLING_WORDS if w in helper and w not in diary_text]
-    if invented or helper in ('""', "''"):
-        helper = ""
+    helper = _clean_helper(str(data.get("helper", "") or "").strip()[:80], diary_text)
     logger.info("Mission draft target=%s level=%s problem=%s", target_var, level, problem[:80])
     return content, reason, helper
+
+
+@dataclass
+class MissionDraft:
+    """분야별 미션 한 개. plan에는 뽑은 상황·고른 기준·확인 결과를 남겨 재조정·확인 질문·피드백에 다시 쓴다."""
+    content: str = ""
+    reason: str = ""
+    helper: str = ""
+    completion: str = ""
+    domain: str | None = None
+    material_id: str | None = None
+    plan: dict = field(default_factory=dict)
+
+    def apply_to(self, mission: Mission) -> None:
+        mission.content = self.content
+        mission.reason = self.reason or None
+        mission.helper = self.helper or None
+        mission.completion = self.completion or None
+        mission.domain = self.domain
+        mission.material_id = self.material_id
+        mission.plan = json.dumps(self.plan, ensure_ascii=False) if self.plan else None
+
+
+def load_plan(mission: Mission) -> dict:
+    try:
+        plan = json.loads(mission.plan or "{}")
+    except (TypeError, ValueError):
+        return {}
+    return plan if isinstance(plan, dict) else {}
+
+
+async def extract_or_none(diary_text: str) -> dict | None:
+    """일기에서 상황을 뽑는다. AI가 실패하면 None → 기존 방식으로 미션을 만든다."""
+    try:
+        return await planner.extract_situation(diary_text)
+    except Exception as e:
+        logger.error(f"Situation extraction failed: {e}")
+        return None
+
+
+async def draft_mission(
+    target_var: str,
+    level: int,
+    diary_text: str,
+    existing_contents: list[str],
+    custom_prompt: str = "",
+    recent_reflections: str = "",
+    everyday: bool = False,
+    extraction: dict | None = None,
+) -> MissionDraft:
+    """일기 → 상황 뽑기 → 분야별 기준·자료 고르기 → AI 미션 → 저장 전 확인. 실패하면 content가 빈 MissionDraft.
+
+    - everyday(일상 일기)는 기존 일상 미션 지시문을 그대로 쓴다.
+    - extraction을 넘기면(재조정·확인 질문 답) 상황 뽑기를 다시 하지 않는다.
+    - 분야에 맞지 않는 일기·상황 뽑기 실패는 기존 미션 지시문으로 만든다.
+    """
+    kb_version = get_kb().version
+    if everyday:
+        content, reason, helper = await generate_mission_draft(
+            target_var, level, diary_text, existing_contents, custom_prompt, recent_reflections, everyday=True,
+        )
+        return MissionDraft(content, reason, helper, plan={"branch": "everyday", "level": level, "kb_version": kb_version})
+
+    if extraction is None:
+        extraction = await extract_or_none(diary_text)
+    if extraction is None:
+        content, reason, helper = await generate_mission_draft(
+            target_var, level, diary_text, existing_contents, custom_prompt, recent_reflections,
+        )
+        return MissionDraft(content, reason, helper, plan={"branch": "general", "level": level, "kb_version": kb_version})
+
+    sel = planner.select_context(extraction, level)
+    plan = {"branch": sel.mode, "level": level, "kb_version": kb_version, "extraction": extraction}
+
+    if sel.mode == "general":
+        content, reason, helper = await generate_mission_draft(
+            target_var, level, diary_text, existing_contents, custom_prompt, recent_reflections,
+        )
+        return MissionDraft(content, reason, helper, plan=plan)
+
+    if sel.mode == "help":
+        if sel.guide is None:  # 검토된 안내가 없으면 일반 미션도 만들지 않는다
+            logger.error("Safety situation without reviewed guide: %s", extraction.get("safety"))
+            return MissionDraft(plan=plan)
+        fields = planner.help_fields(sel)
+        plan.update({"kind": "help", "guide_id": sel.guide.id, "response_type": "none"})
+        return MissionDraft(fields["content"], fields["reason"], "", fields["completion"],
+                            domain=sel.domain_key if sel.domain_key != "none" else None, plan=plan)
+
+    raw = None
+    try:
+        raw = await chat_json(planner.planned_messages(
+            sel, target_var, level, diary_text, existing_contents, custom_prompt, recent_reflections,
+        ))
+    except Exception as e:
+        logger.error(f"Planned mission generation failed: {e}")
+    fields = planner.validate_draft(raw, sel, level)
+    if raw is None:
+        fields["checks"].append("llm_failed_registry_content")
+    plan.update({
+        "branch": sel.mode,
+        "domain": sel.domain_key,
+        "blocker_type": sel.blocker_key,
+        "material_id": fields["material_id"],
+        "response_type": fields["response_type"],
+        "response_prompt": planner.response_prompt(sel, fields["response_type"]),
+        "clarify": sel.clarify,
+        "checks": fields["checks"],
+    })
+    logger.info("Planned mission domain=%s blocker=%s mode=%s material=%s checks=%s",
+                sel.domain_key, sel.blocker_key, sel.mode, fields["material_id"], fields["checks"])
+    return MissionDraft(
+        content=_fix_tone(fields["content"]),
+        reason=fields["reason"],
+        helper=_clean_helper(fields["helper"], diary_text),
+        completion=fields["completion"],
+        domain=sel.domain_key,
+        material_id=fields["material_id"],
+        plan=plan,
+    )
 
 
 async def generate_mission_content(
@@ -329,6 +459,8 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
 
     diary_text = await _get_recent_diary_text(user_id, db)
     recent_reflections = await get_recent_reflections(user_id, db)
+    # 상황은 한 번만 뽑고 원천별 미션에 같이 쓴다
+    extraction = await extract_or_none(diary_text) if diary_text != "최근 일기 없음" else None
     generated = 0
     generated_contents = list(existing_contents)
 
@@ -336,23 +468,24 @@ async def generate_missions(user_id: int, db: AsyncSession) -> int:
     for i in range(min(slots_left, len(available_vars))):
         target_var = available_vars[i]
         try:
-            content, reason, helper = await generate_mission_draft(
-                target_var, level, diary_text, generated_contents, custom_prompt, recent_reflections
+            draft = await draft_mission(
+                target_var, level, diary_text, generated_contents, custom_prompt, recent_reflections,
+                extraction=extraction,
             )
-            if not content:
+            if not draft.content:
                 continue
             mission = Mission(
                 user_id=user_id,
-                content=content,
-                reason=reason or None,
-                helper=helper or None,
                 target_var=target_var,
                 status="active",
                 difficulty=LEVEL_RATINGS[level],
             )
+            draft.apply_to(mission)
             db.add(mission)
-            generated_contents.append(content)
+            generated_contents.append(draft.content)
             generated += 1
+            if draft.plan.get("kind") == "help":
+                break  # 안전이 걸린 상황이면 도움 요청 미션 하나만
         except Exception as e:
             logger.error(f"Mission generation failed user={user_id}: {e}")
 

@@ -1,7 +1,7 @@
-import Icon from "./Icon";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { shiftRecordDate } from "../utils/recordDate";
+import Icon from "./Icon";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const SWIPE_MIN_PX = 50;
@@ -104,16 +104,16 @@ export default function DiaryCalendar({
             >
               {day}
               <span className="calendar-marks" aria-hidden="true">
-                {hasDiary && <span className="calendar-mark calendar-mark--diary" />}
-                {hasMission && <span className="calendar-mark calendar-mark--mission" />}
+                {hasDiary && <Icon name="quill" className="calendar-mark calendar-mark--diary" />}
+                {hasMission && <Icon name="check" className="calendar-mark calendar-mark--mission" />}
               </span>
             </Link>
           );
         })}
       </div>
       <div className="calendar-legend" aria-hidden="true">
-        <span><span className="calendar-mark calendar-mark--diary" /> 일기</span>
-        <span><span className="calendar-mark calendar-mark--mission" /> 미션 기록</span>
+        <span><Icon name="quill" className="calendar-mark calendar-mark--diary" /> 일기</span>
+        <span><Icon name="check" className="calendar-mark calendar-mark--mission" /> 미션 기록</span>
       </div>
     </>
   );
