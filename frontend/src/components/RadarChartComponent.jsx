@@ -12,6 +12,11 @@ import { SOURCE_BY_KEY } from "../utils/sources";
 import { getContributionShares, toScoreOutOf100 } from "../utils/efficacyTrend";
 
 const CHART_MARGIN = { top: 40, right: 92, bottom: 40, left: 92 };
+// 기여 비율은 합이 1이라 그대로 그리면 말랑이가 홀쭉해진다.
+// 가장 큰 원천이 거의 끝까지 닿고, 작은 원천도 바닥이 있게 키운다(순서는 그대로, 숫자는 % 글자로 따로 보임).
+const MALLANG_MIN_RADIUS = 0.42;
+const plumpRadius = (share, maxShare) =>
+  maxShare > 0 ? MALLANG_MIN_RADIUS + (0.95 - MALLANG_MIN_RADIUS) * Math.sqrt(share / maxShare) : 0;
 const NO_CONTRIBUTIONS = "아직 기여 비율을 계산할 기록이 없어요";
 const LOAD_ERROR = "기여 비율을 불러오지 못했어요.";
 
@@ -159,10 +164,11 @@ export default function RadarChartComponent() {
   const { parts, hasContributions } = getContributionShares(latest.ema_contributions);
   if (!hasContributions) return <p className="chart-empty">{NO_CONTRIBUTIONS}</p>;
 
+  const maxShare = Math.max(...parts.map(({ share }) => share));
   const chartData = parts.map(({ code, label, link, share, percent }) => ({
     key: code.toLowerCase(),
     subject: label,
-    score: share,
+    score: plumpRadius(share, maxShare),
     percent,
     link,
   }));

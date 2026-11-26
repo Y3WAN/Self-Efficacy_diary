@@ -1,0 +1,6 @@
+﻿diary_id,diary_label,temperature,n,score_m_evidence_rate,score_m_mean,score_m_sd,score_m_min,score_m_max,score_v_evidence_rate,score_v_mean,score_v_sd,score_v_min,score_v_max,score_p_evidence_rate,score_p_mean,score_p_sd,score_p_min,score_p_max,score_a_evidence_rate,score_a_mean,score_a_sd,score_a_min,score_a_max,composite_evidence_rate,composite_mean,composite_sd,composite_min,composite_max,confidence_evidence_rate,confidence_mean,confidence_sd,confidence_min,confidence_max,failure_detected_rate,reflected_rate
+D1,실패·포기,0.3,2,0.5,0.1,,0.1,0.1,0.0,,,,,0.0,,,,,1.0,0.2,0.0,0.2,0.2,1.0,0.165,0.049,0.13,0.2,1.0,0.575,0.035,0.55,0.6,1.0,1.0
+D2,짧은 일기,0.3,2,0.0,,,,,0.0,,,,,0.0,,,,,1.0,0.325,0.035,0.3,0.35,1.0,0.325,0.035,0.3,0.35,1.0,0.3,0.0,0.3,0.3,0.0,1.0
+D3,또래 대리경험,0.3,2,1.0,0.85,0.0,0.85,0.85,1.0,0.575,0.035,0.55,0.6,1.0,0.55,0.212,0.4,0.7,0.5,0.6,,0.6,0.6,1.0,0.69,0.042,0.66,0.72,1.0,0.775,0.035,0.75,0.8,0.0,1.0
+D4,교사의 칭찬,0.3,2,0.5,0.3,,0.3,0.3,0.0,,,,,1.0,0.7,0.0,0.7,0.7,1.0,0.45,0.071,0.4,0.5,1.0,0.5,0.071,0.45,0.55,1.0,0.6,0.0,0.6,0.6,0.0,1.0
+D5,실패 후 재도전 성공,0.3,2,1.0,0.725,0.035,0.7,0.75,0.0,,,,,0.5,0.5,,0.5,0.5,0.0,,,,,1.0,0.69,0.085,0.63,0.75,1.0,0.6,0.0,0.6,0.6,0.0,1.0
