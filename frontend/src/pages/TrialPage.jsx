@@ -331,10 +331,10 @@ export default function TrialPage() {
                     />
                   )}
 
-                  <p className="trial-mission-question">이 미션, 할 수 있을 것 같나요?</p>
+                  <p className="trial-mission-question">이 미션의 난이도는 어때요?</p>
                   <div className="trial-mission-actions">
                     <button type="button" className="trial-btn-ok" disabled={missionBusy || level >= 5} onClick={() => changeLevel(true)}>
-                      할 수 있겠어요 👍
+                      쉬울 것 같아요 👍
                     </button>
                     <button type="button" className="trial-btn-hard" disabled={missionBusy || level <= 1} onClick={() => changeLevel(false)}>
                       어려울 것 같아요 😅

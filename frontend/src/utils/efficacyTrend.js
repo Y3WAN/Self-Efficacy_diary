@@ -1,23 +1,8 @@
 import { SOURCES } from "./sources.js";
-import { shiftRecordDate } from "./recordDate.js";
-
-export const TREND_DAYS = 15;
 
 const SOURCE_COLORS = { M: "#7961a0", V: "#4e7da2", P: "#ad654b", A: "#4d8270" };
 const UNITS_PER_PERCENT = 10;
 const FULL_SHARE_UNITS = 100 * UNITS_PER_PERCENT;
-
-export function getDailyTrendRange(data, start, end) {
-  const byDate = new Map(data.map((day) => [day.date, day]));
-  let ema = data.findLast((day) => day.date < start)?.ema ?? null;
-  const days = [];
-  for (let date = start; date <= end; date = shiftRecordDate(date, 1)) {
-    const record = byDate.get(date);
-    if (record) ema = record.ema;
-    days.push(record ?? { date, score: null, ema, evidence_sources: "" });
-  }
-  return days;
-}
 
 const MALLANG_MIN_RADIUS = 0.42;
 const MALLANG_MAX_RADIUS = 0.95;

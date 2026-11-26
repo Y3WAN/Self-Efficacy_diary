@@ -1316,6 +1316,17 @@ h1 {
 ═══════════════════════════════════════════════════════ */
 .profile-page { min-height: calc(100dvh - var(--bottom-nav-height, 0px)); background: var(--bg); display: flex; flex-direction: column; }
 .profile-content { padding: var(--section-gap) var(--page-gutter); display: flex; flex-direction: column; gap: var(--section-gap); }
+.growth-record-list { margin: 0; padding: 0; border-top: 1px solid var(--divider); list-style: none; }
+.growth-record-list li { border-bottom: 1px solid var(--divider); }
+.growth-record-list summary {
+  min-height: 44px;
+  padding-block: 9px;
+  color: var(--text);
+  cursor: pointer;
+}
+.growth-record-value { margin-inline-start: .65rem; color: var(--accent-hover); }
+.growth-record-details { max-width: 25rem; padding: 0 0 12px 1.15rem; color: var(--text-muted); }
+.growth-record-note { margin-top: 10px; color: var(--text-muted); }
 .growth-chart-plot { min-width: 0; }
 .growth-day-tick { cursor: pointer; }
 .growth-day-tick rect { fill: transparent; }

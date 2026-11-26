@@ -1,6 +1,6 @@
 import os
 import unittest
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import patch
 
 import httpx
@@ -14,6 +14,8 @@ from app.core.deps import get_current_user
 from app.db.models import Base, DailyAnalysis, Diary, Mission, Respect, User
 from app.db.session import get_db
 from app.main import app
+from app.services.analysis_service import INITIAL_REASONING
+from app.services.scoring import ema_step
 
 
 class ProfileActivityTest(unittest.IsolatedAsyncioTestCase):
@@ -77,6 +79,73 @@ class ProfileActivityTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(days["2026-10-27"]["has_diary"])
         self.assertIsNone(days["2026-10-27"]["confidence"])
         self.assertEqual(days["2026-10-27"]["ema"], 0.5)
+
+    async def test_daily_diary_limit_uses_saved_dates_across_months(self):
+        diary_dates = [date(2026, 9, 3) + timedelta(days=3 * i) for i in range(16)]
+        scored_day = diary_dates[-2]
+        orphan_day = scored_day - timedelta(days=1)
+        through = diary_dates[-1]
+
+        def analysis(id_, day, score):
+            return DailyAnalysis(
+                id=id_, user_id=1, diary_date=day,
+                score_m=score, score_v=0.5, score_p=0.5, score_a=0.5,
+                composite_score=score, evidence_sources="M", confidence=0.8, is_reflected=True,
+            )
+
+        async with self.sessions() as db:
+            db.add_all([
+                *(Diary(id=i, user_id=1, diary_date=day, content="Saved")
+                  for i, day in enumerate(diary_dates, 1)),
+                Diary(id=17, user_id=1, diary_date=scored_day, content="Legacy second entry"),
+                Diary(id=18, user_id=2, diary_date=orphan_day, content="Another user's diary"),
+                Diary(id=19, user_id=1, diary_date=through + timedelta(days=1), content="Future"),
+                analysis(1, diary_dates[0], 0.5),
+                analysis(2, orphan_day, 0.95),
+                analysis(3, scored_day, 0.8),
+            ])
+            await db.commit()
+
+        response = await self.client.get("/api/dashboard/daily", params={
+            "diary_limit": 15, "through": through.isoformat(),
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        days = response.json()
+        self.assertEqual([day["date"] for day in days], [day.isoformat() for day in diary_dates[1:]])
+        self.assertTrue(all(day["has_diary"] for day in days))
+        self.assertEqual(days[0]["ema"], 0.5)
+        self.assertEqual(days[-2]["score"], 0.8)
+        self.assertEqual(days[-2]["ema"], round(ema_step(0.5, 0.8, 0.8), 3))
+        self.assertIsNone(days[-1]["score"])
+        self.assertIsNone(days[-1]["confidence"])
+
+    async def test_daily_diary_limit_does_not_use_signup_survey_as_a_diary_score(self):
+        day = date(2026, 11, 24)
+        async with self.sessions() as db:
+            db.add(DailyAnalysis(
+                id=1, user_id=1, diary_date=day,
+                score_m=0.5, score_v=0.5, score_p=0.5, score_a=0.5,
+                composite_score=0.5, evidence_sources="MVPA", confidence=1,
+                reasoning=INITIAL_REASONING, is_reflected=True,
+            ))
+            await db.commit()
+
+        response = await self.client.get("/api/dashboard/daily", params={"diary_limit": 15})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json(), [])
+
+        async with self.sessions() as db:
+            db.add(Diary(id=1, user_id=1, diary_date=day, content="Waiting for analysis"))
+            await db.commit()
+
+        response = await self.client.get("/api/dashboard/daily", params={"diary_limit": 15})
+        self.assertEqual(response.status_code, 200, response.text)
+        [row] = response.json()
+        self.assertEqual(row["date"], day.isoformat())
+        self.assertTrue(row["has_diary"])
+        self.assertIsNone(row["score"])
+        self.assertIsNone(row["confidence"])
+        self.assertEqual(row["ema"], 0.5)
 
     async def test_stack_total_matches_completed_books_and_public_feed_respects_visibility(self):
         stamp = datetime(2026, 10, 24, tzinfo=timezone.utc)

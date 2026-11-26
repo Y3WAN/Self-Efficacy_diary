@@ -2,32 +2,9 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import process from "node:process";
 import test from "node:test";
-import { getDailyTrendRange, getMallangTrend, TREND_DAYS } from "../src/utils/efficacyTrend.js";
+import { getMallangTrend } from "../src/utils/efficacyTrend.js";
 import { createMallangMaterial, getInteractiveMallangGeometry, getMallangFaceFrame,
   materialContact, membraneRadii, sampleMallangContour } from "../src/utils/mallangMaterial.js";
-import { shiftRecordDate } from "../src/utils/recordDate.js";
-
-test("the daily trend spans fifteen calendar dates with blanks and retains saved scores", () => {
-  const entries = [
-    { date: "2026-10-10", ema: .48, score: .48 },
-    { date: "2026-10-24", ema: .52, score: .7 },
-    { date: "2026-10-26", ema: .52, score: null, has_diary: true, confidence: null },
-    { date: "2026-11-10", ema: .68, score: .85 },
-  ];
-  const today = "2026-11-06";
-  const start = shiftRecordDate(today, 1 - TREND_DAYS);
-  const days = getDailyTrendRange(entries, start, today);
-  assert.equal(days.length, 15);
-  assert.equal(days[0].date, "2026-10-23");
-  assert.equal(days[0].ema, .48);
-  assert.equal(days[1].date, "2026-10-24");
-  assert.equal(days[1].score, .7);
-  assert.equal(days[2].score, null);
-  assert.equal(days[3].has_diary, true);
-  assert.equal(days[9].date, "2026-11-01");
-  assert.equal(days.at(-1).date, today);
-  assert.equal(getDailyTrendRange([], start, today).every(day => day.score === null && day.ema === null), true);
-});
 
 test("the graph date follows the browser calendar around UTC midnight", () => {
   const moduleUrl = new URL("../src/utils/date.js", import.meta.url);

@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import client from "./client";
 import { dateLocal } from "../utils/date";
 import { shiftRecordDate } from "../utils/recordDate";
-import { TREND_DAYS } from "../utils/efficacyTrend";
+
+const MALLANG_TREND_DAYS = 15;
+export const PROFILE_DIARY_LIMIT = 15;
 
 function useLocalToday() {
   const [today, setToday] = useState(() => dateLocal(Date.now()));
@@ -34,13 +36,21 @@ function useLocalToday() {
 
 export function useDailyEfficacyTrend() {
   const today = useLocalToday();
-  const start = shiftRecordDate(today, 1 - TREND_DAYS);
-  const query = useQuery({
+  const start = shiftRecordDate(today, 1 - MALLANG_TREND_DAYS);
+  return useQuery({
     queryKey: ["dashboard", "daily", today],
     queryFn: ({ signal }) => client.get("/api/dashboard/daily", {
       signal, params: { diary_since: start, through: today },
     }).then((response) => response.data),
   });
+}
 
-  return { ...query, start, today };
+export function useDiaryEfficacyTrend() {
+  const today = useLocalToday();
+  return useQuery({
+    queryKey: ["dashboard", "daily", "diaries", today],
+    queryFn: ({ signal }) => client.get("/api/dashboard/daily", {
+      signal, params: { diary_limit: PROFILE_DIARY_LIMIT, through: today },
+    }).then((response) => response.data),
+  });
 }

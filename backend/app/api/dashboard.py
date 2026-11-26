@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, cast, Date
 from app.db.session import get_db
@@ -158,9 +158,31 @@ async def daily(
     db: AsyncSession = Depends(get_db),
     diary_since: Optional[date] = None,
     through: Optional[date] = None,
+    diary_limit: Optional[int] = Query(default=None, ge=1, le=50),
 ):
-    """분석 추세와, 요청한 구간에서 분석을 기다리는 일기 날짜를 반환한다."""
+    """분석 추세 또는 최근에 작성한 일기 날짜별 추세를 반환한다."""
+    diary_dates: set[date] = set()
+    if diary_since is not None or diary_limit is not None:
+        diary_query = select(Diary.diary_date).where(Diary.user_id == current_user.id).distinct()
+        if diary_since is not None:
+            diary_query = diary_query.where(Diary.diary_date >= diary_since)
+        if through is not None:
+            diary_query = diary_query.where(Diary.diary_date <= through)
+        if diary_limit is not None:
+            diary_query = diary_query.order_by(Diary.diary_date.desc()).limit(diary_limit)
+        diary_dates = set(await db.scalars(diary_query))
+        if diary_limit is not None and not diary_dates:
+            return []
+
     analysis_query = select(DailyAnalysis).where(DailyAnalysis.user_id == current_user.id)
+    if diary_limit is not None:
+        saved_diary = select(Diary.id).where(
+            Diary.user_id == DailyAnalysis.user_id,
+            Diary.diary_date == DailyAnalysis.diary_date,
+        ).exists()
+        analysis_query = analysis_query.where(
+            saved_diary | (DailyAnalysis.reasoning == INITIAL_REASONING),
+        )
     if through is not None:
         analysis_query = analysis_query.where(DailyAnalysis.diary_date <= through)
     result = await db.execute(
@@ -172,15 +194,6 @@ async def daily(
         latest_by_date[analysis.diary_date] = analysis
         if analysis.is_reflected and analysis.composite_score is not None:
             reflected_by_date[analysis.diary_date] = analysis
-
-    diary_dates: set[date] = set()
-    if diary_since is not None:
-        diary_query = select(Diary.diary_date).where(
-            Diary.user_id == current_user.id, Diary.diary_date >= diary_since,
-        )
-        if through is not None:
-            diary_query = diary_query.where(Diary.diary_date <= through)
-        diary_dates = set(await db.scalars(diary_query.distinct()))
 
     out: list[DailyScore] = []
     ema: Optional[float] = None
@@ -210,6 +223,14 @@ async def daily(
                     }
                 ema = ema_step(ema, score, confidence)
 
+        if diary_limit is not None:
+            if day not in diary_dates:
+                continue
+            if is_initial:
+                # 가입 설문은 추세의 출발점으로 쓰되, 작성한 일기의 점수로 표시하지 않는다.
+                score = None
+                confidence = float(latest.confidence) if latest.reasoning != INITIAL_REASONING else None
+
         evidence_analysis = latest if is_initial else analysis
         evidence = (
             "" if evidence_analysis is None or evidence_analysis.reasoning == INITIAL_REASONING
@@ -222,7 +243,7 @@ async def daily(
             confidence=confidence,
             ema_contributions=ema_contributions,
             evidence_sources=evidence,
-            is_initial=is_initial,
+            is_initial=is_initial and diary_limit is None,
             has_diary=day in diary_dates,
         ))
     return out

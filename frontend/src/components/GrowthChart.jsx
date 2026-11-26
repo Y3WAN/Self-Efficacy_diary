@@ -3,8 +3,8 @@ import {
   ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useDailyEfficacyTrend } from "../api/dashboard";
-import { getContributionShares, getDailyTrendRange, toScoreOutOf100, TREND_DAYS } from "../utils/efficacyTrend";
+import { PROFILE_DIARY_LIMIT, useDiaryEfficacyTrend } from "../api/dashboard";
+import { getContributionShares, toScoreOutOf100 } from "../utils/efficacyTrend";
 
 const NO_CONTRIBUTIONS = "비중을 계산할 기록이 없어요";
 const AXIS_MARGIN = 18;
@@ -16,11 +16,11 @@ const VIEWPORT_INSET = 8;
 function DayTick({ x, y, index, payload, rows, selectedDate, onSelect }) {
   const date = payload.value;
   const top = y + (index % rows) * LABEL_ROW_HEIGHT;
-  const [, month, day] = date.split("-");
+  const day = date.slice(-2);
   const isSelected = selectedDate === date;
   return (
     <g className="growth-day-tick" role="button" tabIndex={0} aria-pressed={isSelected}
-      aria-label={`${Number(month)}월 ${Number(day)}일 기록 보기`}
+      aria-label={`${formatTrendDate(date, true)} 기록 보기`}
       onClick={(event) => {
         event.stopPropagation();
         onSelect(date, event);
@@ -49,6 +49,7 @@ function DailyScoreDot({ cx, cy, payload }) {
 function GrowthTooltip({ active, payload, selectedDay, anchor }) {
   const tooltipRef = useRef(null);
   const day = selectedDay ?? payload?.[0]?.payload;
+  const isVisible = active && day && anchor;
 
   useLayoutEffect(() => {
     const tooltip = tooltipRef.current;
@@ -69,24 +70,34 @@ function GrowthTooltip({ active, payload, selectedDay, anchor }) {
     placeTooltip();
     window.addEventListener("resize", placeTooltip);
     return () => window.removeEventListener("resize", placeTooltip);
-  }, [active, anchor, day]);
+  }, [isVisible, anchor, day]);
 
-  if (!active || !day || !anchor) return null;
-
-  const [year, month, date] = day.date.split("-");
-  const details = day.ema_contributions ? getContributionShares(day.ema_contributions) : null;
+  if (!isVisible) return null;
 
   return (
     <div ref={tooltipRef} className="chart-tooltip growth-trend-tooltip" role="status">
-      <strong>{year}년 {Number(month)}월 {Number(date)}일</strong>
+      <strong>{formatTrendDate(day.date, true)}</strong>
+      <GrowthDayDetails day={day} />
+    </div>
+  );
+}
+
+function formatTrendDate(date, includeYear = false) {
+  const [year, month, day] = date.split("-");
+  return `${includeYear ? year + "년 " : ""}${Number(month)}월 ${Number(day)}일`;
+}
+
+function GrowthDayDetails({ day, showDailyScore = true }) {
+  const details = day.score != null && day.ema_contributions ? getContributionShares(day.ema_contributions) : null;
+  return (
+    <>
       <p>종합 추세 점수 {day.ema == null ? "없음" : toScoreOutOf100(day.ema) + " / 100점"}</p>
-      {day.score != null && <p>일별 점수 {toScoreOutOf100(day.score)} / 100점</p>}
-      {day.is_initial && <p className="growth-tooltip-note">가입 설문 점수를 반영한 날이에요.</p>}
+      {showDailyScore && day.score != null && <p>일별 점수 {toScoreOutOf100(day.score)} / 100점</p>}
       {day.score == null && (
         <p className="growth-tooltip-note">
           {day.confidence != null
             ? "이날의 분석은 추세에 반영되지 않았어요."
-            : day.has_diary ? "일기는 저장됐어요. 아직 분석 점수가 없어요." : "이날은 기록이 없어요."}
+            : "일기는 저장됐어요. 아직 분석 점수가 없어요."}
         </p>
       )}
       {details && (
@@ -95,7 +106,7 @@ function GrowthTooltip({ active, payload, selectedDay, anchor }) {
           <ul className="growth-tooltip-sources">
             {details.parts.map((part) => {
               const hasEvidence = day.evidence_sources.includes(part.code);
-              const isCarried = part.share > 0 && !day.is_initial && (!hasEvidence || day.score == null);
+              const isCarried = part.share > 0 && !hasEvidence;
               return (
                 <li key={part.code}>
                   <div className="growth-tooltip-source">
@@ -119,23 +130,65 @@ function GrowthTooltip({ active, payload, selectedDay, anchor }) {
           </ul>
         </>
       )}
+    </>
+  );
+}
+
+function GrowthRecordSummary({ records, scoreCount }) {
+  return (
+    <div className="growth-record-summary">
+      {records.length > 0 && (
+        <ul className="growth-record-list">
+          {records.map((day) => (
+            <li key={day.date}>
+              <details>
+                <summary>
+                  <span>{formatTrendDate(day.date)}</span>{" "}
+                  <span className="growth-record-value">
+                    {day.score != null ? `일별 점수 ${toScoreOutOf100(day.score)}점`
+                      : day.confidence != null ? "추세에 미반영" : "일기 저장됨"}
+                  </span>
+                </summary>
+                <div className="growth-record-details">
+                  <GrowthDayDetails day={day} showDailyScore={false} />
+                </div>
+              </details>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="growth-record-note">
+        {scoreCount === 1 ? "점수가 더 쌓이면 추세를 볼 수 있어요."
+          : records.length > 0 ? "아직 추세에 반영된 점수가 없어요."
+            : "아직 작성한 일기가 없어요."}
+      </p>
     </div>
   );
 }
 
 export default function GrowthChart() {
-  const { data, start, today, isPending, isError } = useDailyEfficacyTrend();
+  const { data, isPending, isError } = useDiaryEfficacyTrend();
   const [tooltipTrigger, setTooltipTrigger] = useState("hover");
   const [selectedDate, setSelectedDate] = useState(null);
   const [anchor, setAnchor] = useState(null);
   const [isTooltipDismissed, setIsTooltipDismissed] = useState(false);
-  const [axisRows, setAxisRows] = useState(2);
-  const days = useMemo(() => data ? getDailyTrendRange(data, start, today) : [], [data, start, today]);
+  const [chartWidth, setChartWidth] = useState(null);
+  const days = useMemo(
+    () => (data ?? []).map((day) => ({ ...day, trend: day.score == null ? null : day.ema })),
+    [data],
+  );
 
   if (isPending) return <div className="chart-empty">불러오는 중…</div>;
   if (isError && !data) return <div className="chart-empty">그래프 데이터를 불러오지 못했어요.</div>;
 
+  const scored = days.filter((day) => day.score != null);
+  const hasTrend = scored.length > 1;
+  const showPlot = days.length > 1 && scored.length > 0;
   const selectedIndex = days.findIndex((day) => day.date === selectedDate);
+  const axisRows = chartWidth == null ? 2 : Math.max(1, Math.ceil(
+    (days.length - 1) * LABEL_WIDTH / Math.max(LABEL_WIDTH, chartWidth - 2 * AXIS_MARGIN),
+  ));
+
   function selectDate(date, event) {
     const shouldDismiss = selectedDate === date;
     if (!shouldDismiss) {
@@ -148,64 +201,65 @@ export default function GrowthChart() {
     setIsTooltipDismissed(shouldDismiss);
   }
 
-  const scored = days.filter((day) => day.score != null);
-  const diff = scored.length > 1
+  const diff = hasTrend
     ? toScoreOutOf100(scored.at(-1).ema) - toScoreOutOf100(scored[0].ema)
     : null;
 
   return (
     <>
-      <p className="chart-sub">최근 {TREND_DAYS}일 · 점은 일별 점수, 선은 종합 추세예요.</p>
-      <div
-        className="growth-chart-plot"
-        onPointerDownCapture={(event) => {
-          if (event.target.closest(".growth-trend-tooltip")) return;
-          if (!event.target.closest(".growth-day-tick")) {
+      <p className="chart-sub">
+        최근 작성한 일기 {PROFILE_DIARY_LIMIT}편까지
+        {showPlot && (hasTrend ? " · 점은 일기 점수, 선은 종합 추세예요." : " · 점은 일기 점수예요.")}
+      </p>
+      {showPlot ? (
+        <div
+          className="growth-chart-plot"
+          onPointerDownCapture={(event) => {
+            if (event.target.closest(".growth-trend-tooltip")) return;
+            if (!event.target.closest(".growth-day-tick")) {
+              setSelectedDate(null);
+              setIsTooltipDismissed(false);
+            }
+            setAnchor({ x: event.clientX, y: event.clientY });
+            setTooltipTrigger(event.pointerType === "touch" ? "click" : "hover");
+          }}
+          onPointerMoveCapture={(event) => {
+            if (event.target.closest(".growth-trend-tooltip")) return;
+            if (event.pointerType === "mouse") setAnchor({ x: event.clientX, y: event.clientY });
+            if (event.target.closest(".growth-day-tick")) return;
+            if (isTooltipDismissed) setIsTooltipDismissed(false);
+            if (tooltipTrigger !== "hover" && event.pointerType === "mouse") setTooltipTrigger("hover");
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return;
             setSelectedDate(null);
-            setIsTooltipDismissed(false);
-          }
-          setAnchor({ x: event.clientX, y: event.clientY });
-          setTooltipTrigger(event.pointerType === "touch" ? "click" : "hover");
-        }}
-        onPointerMoveCapture={(event) => {
-          if (event.target.closest(".growth-trend-tooltip")) return;
-          if (event.pointerType === "mouse") setAnchor({ x: event.clientX, y: event.clientY });
-          if (event.target.closest(".growth-day-tick")) return;
-          if (isTooltipDismissed) setIsTooltipDismissed(false);
-          if (tooltipTrigger !== "hover" && event.pointerType === "mouse") setTooltipTrigger("hover");
-        }}
-        onKeyDown={(event) => {
-          if (event.key !== "Escape") return;
-          setSelectedDate(null);
-          setIsTooltipDismissed(true);
-        }}
-      >
-        <ResponsiveContainer width="100%" height={212 + axisRows * LABEL_ROW_HEIGHT}
-          onResize={(width) => {
-            const plotWidth = Math.max(LABEL_WIDTH, width - 2 * AXIS_MARGIN);
-            setAxisRows(Math.ceil((days.length - 1) * LABEL_WIDTH / plotWidth));
+            setIsTooltipDismissed(true);
           }}
         >
-          <ComposedChart data={days} margin={{ top: 12, right: AXIS_MARGIN, left: AXIS_MARGIN, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--divider)" />
-            <XAxis dataKey="date" interval={0} height={axisRows * LABEL_ROW_HEIGHT + 6} tickMargin={6} tickLine={false}
-              tick={<DayTick rows={axisRows} selectedDate={selectedDate} onSelect={selectDate} />} />
-            <YAxis domain={[0, 1]} tick={false} axisLine={false} width={0} />
-            <Tooltip trigger={tooltipTrigger} filterNull={false} portal={document.getElementById("root")}
-              isAnimationActive={false}
-              active={isTooltipDismissed ? false : undefined}
-              wrapperStyle={{ pointerEvents: selectedIndex >= 0 ? "auto" : "none" }}
-              defaultIndex={selectedIndex >= 0 ? selectedIndex : undefined}
-              cursor={selectedIndex >= 0 ? false : undefined}
-              content={<GrowthTooltip selectedDay={days[selectedIndex]} anchor={anchor} />} />
-            <Line
-              name="종합 추세" type="monotoneX" dataKey="ema" stroke="var(--accent)"
-              strokeWidth={2.5} dot={false} activeDot={false} isAnimationActive={false}
-            />
-            <Scatter name="일별 점수" dataKey="score" shape={<DailyScoreDot />} isAnimationActive={false} />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+          <ResponsiveContainer width="100%" height={212 + axisRows * LABEL_ROW_HEIGHT} onResize={setChartWidth}>
+            <ComposedChart data={days} margin={{ top: 12, right: AXIS_MARGIN, left: AXIS_MARGIN, bottom: 8 }}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--divider)" />
+              <XAxis dataKey="date" interval={0} height={axisRows * LABEL_ROW_HEIGHT + 6} tickMargin={6} tickLine={false}
+                tick={<DayTick rows={axisRows} selectedDate={selectedDate} onSelect={selectDate} />} />
+              <YAxis domain={[0, 1]} tick={false} axisLine={false} width={0} />
+              <Tooltip trigger={tooltipTrigger} filterNull={false} portal={document.getElementById("root")}
+                isAnimationActive={false}
+                active={isTooltipDismissed ? false : undefined}
+                wrapperStyle={{ pointerEvents: selectedIndex >= 0 ? "auto" : "none" }}
+                defaultIndex={selectedIndex >= 0 ? selectedIndex : undefined}
+                cursor={selectedIndex >= 0 ? false : undefined}
+                content={<GrowthTooltip selectedDay={days[selectedIndex]} anchor={anchor} />} />
+              {hasTrend && (
+                <Line
+                  name="종합 추세" type="monotoneX" dataKey="trend" connectNulls stroke="var(--accent)"
+                  strokeWidth={2.5} dot={false} activeDot={false} isAnimationActive={false}
+                />
+              )}
+              <Scatter name="일별 점수" dataKey="score" shape={<DailyScoreDot />} isAnimationActive={false} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      ) : <GrowthRecordSummary records={days} scoreCount={scored.length} />}
       {diff != null && diff < 3 && (
         <p className="elo-calibration">
           {diff <= -3 ? "요즘 조금 지쳤나 봐요. 작은 미션부터 천천히 해 봐요." : "요즘 자기효능감은 비슷하게 이어지고 있어요."}
