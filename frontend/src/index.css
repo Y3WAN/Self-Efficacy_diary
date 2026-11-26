@@ -2559,7 +2559,7 @@ body:has(.mallang-page) { overflow-x: clip; }
   margin-left: 4px;
 }
 
-/* ═══ 미션 쌓기 (나의 미션 탑) ═══ */
+/* ═══ 미션 쌓기 (지금까지 쌓은 미션) ═══ */
 .stack-card {
   background: var(--card);
   border: 1px solid var(--border);

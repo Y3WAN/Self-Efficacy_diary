@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "../api/client";
 
-// 미션 쌓기: 끝난 미션을 책처럼 쌓는다. 새 책이 맨 위. 나만 보는 탑이다.
+// 미션 쌓기: 끝난 미션을 책처럼 쌓는다. 새 책이 맨 위. 나만 본다.
 const FILTERS = [
   { key: "all", label: "전체" },
   { key: "done", label: "해냈어요" },
@@ -25,7 +25,7 @@ export default function MissionStack() {
     queryFn: ({ signal }) => api.get("/api/missions/stack", { signal }).then((r) => r.data),
   });
 
-  if (isLoading) return <section className="stack-card"><p className="community-empty">탑을 불러오는 중이에요.</p></section>;
+  if (isLoading) return <section className="stack-card"><p className="community-empty">미션을 불러오는 중이에요.</p></section>;
   if (isError) return <section className="stack-card"><button className="respect-btn" onClick={() => refetch()}>다시 불러오기</button></section>;
 
   const books = data.books.filter((b) =>
@@ -37,7 +37,7 @@ export default function MissionStack() {
   return (
     <section className="stack-card" aria-labelledby="stack-title">
       <div className="stack-head">
-        <h3 id="stack-title">나의 미션 탑</h3>
+        <h3 id="stack-title">지금까지 쌓은 미션</h3>
         <span className="stack-total">{total}권</span>
       </div>
       <p className="stack-summary">
@@ -77,7 +77,7 @@ export default function MissionStack() {
           <div className="stack-floor" aria-hidden="true" />
         </>
       )}
-      <p className="stack-note">이 탑은 나만 봐요. 해낸 미션만 '함께 해낸 미션'에 올라가요.</p>
+      <p className="stack-note">여기는 나만 봐요. 해낸 미션만 '함께 해낸 미션'에 올라가요.</p>
     </section>
   );
 }

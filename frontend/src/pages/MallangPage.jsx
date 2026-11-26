@@ -375,7 +375,7 @@ export default function MallangPage() {
     <AppBar />
     <main className={customizing ? "mallang-content mallang-content--customizing" : "mallang-content"}>
       {import.meta.env.DEV && params.has("inspect") && <output ref={inspect} id="mallang-inspect" hidden />}
-      <h1>마음 쉬기</h1>
+      <h1>말랑이</h1>
       <p className="mallang-intro">속상하거나 긴장될 때 말랑이를 꾹꾹 눌러 보세요.</p>
       <div className="mallang-controls">
         {import.meta.env.DEV && params.has("style") && <div className="mallang-style-preview">
