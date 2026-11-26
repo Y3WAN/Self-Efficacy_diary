@@ -8,6 +8,14 @@ export function missionHistoryQuery(month) {
   };
 }
 
+export function diaryEditorQuery(date) {
+  return {
+    queryKey: ["diaries", date, "editor"],
+    refetchOnWindowFocus: "always",
+    queryFn: ({ signal }) => client.get(`/api/diaries/${date}/editor`, { signal }).then((response) => response.data),
+  };
+}
+
 export function diaryDayQuery(date) {
   return {
     queryKey: ["diaries", date],

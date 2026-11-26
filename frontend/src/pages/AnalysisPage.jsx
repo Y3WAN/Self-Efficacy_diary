@@ -1,7 +1,7 @@
 import Icon from "../components/Icon";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import AppBar from "../components/AppBar";
+import SubPageHeader from "../components/SubPageHeader";
 import client from "../api/client";
 import { SOURCES } from "../utils/sources";
 
@@ -64,11 +64,8 @@ export default function AnalysisPage() {
 
   return (
     <div className="main-page">
-      <AppBar />
+      <SubPageHeader title="AI가 일기에서 찾은 문장" />
       <main className="main-content">
-        <header className="page-heading">
-          <h1>AI가 일기에서 찾은 문장</h1>
-        </header>
         {isLoading && <div className="chart-empty">불러오는 중...</div>}
         {!isLoading && !data.length && (
           <div className="chart-empty">아직 분석된 일기가 없어요. 일기를 쓰면 밤 12시에 분석돼요.</div>

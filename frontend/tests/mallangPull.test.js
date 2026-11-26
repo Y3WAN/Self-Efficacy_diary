@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { blendPullTip, pullStretchProgress, tetherSpringDisplacement } from "../src/utils/mallangPull.js";
-import { advanceAngularCoast, advanceMotion, beginPull, dragRotationDelta, MAX_VISUAL_TETHER_DISTANCE,
+import { advanceAngularCoast, advanceMotion, beginPull, dragRotationDelta, MAX_TIP_EXTENSION, MAX_VISUAL_TETHER_DISTANCE,
   PULL_RADIUS, pulledCircle, pullTarget, releaseAngularSpeed, springDisplacement, updatePull } from "../src/utils/mallangMotion.js";
 
 function motionAt(now = 0, hasMoved = false) {
@@ -123,7 +123,7 @@ test("release and regrab carry the displayed tip and both velocities through the
   assert.equal(motion.pull, null);
 });
 
-test("the visible tip can keep following after body tension reaches its cap", () => {
+test("the tether keeps following after body tension caps while the visible tip stays near the rim", () => {
   const taut = motionAt();
   const extended = motionAt();
   taut.pointer.x = 528;
@@ -131,7 +131,10 @@ test("the visible tip can keep following after body tension reaches its cap", ()
   beginPull(taut);
   beginPull(extended);
   assert(extended.pull.x > taut.pull.x);
-  assert.equal(extended.pull.x - 100, MAX_VISUAL_TETHER_DISTANCE);
+  assert.equal(pullTarget(extended).x - 100, MAX_VISUAL_TETHER_DISTANCE);
+  assert(extended.pull.x - 100 - extended.pull.edgeRadius <= MAX_TIP_EXTENSION);
+  const narrowSide = pulledCircle(extended, 62);
+  assert.equal(narrowSide.x - 100, 62 + MAX_TIP_EXTENSION);
   assert.deepEqual(springDisplacement(extended, 400, 300), springDisplacement(taut, 400, 300));
 });
 

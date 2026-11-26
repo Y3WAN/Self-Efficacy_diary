@@ -22,6 +22,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     initial_grade = Column(String(4), nullable=False)
     diary_count = Column(Integer, nullable=False, default=0)
+    last_diary_written_on = Column(Date, nullable=True)
     points = Column(Integer, nullable=False, default=0)
     elo = Column(Integer, nullable=False, default=1000)
     created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)

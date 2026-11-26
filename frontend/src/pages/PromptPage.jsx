@@ -1,6 +1,5 @@
-import Icon from "../components/Icon";
+import SubPageHeader from "../components/SubPageHeader";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import client from "../api/client";
@@ -9,7 +8,6 @@ const LOADING_PLACEHOLDER = "최근 일기를 보고 예시를 만드는 중이�
 const FALLBACK_PLACEHOLDER = "예: 미션은 10분 안에 끝낼 수 있게 만든다.";
 
 export default function PromptPage() {
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const [draft, setDraft] = useState(null);
 
@@ -41,11 +39,7 @@ export default function PromptPage() {
 
   return (
     <div className="profile-page">
-      <header className="diary-header">
-        <button onClick={() => navigate(-1)}><Icon name="arrowLeft" /> 뒤로</button>
-        <h2>미션 내용</h2>
-      </header>
-
+      <SubPageHeader title="맞춤 미션" />
       <main className="profile-content">
         <form className="mission-preferences" onSubmit={(event) => {
           event.preventDefault();

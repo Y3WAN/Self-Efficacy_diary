@@ -11,9 +11,10 @@ const TRAIL_DURATION_SCALE = 2;
 const TRAIL_REFILL_START = .42;
 const CONTACT_SHOULDER_EXTENT = 1.85;
 const TRAIL_SHOULDER_EXTENT = 1.25;
+const DENT_SIZE_SCALE = .70;
 
 export function dentDimensions(depth) {
-  const length = 19 + depth * 9;
+  const length = (19 + depth * 9) * DENT_SIZE_SCALE;
   return { length, width: length * 1.18 };
 }
 

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Icon from "../components/Icon";
 import { Link } from "react-router-dom";
+import SubPageHeader from "../components/SubPageHeader";
 import { useAuthStore } from "../store/auth";
-import AppBar from "../components/AppBar";
 
 const SOURCES = [
   ["이론", "Bandura, A. (1977). Self-efficacy: Toward a unifying theory of behavioral change. Psychological Review, 84(2), 191–215. — 자기효능감 4원천(성취경험·대리경험·사회적 설득·정서 상태)"],
@@ -21,7 +21,7 @@ const BRAND_COLORS = [
 ];
 
 export default function AboutPage() {
-  const { token } = useAuthStore();
+  const token = useAuthStore((state) => state.token);
   const [isSampleSelected, setIsSampleSelected] = useState(false);
   const themeColors = getComputedStyle(document.documentElement);
   const palette = BRAND_COLORS.map(({ name, token }) => ({
@@ -30,11 +30,8 @@ export default function AboutPage() {
 
   return (
     <div className="main-page">
-      {token && <AppBar />}
+      <SubPageHeader title="codemyworld 안내" />
       <main className="main-content">
-        <header className="page-heading">
-          <h1>codemyworld 안내</h1>
-        </header>
         <div className="chart-card">
           <h2 className="chart-title">서비스 소개</h2>
           <div className="about-text">

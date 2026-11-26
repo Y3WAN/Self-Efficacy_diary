@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, cast, Date
 from app.db.session import get_db
-from app.db.models import DailyAnalysis, EloHistory
+from app.db.models import DailyAnalysis, Diary, EloHistory
 from app.core.deps import get_current_user
 from app.db.models import User
 from app.services.elo_service import BASE_RATING, LEVEL_RATINGS, expected_success, target_level
@@ -145,22 +145,26 @@ class DailyScore(BaseModel):
     date: str
     score: Optional[float]
     ema: Optional[float]
-    confidence: float
+    confidence: Optional[float]
     ema_contributions: dict[str, float]
     evidence_sources: str
     is_initial: bool
+    has_diary: bool = False
 
 
 @router.get("/daily", response_model=list[DailyScore])
 async def daily(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    diary_since: Optional[date] = None,
+    through: Optional[date] = None,
 ):
-    """분석 날짜별 종합 추세와 원천별 기여도. 추세에는 기존 반영 조건을 적용한다."""
+    """분석 추세와, 요청한 구간에서 분석을 기다리는 일기 날짜를 반환한다."""
+    analysis_query = select(DailyAnalysis).where(DailyAnalysis.user_id == current_user.id)
+    if through is not None:
+        analysis_query = analysis_query.where(DailyAnalysis.diary_date <= through)
     result = await db.execute(
-        select(DailyAnalysis)
-        .where(DailyAnalysis.user_id == current_user.id)
-        .order_by(DailyAnalysis.diary_date, DailyAnalysis.created_at)
+        analysis_query.order_by(DailyAnalysis.diary_date, DailyAnalysis.created_at, DailyAnalysis.id)
     )
     latest_by_date: dict[date, DailyAnalysis] = {}
     reflected_by_date: dict[date, DailyAnalysis] = {}
@@ -169,27 +173,46 @@ async def daily(
         if analysis.is_reflected and analysis.composite_score is not None:
             reflected_by_date[analysis.diary_date] = analysis
 
+    diary_dates: set[date] = set()
+    if diary_since is not None:
+        diary_query = select(Diary.diary_date).where(
+            Diary.user_id == current_user.id, Diary.diary_date >= diary_since,
+        )
+        if through is not None:
+            diary_query = diary_query.where(Diary.diary_date <= through)
+        diary_dates = set(await db.scalars(diary_query.distinct()))
+
     out: list[DailyScore] = []
     ema: Optional[float] = None
     ema_contributions = dict.fromkeys(SOURCES, 0.0)
-    for day, latest in latest_by_date.items():
-        analysis = reflected_by_date.get(day, latest)
-        scores = known_scores(analysis)
-        confidence = float(analysis.confidence)
-        score = composite_score(scores) if day in reflected_by_date else None
-        if score is not None:
-            contributions = source_contributions(scores, score)
-            # 빠진 원천도 같은 비율로 평활화해야 기여도 합이 종합 추세와 일치한다.
-            ema_contributions = {
-                source: ema_step(None if ema is None else ema_contributions[source], value, confidence)
-                for source, value in contributions.items()
-            }
-            ema = ema_step(ema, score, confidence)
+    for day in sorted(latest_by_date.keys() | diary_dates):
+        latest = latest_by_date.get(day)
+        reflected = reflected_by_date.get(day)
+        analysis = reflected or latest
+        confidence = float(analysis.confidence) if analysis is not None else None
+        is_initial = reflected is not None and reflected.reasoning == INITIAL_REASONING
+        score = None
 
-        is_initial = score is not None and analysis.reasoning == INITIAL_REASONING
+        if reflected is not None:
+            scores = known_scores(reflected)
+            if is_initial and reflected.evidence_sources is None:
+                scores = {source: float(getattr(reflected, f"score_{source.lower()}")) for source in SOURCES}
+            score = composite_score(scores)
+            if score is None and reflected.evidence_sources is None:
+                # 예전 기록에서 원천 근거를 복원할 수 없어도 저장된 종합 점수는 표시한다.
+                score = float(reflected.composite_score)
+            if score is not None:
+                if any(value is not None for value in scores.values()):
+                    contributions = source_contributions(scores, score)
+                    ema_contributions = {
+                        source: ema_step(None if ema is None else ema_contributions[source], value, confidence)
+                        for source, value in contributions.items()
+                    }
+                ema = ema_step(ema, score, confidence)
+
         evidence_analysis = latest if is_initial else analysis
         evidence = (
-            "" if evidence_analysis.reasoning == INITIAL_REASONING
+            "" if evidence_analysis is None or evidence_analysis.reasoning == INITIAL_REASONING
             else evidence_string(known_scores(evidence_analysis))
         )
         out.append(DailyScore(
@@ -200,6 +223,7 @@ async def daily(
             ema_contributions=ema_contributions,
             evidence_sources=evidence,
             is_initial=is_initial,
+            has_diary=day in diary_dates,
         ))
     return out
 

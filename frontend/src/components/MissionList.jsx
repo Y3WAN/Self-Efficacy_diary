@@ -251,10 +251,10 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
           </ul>
         )}
         <nav className="mission-links" aria-label="미션 관련 메뉴">
-          <Link to="/prompt" className="main-analysis-link">
-            <span><Icon name="pencil" /> 미션 내용</span><Icon name="arrowRight" />
+          <Link to="/prompt" state={{ fromMain: true }} className="main-analysis-link">
+            <span><Icon name="pencil" /> 맞춤 미션</span><Icon name="arrowRight" />
           </Link>
-          <Link to="/community" className="main-analysis-link">
+          <Link to="/community" state={{ fromMain: true }} className="main-analysis-link">
             <span><Icon name="globe" /> 함께 해낸 미션</span><Icon name="arrowRight" />
           </Link>
         </nav>

@@ -1,4 +1,5 @@
 import Icon from "../components/Icon";
+import SubPageHeader from "../components/SubPageHeader";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Navigate, useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
@@ -39,7 +40,7 @@ function DayRecords({ date, isToday, shouldLoad }) {
         <h2><time dateTime={date}>{isToday ? "오늘 · " : ""}{DAY_LABEL.format(new Date(date))}</time></h2>
         {isToday && (
           <Link className="activity-write" to={`/diary/${date}`} state={{ fromMain: true }}>
-            일기 쓰기 <Icon name="arrowUpRight" />
+            오늘의 일기 <Icon name="arrowUpRight" />
           </Link>
         )}
       </div>
@@ -67,6 +68,7 @@ function DayRecords({ date, isToday, shouldLoad }) {
           <Icon name="chevronRight" className="activity-diary-arrow" />
         </Link>
       ))}
+      {diaries.length > 0 && missions.length > 0 && <hr className="record-mission-divider" />}
       {missions.map((mission) => (
         <div key={mission.id} className="activity-mission">
           <div>
@@ -307,16 +309,12 @@ function RecordCarousel({ date, today }) {
 
   return (
     <main className="record-page" onKeyDown={handleKeys}>
-      <header className="record-header">
-        <button ref={backRef} type="button" className="record-back" onClick={returnToCalendar}>
-          <Icon name="arrowLeft" /> 메인
-        </button>
-        <h1>그날의 기록</h1>
+      <SubPageHeader title="그날의 기록" backRef={backRef} backLabel="홈" onBack={returnToCalendar}>
         <div className="record-arrows">
           <button type="button" aria-label="이전 날짜" disabled={!previous} onClick={() => moveSlide(-1)}><Icon name="chevronLeft" /></button>
           <button type="button" aria-label="다음 날짜" disabled={!next} onClick={() => moveSlide(1)}><Icon name="chevronRight" /></button>
         </div>
-      </header>
+      </SubPageHeader>
       <span className="record-date-announcement" role="status">{DAY_LABEL.format(new Date(date))}</span>
       <div
         className="record-rail"

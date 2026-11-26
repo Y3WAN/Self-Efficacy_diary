@@ -329,7 +329,7 @@ export function createMallangSurface(canvas, material, palette = getMallangPalet
     const distance = Math.max(0, reach - CAP_MERGE_REACH) * progress;
     const cap = { startX: start.x, startY: start.y, x: start.x - start.ux * distance,
       y: start.y - start.uy * distance, scale: remaining ** 1.3 };
-    const radii = retractMembraneCap(retraction.startRadii, bodyRadii, cap, progress);
+    const radii = retractMembraneCap(retraction.startRadii, bodyRadii, cap, progress, material.restRadii);
     for (const point of trailPoints) {
       const origin = retraction.trailOrigins.get(point);
       const { x, y } = moveWithCap(origin, cap, origin.attachment);

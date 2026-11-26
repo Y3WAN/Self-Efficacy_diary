@@ -158,7 +158,8 @@
 }
 :where(.today-card, .activity-day, .mission-list, .chart-card:not(.design-guide), .diary-entry,
   .community-card, .profile-info-card, .persona-card, .emotion-report, .timeline-card,
-  .failure-log-item, .mallang-customizer, .design-guide-layout-sample, .tester-source, .stack-card) {
+  .failure-log-item, .mallang-customizer, .design-guide-layout-sample, .tester-source, .stack-card,
+  .app-dialog-panel) {
   --organic-contour: var(--contour-card);
 }
 :where(.today-card, .diary-entry:nth-child(3n + 2), .community-card:nth-child(5n + 2),
@@ -173,7 +174,7 @@
 :where(.auth-field + .auth-field > input, textarea:not(.trial-input), .trial-question:nth-child(2) textarea) {
   --organic-contour: var(--contour-field-return);
 }
-:where(.auth-btn, .btn, .record-header button, .diary-header button, .diary-save-btn,
+:where(.auth-btn, .btn, .record-arrows button, .page-back, .diary-save-btn,
   .diary-actions button, .profile-logout-btn, .celebration-btn, .trial-submit, .trial-next,
   .trial-mission-actions button, .tester-button, .app-bottom-nav-link, .kebab-dropdown,
   .trial-tabs, .mallang-customizer-sections, .analysis-head, .reflection-request-btn, .stack-more) {
@@ -187,6 +188,7 @@
   .tester-elo, .tester-receipt, .tester-sample, .tester-mission, .profile-row--points,
   .design-guide-list li, .design-guide-swatch, .design-guide-layout-sample span, .notice-box,
   .analysis-reason, .mission-feedback, .mission-helper-panel, .helper-bubble, .reflection-card,
+  .mission-material, .mission-guide, .mission-clarify, .mission-answer-result, .mission-choice, .mission-chip,
   .trial-diary, .auth-error, .chart-tooltip, .app-toast, .stack-filter, .stack-book, .stack-tag) {
   --organic-contour: var(--contour-petal);
 }
@@ -218,7 +220,7 @@
       .mission-list, .chart-card, .diary-entry, .community-card, .profile-info-card, .profile-avatar-card,
       .emotion-report, .timeline-card, .failure-log-item, .mallang-customizer, .mallang-room,
       .mission-preferences, .trial-mission, .design-guide-layout-sample, .tester-card, .tester-progress, .tester-source,
-      .stack-card) {
+      .stack-card, .app-dialog-panel) {
       position: relative;
       container-type: inline-size;
       isolation: isolate;
@@ -245,7 +247,7 @@
       .mallang-customizer, .mallang-room, .mission-preferences, .trial-mission, .stack-card) {
       --surface-shadow: var(--shadow-sm);
     }
-    .auth-card { --surface-shadow: var(--shadow-md); }
+    .auth-card, .app-dialog-panel { --surface-shadow: var(--shadow-md); }
     .celebration-card { --surface-shadow: 0 12px 48px color-mix(in srgb, var(--shadow-ink) 15%, transparent); }
     .diary-entry:has(.kebab-dropdown) { z-index: 1; }
     .community-card::after { transition: box-shadow .15s; }
@@ -282,19 +284,6 @@
   mask: var(--arc-vertical) center / 100% 100% no-repeat;
 }
 
-:where(.auth-error, .trial-diary) { position: relative; border-left-color: transparent; }
-:where(.auth-error, .trial-diary)::after {
-  content: "";
-  position: absolute;
-  inset-block: 4px 3px;
-  inset-inline-start: -3px;
-  width: 9px;
-  background: var(--accent);
-  mask: var(--arc-vertical) center / 100% 100% no-repeat;
-  pointer-events: none;
-}
-.auth-error::after { background: var(--warning); }
-
 .about-more > summary { list-style: none; }
 .about-more > summary::-webkit-details-marker { display: none; }
 .about-more > summary::before {
@@ -314,13 +303,15 @@
     .activity-history, .activity-day, .mission-list, .chart-card, .diary-entry, .community-card,
     .profile-info-card, .profile-avatar-card, .persona-card, .emotion-report, .timeline-card,
     .failure-log-item, .mallang-customizer, .mission-preferences, .ai-card, .trial-mission,
-    .design-guide-layout-sample, .tester-source, .stack-card) {
+    .design-guide-layout-sample, .tester-source, .stack-card, .app-dialog-panel) {
     border-radius: 5% 7% 4% 6% / 12% 8% 14% 7%;
   }
   #root :where(input:not([type="checkbox"], [type="radio"]), textarea, select, .auth-btn, .btn,
     .diary-save-btn, .profile-logout-btn, .today-diary-button, .trial-submit, .trial-next, .tester-button,
-    .activity-diary, .calendar-day, .grade-btn, .trial-tab, .tester-options label > span, .app-toast,
-    .stack-filter, .stack-book, .stack-tag) {
+    .activity-diary, .activity-mission, .calendar-day, .grade-btn, .trial-tab, .tester-options label > span,
+    .app-toast, .stack-filter, .stack-book, .stack-tag, .auth-error, .trial-diary, .chart-tooltip,
+    .reflection-card, .mission-feedback, .mission-helper-panel, .mission-material,
+    .mission-guide, .mission-clarify, .mission-answer-result, .mission-choice, .mission-chip) {
     border-radius: 5% 4% 6% 4% / 34% 46% 30% 42%;
   }
 }

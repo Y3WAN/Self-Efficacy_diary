@@ -15,12 +15,39 @@ const smooth = (x) => smoothStep(clamp(x, 0, 1));
 const N = MATERIAL.grid, STEP = MATERIAL.extent / (N - 1);
 const BARE_TRAIL_DEPTH_RATIO = .3;
 const MAX_BARE_TRAIL_INTERVAL_MS = 64;
-const PULL_SHOULDER_FALLOFF = 6;
+const PULL_SHOULDER_FALLOFF = 8;
 const MEMBRANE_SAMPLES = 96;
 const MEMBRANE_DIRECTIONS = Array.from({ length: MEMBRANE_SAMPLES }, (_, index) => {
   const angle = index / MEMBRANE_SAMPLES * Math.PI * 2;
   return { x: Math.cos(angle), y: Math.sin(angle) };
 });
+
+export function sampleMallangContour({ north, east, south, west }, scale = 1) {
+  // A quarter ellipse in each quadrant keeps the four radar radii exact.
+  return Float32Array.from(MEMBRANE_DIRECTIONS, ({ x, y }) =>
+    scale / Math.hypot(x / (x >= 0 ? east : west), y / (y >= 0 ? south : north))
+  );
+}
+
+export function getMallangFaceFrame({ north, east, south, west }, cx, cy) {
+  const size = Math.min(east + west, north + south);
+  return { x: cx + (east - west - size) / 2, y: cy + (south - north - size) / 2, size };
+}
+
+export function getInteractiveMallangGeometry(contour) {
+  const { center, radius } = MATERIAL;
+  if (!contour) return { radii: null, face: { x: 0, y: 0, size: center * 2 }, sizeScale: 1 };
+
+  // Keep the material's largest radius inside its existing collision and pressure limits.
+  const normalization = radius / Math.max(...Object.values(contour));
+  const sides = Object.fromEntries(Object.entries(contour).map(([side, value]) => [side, value * normalization]));
+  const longestSide = Math.max(sides.east + sides.west, sides.north + sides.south);
+  return {
+    radii: sampleMallangContour(sides),
+    face: getMallangFaceFrame(sides, center, center),
+    sizeScale: 2 * radius / longestSide,
+  };
+}
 
 export function outwardWeight(distance) {
   return smooth((distance - MATERIAL.rimFadeStart) / (MATERIAL.rimFadeEnd - MATERIAL.rimFadeStart));
@@ -290,7 +317,7 @@ export function createMallangMaterial() {
     state.sloshX = state.sloshY = state.energy = state.displaced = state.raised = state.signedHeight = 0;
   }
 
-  return { state, sample, touch, move, release, advance, wave, impulse, reset, rimLoad,
+  return { state, sample, touch, move, release, advance, wave, impulse, reset, rimLoad, restRadii: null,
     contactDepth: () => { const head = nodes.at(-1); return head ? depthOf(head, state.time) : 0; } };
 }
 
@@ -311,7 +338,7 @@ export function membraneRadii(material, pull = null, impact = null, load = mater
       squash = Math.abs(impact.x) * (3 * vertical - 7 * horizontal) +
         Math.abs(impact.y) * (3 * horizontal - 7 * vertical);
     }
-    radii[n] = radius + flex + squash;
+    radii[n] = (material.restRadii?.[n] ?? radius) + flex + squash;
   }
   if (pull?.radius > 0) {
     const dx = pull.x - center, dy = pull.y - center;
@@ -329,7 +356,7 @@ export function membraneRadii(material, pull = null, impact = null, load = mater
   return radii;
 }
 
-export function retractMembraneCap(startRadii, bodyRadii, cap, progress) {
+export function retractMembraneCap(startRadii, bodyRadii, cap, progress, restRadii = null) {
   if (progress === 0) return startRadii;
   const count = startRadii.length;
   const cx = cap.startX - MATERIAL.center, cy = cap.startY - MATERIAL.center;
@@ -337,7 +364,7 @@ export function retractMembraneCap(startRadii, bodyRadii, cap, progress) {
   const points = Array.from(startRadii, (radius, i) => {
     const ray = MEMBRANE_DIRECTIONS[i];
     const body = bodyRadii[i];
-    const attachment = smooth((radius - MATERIAL.radius) / 28);
+    const attachment = smooth((radius - (restRadii?.[i] ?? MATERIAL.radius)) / 28);
     const shoulder = radius + (body - radius) * progress;
     // The end moves and scales around its own center. The shoulder joins it to the body.
     const x = tipX + (ray.x * radius - cx) * cap.scale;
@@ -385,9 +412,9 @@ export function materialContact(material, raw, impact = null) {
   return { x: 100 + dx * scale, y: 100 + dy * scale, radius };
 }
 
-export function membranePath(radii) {
-  const points = Array.from(radii, (r, i) => ({ x: 100 + Math.cos(i / radii.length * Math.PI * 2) * r,
-    y: 100 + Math.sin(i / radii.length * Math.PI * 2) * r }));
+export function membranePath(radii, cx = MATERIAL.center, cy = MATERIAL.center) {
+  const points = Array.from(radii, (r, i) => ({ x: cx + Math.cos(i / radii.length * Math.PI * 2) * r,
+    y: cy + Math.sin(i / radii.length * Math.PI * 2) * r }));
   const at = (i) => points[(i + points.length) % points.length];
   const f = (x) => x.toFixed(2);
   let path = `M ${f(points[0].x)} ${f(points[0].y)}`;

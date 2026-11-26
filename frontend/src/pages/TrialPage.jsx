@@ -17,33 +17,52 @@ const QUESTIONS = [
     q: "오늘 해 보려고 했던 일이 있나요?",
     hint: "숙제, 공부, 운동, 연습, 누군가에게 말 걸기처럼 아주 작은 일도 괜찮아요",
     placeholder: "예: 수학 문제집 3쪽 풀기",
-    example: "수학 문제집 3쪽을 풀려고 했다",
     required: true,
   },
   {
     q: "그 일을 어디까지 했나요? 어디서 막혔나요?",
     hint: "다 못 했어도 괜찮아요. 한 만큼, 막힌 곳을 그대로 적어 보세요",
     placeholder: "예: 1~4번은 풀었는데 5번 도형 문제에서 막혔다",
-    example: "1번부터 4번까지는 풀었는데 5번 도형 문제에서 막혀서 30분 동안 붙잡고 있다가 덮었다",
     required: true,
   },
   {
     q: "그때 기분은 어땠나요? 다음엔 어떻게 해 보고 싶나요?",
     hint: "선택 · 떠오르는 대로 짧게 적어도 돼요",
     placeholder: "예: 답답했다. 다음엔 친구한테 물어보고 싶다",
-    example: "답답했다. 다음엔 5번만 다시 천천히 보고 싶다",
     required: false,
   },
+];
+
+const EXAMPLES = [
+  [
+    "수학 문제집 3쪽을 풀려고 했다.",
+    "1번부터 4번까지 풀었는데 5번 도형 문제에서 막혔다.",
+    "답답했다. 다음엔 5번만 천천히 다시 보고 싶다.",
+  ],
+  [
+    "영어 발표 첫 문단을 연습하려고 했다.",
+    "처음 두 문장은 읽었는데 긴 단어의 발음이 어려웠다.",
+    "처음보다 덜 떨렸다. 다음엔 어려운 단어만 따로 읽어 보고 싶다.",
+  ],
+  [
+    "줄넘기 20개를 쉬지 않고 하려고 했다.",
+    "열두 개를 했는데 발에 줄이 걸려 멈췄다.",
+    "아쉬웠지만 지난번보다 많이 했다. 다음엔 조금 더 천천히 뛰고 싶다.",
+  ],
 ];
 
 export default function TrialPage() {
   const [step, setStep] = useState("input"); // input | composing | pending | result | error
   const [mode, setMode] = useState("questions"); // questions | write
-  const [answers, setAnswers] = useState(() => QUESTIONS.map(() => ""));
+  const [edits, setEdits] = useState(() => QUESTIONS.map(() => null));
+  const [exampleIndex, setExampleIndex] = useState(-1);
+  const example = EXAMPLES[exampleIndex];
+  const answers = edits.map((edit, index) => edit ?? example?.[index] ?? "");
   const [freeText, setFreeText] = useState("");
   const [submitted, setSubmitted] = useState(""); // 분석할 일기 본문
   const [composed, setComposed] = useState(false); // AI가 질문 답으로 쓴 일기인지
   const [token, setToken] = useState(null);
+  const [savedDiary, setSavedDiary] = useState(null);
   const [result, setResult] = useState(null); // { reflection, mission }
   const [levelChange, setLevelChange] = useState(null); // { from, to, harder }
   const [missionError, setMissionError] = useState("");
@@ -59,15 +78,31 @@ export default function TrialPage() {
   };
 
   // 일기 본문을 저장하고 분석(오늘 해낸 것 + 미션)을 받는다
-  const analyze = async (text) => {
+  const analyze = async (text, existingToken) => {
     const content = text.trim();
     if (!content) return;
     setSubmitted(content);
     setStep("pending");
     try {
-      const t = await ensureToken();
-      const diary = (await api.post("/api/diaries", { content, diary_date: todayKST() }, auth(t))).data;
-      const data = (await api.post(`/api/diaries/${diary.id}/reflect`, null, auth(t))).data;
+      const t = existingToken ?? await ensureToken();
+      const date = todayKST();
+      const config = auth(t);
+      let diary = savedDiary?.diary_date === date ? savedDiary : null;
+      if (!diary) {
+        try {
+          diary = (await api.post("/api/diaries", { content, diary_date: date }, config)).data;
+        } catch (error) {
+          if (error.response?.status !== 409) throw error;
+          // The first save may have succeeded before the connection was interrupted.
+          diary = (await api.get(`/api/diaries/${date}`, config)).data.at(-1);
+          if (!diary) throw error;
+        }
+      }
+      if (diary.content !== content) {
+        diary = (await api.patch(`/api/diaries/${diary.id}`, { content }, config)).data;
+      }
+      setSavedDiary(diary);
+      const data = (await api.post(`/api/diaries/${diary.id}/reflect`, null, config)).data;
       setResult(data);
       setStep("result");
     } catch {
@@ -81,15 +116,16 @@ export default function TrialPage() {
     setSubmitted("");
     setStep("composing");
     let content;
+    let t;
     try {
-      const t = await ensureToken();
+      t = await ensureToken();
       const body = { answers: QUESTIONS.map((item, i) => ({ question: item.q, answer: answers[i].trim() })) };
       content = (await api.post("/api/diaries/compose", body, auth(t))).data.content;
     } catch {
       setStep("error");
       return;
     }
-    await analyze(content);
+    await analyze(content, t);
   };
 
   const writeOwn = () => {
@@ -110,7 +146,7 @@ export default function TrialPage() {
   const retry = () => (submitted ? analyze(submitted) : composeAndAnalyze());
 
   const canCompose = QUESTIONS.every((item, i) => !item.required || answers[i].trim());
-  const fillExample = () => setAnswers(QUESTIONS.map((item) => item.example));
+  const fillExample = () => setExampleIndex((index) => (index + 1) % EXAMPLES.length);
 
   // 답에 따라 같은 일기·같은 원천으로 한 단계 어렵거나 쉬운 미션을 바로 받는다.
   // 실제로 해 본 결과가 아니므로 완료·실패 처리(ELO 반영)는 하지 않는다.
@@ -134,11 +170,13 @@ export default function TrialPage() {
   const reset = () => {
     setStep("input");
     setMode("questions");
-    setAnswers(QUESTIONS.map(() => ""));
+    setEdits(QUESTIONS.map(() => null));
+    setExampleIndex(-1);
     setFreeText("");
     setSubmitted("");
     setComposed(false);
     setToken(null);
+    setSavedDiary(null);
     setResult(null);
     setLevelChange(null);
     setMissionError("");
@@ -149,7 +187,9 @@ export default function TrialPage() {
   return (
     <div className="trial-page">
       <header className="trial-header">
-        <BrandMark />
+        <Link to="/" className="brand-home" aria-label="코드마이월드 메인 화면" state={{ scrollToTop: true }}>
+          <BrandMark />
+        </Link>
         <span className="trial-badge">1분 체험</span>
       </header>
 
@@ -184,11 +224,18 @@ export default function TrialPage() {
                     maxLength={200}
                     placeholder={item.placeholder}
                     value={answers[i]}
-                    onChange={(e) => setAnswers((prev) => prev.map((a, j) => (j === i ? e.target.value : a)))}
+                    onChange={(e) => setEdits((prev) => prev.map((edit, index) => index === i ? e.target.value : edit))}
                   />
                 </div>
               ))}
-              <button type="button" className="trial-fill" onClick={fillExample}>예시 답으로 채워 보기</button>
+              <button type="button" className="trial-fill" onClick={fillExample}>
+                {example ? "다른 예시 보기" : "예시 답안으로 채워 보기"}
+              </button>
+              {example && edits.every((edit) => edit !== null) && (
+                <ul className="trial-example" aria-label="예시 답안">
+                  {example.map((answer) => <li key={answer}>{answer}</li>)}
+                </ul>
+              )}
               <button className="trial-submit trial-submit--wide" type="submit" disabled={!canCompose}>
                 제출하고 일기 만들기
               </button>
@@ -309,7 +356,7 @@ export default function TrialPage() {
       )}
 
       <footer className="trial-footer">
-        전문 심리 검사가 아니에요 · <Link to="/about">안내·출처</Link> · <Link to="/login">로그인</Link>
+        전문 심리 검사가 아니에요 · <Link to="/about" state={{ fromApp: true }}>안내·출처</Link> · <Link to="/login">로그인</Link>
       </footer>
     </div>
   );

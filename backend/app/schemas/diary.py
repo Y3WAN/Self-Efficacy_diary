@@ -8,6 +8,13 @@ class DiaryCreate(BaseModel):
     content: str
     diary_date: Optional[date] = None
 
+    @field_validator("content")
+    @classmethod
+    def _require_content(cls, value):
+        if not value.strip():
+            raise ValueError("일기 내용을 적어 주세요.")
+        return value
+
 
 class DiaryUpdate(BaseModel):
     content: str
@@ -40,6 +47,11 @@ class DiaryResponse(BaseModel):
         except (TypeError, ValueError):
             achievements = []
         return {"achievements": achievements, "message": value.message or ""}
+
+
+class DiaryEditorResponse(BaseModel):
+    diaries: list[DiaryResponse]
+    can_create: bool
 
 
 class MonthDiariesResponse(BaseModel):

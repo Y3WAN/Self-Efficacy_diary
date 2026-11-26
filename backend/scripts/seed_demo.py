@@ -171,6 +171,7 @@ async def main(username: str, password: str, reset: bool):
         user.elo = 1000
         user.points = 0
         user.diary_count = len(DAYS)
+        user.last_diary_written_on = today - timedelta(days=1)
         user.created_at = at(start - timedelta(days=1), 20)
 
         # 가입 설문 (첫 일기 전날)

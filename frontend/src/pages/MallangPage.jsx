@@ -1,11 +1,13 @@
-import { useState, useEffect, useId, useRef } from "react";
+import { useState, useEffect, useId, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import AppBar from "../components/AppBar";
 import Icon from "../components/Icon";
 import MallangFace from "../components/MallangFace";
 import MallangCustomizer from "../components/MallangCustomizer";
 import { applySavedMallangTheme, readMallangCustomization, saveMallangCustomization } from "../utils/mallangCustomization";
-import { bareSurfaceContact, createMallangMaterial, materialContact, membraneRadii, membraneRadiusAt } from "../utils/mallangMaterial";
+import { bareSurfaceContact, createMallangMaterial, getInteractiveMallangGeometry, materialContact, membraneRadii, membraneRadiusAt } from "../utils/mallangMaterial";
+import { useDailyEfficacyTrend } from "../api/dashboard";
+import { getMallangTrend } from "../utils/efficacyTrend";
 import { createMallangSurface } from "../utils/mallangSurface";
 import { getMallangPalette } from "../utils/mallangTheme";
 import { BLOB_CENTER, BODY_RADIUS, PULL_RADIUS, STOP_SPEED, advanceAngularCoast, advanceMotion, beginPull,
@@ -37,7 +39,10 @@ function projectFacePoint(sample, x, y) {
   return { x: x - slopeX * pull, y: y - slopeY * pull - height * FACE_DEPTH_OFFSET, height };
 }
 
-function paintFace(parts, sample) {
+function paintFace(parts, sampleMaterial, frame) {
+  const scale = frame.size / (BLOB_CENTER * 2);
+  // Face marks are laid out in face coordinates, while the dent lives in body coordinates.
+  const sample = (x, y) => sampleMaterial(frame.x + x * scale, frame.y + y * scale) / scale;
   for (const part of parts) {
     const { element, x, y } = part;
     const distance = FACE_SAMPLE_DISTANCE;
@@ -53,7 +58,7 @@ function paintFace(parts, sample) {
       element.setAttribute("transform", "matrix(" + values + ")");
       part.transform = values;
     }
-    const brightness = clamp(1 + center.height * 0.017, 0.74, 1).toFixed(3);
+    const brightness = clamp(1 + center.height * scale * 0.017, 0.74, 1).toFixed(3);
     if (part.brightness !== brightness) {
       element.style.filter = brightness === "1.000" ? "" : "brightness(" + brightness + ")";
       part.brightness = brightness;
@@ -63,6 +68,8 @@ function paintFace(parts, sample) {
 
 export default function MallangPage() {
   const [params, setParams] = useSearchParams();
+  const { data: dailyTrend } = useDailyEfficacyTrend();
+  const geometry = useMemo(() => getInteractiveMallangGeometry(getMallangTrend(dailyTrend)?.contour), [dailyTrend]);
   const appearance = import.meta.env.DEV && params.get("style") === "2d" ? "2d" : "original";
   const runtime = useRef(null);
   const [audio] = useState(createMallangAudio);
@@ -76,7 +83,8 @@ export default function MallangPage() {
 
   useEffect(() => {
     const r = { material: createMallangMaterial(), frame: null, motion: null, input: null,
-      pressFollowsTether: false, rotation: 0, records: [], costs: [], frames: 0 };
+      pressFollowsTether: false, rotation: 0, records: [], costs: [], frames: 0,
+      faceFrame: { x: 0, y: 0, size: BLOB_CENTER * 2 } };
     runtime.current = r;
     const material = r.material;
     const palette = getMallangPalette(readMallangCustomization().theme);
@@ -134,7 +142,7 @@ export default function MallangPage() {
         character.current.style.top = r.motion.position.y + "%";
       }
       const sampleFaceHeight = material.state.reducedMotion ? () => 0 : surface?.sampleHeight ?? material.sample;
-      paintFace(faceParts, sampleFaceHeight);
+      paintFace(faceParts, sampleFaceHeight, r.faceFrame);
     }
     r.paint = paint;
     function record(cost) {
@@ -356,6 +364,14 @@ export default function MallangPage() {
     };
   }, [audio]);
 
+  useEffect(() => {
+    const current = runtime.current;
+    if (!current) return;
+    current.material.restRadii = geometry.radii;
+    current.faceFrame = geometry.face;
+    current.paint();
+  }, [geometry]);
+
   useEffect(applySavedMallangTheme, []);
   useEffect(() => {
     runtime.current?.surface?.setFlatStyle(appearance === "2d");
@@ -375,8 +391,10 @@ export default function MallangPage() {
     <AppBar />
     <main className={customizing ? "mallang-content mallang-content--customizing" : "mallang-content"}>
       {import.meta.env.DEV && params.has("inspect") && <output ref={inspect} id="mallang-inspect" hidden />}
-      <h1>말랑이</h1>
-      <p className="mallang-intro">속상하거나 긴장될 때 말랑이를 꾹꾹 눌러 보세요.</p>
+      <header className="page-heading">
+        <h1>말랑이</h1>
+        <p>속상하거나 긴장될 때 말랑이를 꾹꾹 눌러 보세요.</p>
+      </header>
       <div className="mallang-controls">
         {import.meta.env.DEV && params.has("style") && <div className="mallang-style-preview">
           {["original", "2d"].map((style) => <button key={style} type="button" aria-pressed={appearance === style}
@@ -390,7 +408,8 @@ export default function MallangPage() {
         </button>
       </div>
       <div className="mallang-play-area">
-        <section className="mallang-room" aria-label="말랑이 놀이터" onPointerDown={(e) => controller.current.down(e)}>
+        <section className="mallang-room" aria-label="말랑이 놀이터" style={{ "--mallang-scale": geometry.sizeScale }}
+          onPointerDown={(e) => controller.current.down(e)}>
           <div ref={bounds} className="mallang-bounds">
             <div ref={character} className="mallang-character" style={{ left: "50%", top: "50%" }}>
               <div ref={deformation} className="mallang-deformation">
@@ -403,7 +422,11 @@ export default function MallangPage() {
                   onKeyDown={(e) => controller.current.keyDown(e)} onKeyUp={(e) => controller.current.end(e)}
                   onClick={() => audio.prepare()}
                   onBlur={() => controller.current.cancel({ type: "control-blur" })}>
-                  <span ref={face} className="mallang-face"><MallangFace look={look} /></span>
+                  <span ref={face} className="mallang-face">
+                    <svg viewBox="0 0 200 200" aria-hidden="true">
+                      <MallangFace look={look} {...geometry.face} />
+                    </svg>
+                  </span>
                 </button>
               </div>
             </div>

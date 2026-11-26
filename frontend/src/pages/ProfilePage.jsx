@@ -1,14 +1,30 @@
+import { useRef, useState } from "react";
+import AppBar from "../components/AppBar";
+import AppDialog from "../components/AppDialog";
 import Icon from "../components/Icon";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import client from "../api/client";
 import GrowthChart from "../components/GrowthChart";
 import MissionStack from "../components/MissionStack";
 import { useConfirmLogout } from "../utils/useConfirmLogout";
 
 export default function ProfilePage() {
-  const navigate = useNavigate();
-  const confirmLogout = useConfirmLogout();
+  const logout = useConfirmLogout();
+  const [filter, setFilter] = useState("all");
+  const shelfHeading = useRef(null);
+  const stackQuery = useQuery({
+    queryKey: ["mission-stack"],
+    queryFn: ({ signal }) => client.get("/api/missions/stack", { signal }).then((r) => r.data),
+  });
+
+  function openCompletedMissions() {
+    setFilter("done");
+    shelfHeading.current?.focus({ preventScroll: true });
+    shelfHeading.current?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      block: "start",
+    });
+  }
 
   const { data: user, isLoading } = useQuery({
     queryKey: ["me"],
@@ -26,12 +42,11 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page">
-      <div className="diary-header">
-        <button onClick={() => navigate(-1)}><Icon name="arrowLeft" /> 뒤로</button>
-        <h2>내 정보</h2>
-      </div>
-
-      <div className="profile-content">
+      <AppBar />
+      <main className="profile-content">
+        <header className="page-heading">
+          <h1>내 정보</h1>
+        </header>
         <div className="profile-info-card">
           <div className="profile-row">
             <span className="profile-label">아이디</span>
@@ -45,10 +60,14 @@ export default function ProfilePage() {
             <span className="profile-label">작성한 일기</span>
             <span className="profile-value">{user.diary_count}개</span>
           </div>
-          <div className="profile-row">
-            <span className="profile-label">해낸 미션</span>
-            <span className="profile-value">{user.completed_missions_count}개</span>
-          </div>
+          <button type="button" className="profile-row profile-mission-row"
+            aria-controls="mission-bookshelf" onClick={openCompletedMissions}>
+            <span className="profile-label">지금까지 쌓은 미션</span>
+            <span className="profile-value">
+              {stackQuery.data && <strong>{stackQuery.data.done_count}개</strong>}
+              <Icon name="chevronRight" />
+            </span>
+          </button>
         </div>
 
         <section className="chart-card" aria-labelledby="growth-title">
@@ -56,15 +75,23 @@ export default function ProfilePage() {
           <GrowthChart />
         </section>
 
-        <MissionStack />
+        <MissionStack query={stackQuery} filter={filter} onFilterChange={setFilter} headingRef={shelfHeading} />
 
-        <button
-          className="profile-logout-btn"
-          onClick={confirmLogout}
-        >
+        <button type="button" className="profile-logout-btn" onClick={logout.open}>
           <Icon name="logout" /> 로그아웃
         </button>
-      </div>
+        {logout.isOpen && (
+          <AppDialog title="로그아웃할까요?" onDismiss={logout.cancel} busy={logout.isPending}>
+            {logout.error && <p className="app-dialog-error" role="alert">{logout.error}</p>}
+            <div className="app-dialog-actions">
+              <button type="button" className="btn" onClick={logout.cancel} disabled={logout.isPending}>취소</button>
+              <button type="button" className="btn btn--primary" onClick={logout.confirm} disabled={logout.isPending}>
+                {logout.isPending ? "로그아웃 중…" : "로그아웃"}
+              </button>
+            </div>
+          </AppDialog>
+        )}
+      </main>
     </div>
   );
 }

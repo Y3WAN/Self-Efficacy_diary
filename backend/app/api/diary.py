@@ -1,10 +1,12 @@
 from datetime import date, datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import func, or_, select, update
 from app.db.session import get_db
 from app.db.models import Diary, User
-from app.schemas.diary import DiaryCreate, DiaryUpdate, DiaryResponse, MonthDiariesResponse, ReflectionOut
+from app.schemas.diary import (
+    DiaryCreate, DiaryEditorResponse, DiaryResponse, DiaryUpdate, MonthDiariesResponse, ReflectionOut,
+)
 from app.core.deps import get_current_user
 from app.core.timeutil import today_kst
 from app.api.mission import MissionResponse
@@ -87,6 +89,18 @@ async def get_diaries_by_date(
     return result.scalars().all()
 
 
+@router.get("/{diary_date}/editor", response_model=DiaryEditorResponse)
+async def get_diary_editor(
+    diary_date: date,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    diaries = await get_diaries_by_date(diary_date, current_user, db)
+    last_written = current_user.last_diary_written_on
+    can_create = diary_date == today_kst() and not diaries and (last_written is None or last_written < diary_date)
+    return DiaryEditorResponse(diaries=diaries, can_create=can_create)
+
+
 @router.post("/compose", response_model=ComposeResponse)
 async def compose(
     body: ComposeRequest,
@@ -111,6 +125,23 @@ async def create_diary(
     diary_date = today_kst()
     if body.diary_date is not None and body.diary_date != diary_date:
         raise HTTPException(status_code=403, detail="Can only write today's diary")
+    # Claim the day and save its first entry in one transaction, even across separate tabs.
+    already_saved = select(Diary.id).where(
+        Diary.user_id == current_user.id, Diary.diary_date == diary_date,
+    ).exists()
+    claimed = await db.scalar(
+        update(User).where(
+            User.id == current_user.id,
+            or_(User.last_diary_written_on.is_(None), User.last_diary_written_on < diary_date),
+            ~already_saved,
+        ).values(
+            last_diary_written_on=diary_date,
+            diary_count=User.diary_count + 1,
+        ).returning(User.id)
+    )
+    if claimed is None:
+        raise HTTPException(status_code=409, detail="일기는 하루에 한 편만 쓸 수 있어요.")
+
     diary = Diary(
         user_id=current_user.id,
         diary_date=diary_date,
@@ -119,7 +150,6 @@ async def create_diary(
     )
     diary.reflection = None  # 새 일기는 반응 없음 (관계를 '로드됨'으로 표시)
     db.add(diary)
-    current_user.diary_count += 1
     await db.commit()
     await db.refresh(diary)
     return diary
@@ -158,6 +188,9 @@ async def delete_diary(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    owner = await db.scalar(
+        select(User).where(User.id == current_user.id).with_for_update().execution_options(populate_existing=True)
+    )
     result = await db.execute(
         select(Diary).where(Diary.id == diary_id, Diary.user_id == current_user.id)
     )
@@ -170,7 +203,9 @@ async def delete_diary(
         raise HTTPException(status_code=409, detail="Diary is locked")
 
     await db.delete(diary)
-    current_user.diary_count = max(0, current_user.diary_count - 1)
+    owner.diary_count = max(0, owner.diary_count - 1)
+    # Legacy entries also count even after the last entry of that day is deleted.
+    owner.last_diary_written_on = max(owner.last_diary_written_on or diary.diary_date, diary.diary_date)
     await db.commit()
 
 

@@ -8,3 +8,10 @@ export function dateKST(value) {
 export function todayKST() {
   return dateKST(Date.now());
 }
+
+export function dateLocal(value) {
+  const date = new Date(value);
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}

@@ -5,7 +5,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import case, delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from app.db.session import get_db
 from app.db.models import Diary, Mission, User, Respect
@@ -114,6 +114,7 @@ class CommunityFeedItem(BaseModel):
     respect_count: int
     has_respected: bool
     is_own: bool
+    public_completed_count: int
 
 
 router = APIRouter(prefix="/api/missions", tags=["missions"])
@@ -169,9 +170,10 @@ async def list_mission_history(
 
 def _mask_username(username: str) -> str:
     if len(username) <= 2:
-        return "□" * len(username)
+        return "•" * len(username)
     prefix_length = 2 if len(username) >= 4 else 1
-    return f"{username[:prefix_length]}{'□' * (len(username) - prefix_length - 1)}{username[-1]}"
+    hidden = "•" * min(len(username) - prefix_length - 1, 3)
+    return f"{username[:prefix_length]}{hidden}{username[-1]}"
 
 
 @router.get("/community/feed", response_model=list[CommunityFeedItem])
@@ -179,6 +181,18 @@ async def community_feed(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    public_mission = Mission.__table__.alias("public_mission")
+    public_completed_count = (
+        select(func.count())
+        .select_from(public_mission)
+        .where(
+            public_mission.c.user_id == Mission.user_id,
+            public_mission.c.status == "done",
+            public_mission.c.completed_at.isnot(None),
+        )
+        .correlate(Mission)
+        .scalar_subquery()
+    )
     result = await db.execute(
         select(
             Mission.id,
@@ -186,13 +200,14 @@ async def community_feed(
             Mission.content,
             Mission.completed_at,
             func.count(Respect.id).label("respect_count"),
-            func.bool_or(Respect.from_user_id == current_user.id).label("has_respected"),
+            func.max(case((Respect.from_user_id == current_user.id, 1), else_=0)).label("has_respected"),
             (Mission.user_id == current_user.id).label("is_own"),
+            public_completed_count.label("public_completed_count"),
         )
         .join(User, Mission.user_id == User.id)
         .outerjoin(Respect, Respect.mission_id == Mission.id)
         .where(Mission.status == "done", Mission.completed_at.isnot(None))
-        .group_by(Mission.id, User.username, Mission.content, Mission.completed_at)
+        .group_by(Mission.id, Mission.user_id, User.username, Mission.content, Mission.completed_at)
         .order_by(Mission.completed_at.desc())
         .limit(50)
     )
@@ -206,6 +221,7 @@ async def community_feed(
             respect_count=row.respect_count or 0,
             has_respected=bool(row.has_respected),
             is_own=bool(row.is_own),
+            public_completed_count=row.public_completed_count,
         )
         for row in rows
     ]
@@ -229,9 +245,6 @@ class MissionStackResponse(BaseModel):
     waiting_count: int  # 지금 미뤄 둔 미션 (아직 책이 아님)
 
 
-STACK_LIMIT = 200
-
-
 @router.get("/stack", response_model=MissionStackResponse)
 async def mission_stack(
     current_user: User = Depends(get_current_user),
@@ -249,22 +262,11 @@ async def mission_stack(
         .where(Mission.user_id == current_user.id, Mission.status.in_(("done", "skipped")))
         .group_by(Mission.id)
         .order_by(finished_at.desc(), Mission.id.desc())
-        .limit(STACK_LIMIT)
     )
     books = [StackBook(**row._mapping) for row in result.all()][::-1]
 
-    counts = dict((await db.execute(
-        select(Mission.status, func.count())
-        .where(Mission.user_id == current_user.id, Mission.status.in_(("done", "skipped")))
-        .group_by(Mission.status)
-    )).all())
-    postponed = await db.scalar(
-        select(func.count()).select_from(Mission).where(
-            Mission.user_id == current_user.id,
-            Mission.status.in_(("done", "skipped")),
-            Mission.postponed_until.isnot(None),
-        )
-    )
+    done_count = sum(book.status == "done" for book in books)
+    postponed_count = sum(book.was_postponed for book in books)
     waiting = await db.scalar(
         select(func.count()).select_from(Mission).where(
             Mission.user_id == current_user.id,
@@ -274,9 +276,9 @@ async def mission_stack(
     )
     return MissionStackResponse(
         books=books,
-        done_count=counts.get("done", 0),
-        skipped_count=counts.get("skipped", 0),
-        postponed_count=postponed or 0,
+        done_count=done_count,
+        skipped_count=len(books) - done_count,
+        postponed_count=postponed_count,
         waiting_count=waiting or 0,
     )
 
@@ -559,37 +561,66 @@ async def answer_mission(
     return MissionResponse.of(mission)
 
 
+RESPECT_POINTS = 5
+
+
+async def _respectable_mission(mission_id: int, current_user: User, db: AsyncSession) -> Mission:
+    # A mission's reaction changes and the count returned to clients share one transaction.
+    mission = await db.scalar(
+        select(Mission).where(
+            Mission.id == mission_id, Mission.status == "done", Mission.completed_at.isnot(None),
+        ).with_for_update()
+    )
+    if mission is None:
+        raise HTTPException(status_code=404, detail="Mission not found")
+    if mission.user_id == current_user.id:
+        raise HTTPException(status_code=403, detail="Cannot respect own mission")
+    return mission
+
+
+async def _finish_respect_change(
+    db: AsyncSession, mission: Mission, has_respected: bool, points_change: int,
+):
+    if points_change:
+        points = func.coalesce(User.points, 0) + points_change
+        await db.execute(
+            update(User).where(User.id == mission.user_id)
+            .values(points=case((points < 0, 0), else_=points))
+        )
+
+    total = await db.scalar(select(func.count(Respect.id)).where(Respect.mission_id == mission.id))
+    await db.commit()
+    return {"respect_count": total, "has_respected": has_respected}
+
+
 @router.post("/community/{mission_id}/respect")
 async def respect_mission(
     mission_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    mission_result = await db.execute(
-        select(Mission).where(Mission.id == mission_id, Mission.status == "done")
-    )
-    mission = mission_result.scalar_one_or_none()
-    if not mission:
-        raise HTTPException(status_code=404, detail="Mission not found")
-    if mission.user_id == current_user.id:
-        raise HTTPException(status_code=403, detail="Cannot respect own mission")
-
-    respect = Respect(from_user_id=current_user.id, mission_id=mission_id)
-    db.add(respect)
+    mission = await _respectable_mission(mission_id, current_user, db)
+    db.add(Respect(from_user_id=current_user.id, mission_id=mission_id))
     try:
         await db.flush()
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=409, detail="Already respected")
 
-    owner_result = await db.execute(select(User).where(User.id == mission.user_id))
-    owner = owner_result.scalar_one()
-    owner.points = (owner.points or 0) + 5
+    return await _finish_respect_change(db, mission, has_respected=True, points_change=RESPECT_POINTS)
 
-    await db.commit()
 
-    count_result = await db.execute(
-        select(func.count(Respect.id)).where(Respect.mission_id == mission_id)
+@router.delete("/community/{mission_id}/respect")
+async def unrespect_mission(
+    mission_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    mission = await _respectable_mission(mission_id, current_user, db)
+    removed = await db.scalar(
+        delete(Respect).where(Respect.mission_id == mission_id, Respect.from_user_id == current_user.id)
+        .returning(Respect.id)
     )
-    total = count_result.scalar() or 0
-    return {"respect_count": total}
+    return await _finish_respect_change(
+        db, mission, has_respected=False, points_change=-RESPECT_POINTS if removed is not None else 0,
+    )

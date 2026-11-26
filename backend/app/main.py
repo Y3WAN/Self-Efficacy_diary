@@ -20,6 +20,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("DROP TABLE IF EXISTS persona_history CASCADE"))
         await conn.execute(text("ALTER TABLE users DROP COLUMN IF EXISTS current_persona"))
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER NOT NULL DEFAULT 0"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_diary_written_on DATE"))
         await conn.execute(text(
             "CREATE TABLE IF NOT EXISTS failure_logs ("
             "id BIGSERIAL PRIMARY KEY, "

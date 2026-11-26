@@ -1,7 +1,7 @@
 import { blendPullTip, pullStretchProgress, softLimitDistance, tetherSpringDisplacement,
   MAX_TETHER_DISTANCE, PULL_RIM_EASE_DISTANCE, PULL_TAUT_DISTANCE } from "./mallangPull.js";
 
-const TETHER_SPRING_TIME_MS = 43;
+const TETHER_SPRING_TIME_MS = 36;
 const CATCH_SPRING_TIME_MS = 40;
 const TIP_FOLLOW_TIME_MS = 8;
 const TIP_LIMIT_EASE_RANGE = 12;
@@ -9,6 +9,9 @@ const TENSION_EASE_DISTANCE = 8;
 export const MAX_VISUAL_TETHER_DISTANCE = 154;
 const TIP_RETURN_TIME_MS = 90;
 const TIP_MERGE_RADIUS_RATIO = 0.55;
+const TIP_EXTENSION_SOFT_START = 18;
+export const MAX_TIP_EXTENSION = 32;
+const TIP_EXTENSION_SOFT_END = 64;
 const DRAG_MASS = 1.6;
 const DRAG_DAMPING = 1.05;
 const MAX_ADDITIONAL_DRAG_DAMPING = .45;
@@ -23,8 +26,8 @@ const STOP_ANGULAR_SPEED = 0.00018;
 export const STOP_SPEED = 0.015;
 export const BLOB_CENTER = 100;
 export const BODY_RADIUS = 94;
-export const PULL_RADIUS = 22;
-const MAX_TETHER_ACCELERATION = 0.012;
+export const PULL_RADIUS = 14;
+const MAX_TETHER_ACCELERATION = 0.014;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 export function positionFromPoint(x, y, rect) {
@@ -131,7 +134,16 @@ export function pulledCircle(motion, bodyRadius = BODY_RADIUS) {
   const transitionEnd = bodyRadius + PULL_RIM_EASE_DISTANCE;
   const progress = pullStretchProgress(target, BLOB_CENTER, transitionStart, transitionEnd);
   if (progress === 0) return null;
-  return { ...blendPullTip(target, progress), edgeRadius: bodyRadius };
+
+  const dx = target.x - BLOB_CENTER;
+  const dy = target.y - BLOB_CENTER;
+  const distance = Math.hypot(dx, dy);
+  // The tether still carries the hand's movement while the visible tip stays close to the body.
+  const extension = softLimitDistance(distance - bodyRadius, TIP_EXTENSION_SOFT_START,
+    MAX_TIP_EXTENSION, TIP_EXTENSION_SOFT_END);
+  const scale = (bodyRadius + extension) / distance;
+  const tip = { ...target, x: BLOB_CENTER + dx * scale, y: BLOB_CENTER + dy * scale };
+  return { ...blendPullTip(tip, progress), edgeRadius: bodyRadius };
 }
 
 export function updatePull(motion, bodyRadius = BODY_RADIUS) {

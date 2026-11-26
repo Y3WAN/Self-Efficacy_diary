@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
 import { bareSurfaceContact, createMallangMaterial, membranePath, membraneRadii, membraneRadiusAt, MATERIAL } from "../src/utils/mallangMaterial.js";
 import { createMallangSurface } from "../src/utils/mallangSurface.js";
+import { dentDimensions } from "../src/utils/mallangRelief.js";
 import { advanceMotion, beginPull, MAX_VISUAL_TETHER_DISTANCE, PULL_RADIUS, pulledCircle, updatePull } from "../src/utils/mallangMotion.js";
 
 function run(m, from, to, step = 16) {
@@ -87,7 +88,7 @@ test("one continuous contour contains the tip and remains finite through absorpt
     if (pull) {
       assert(radii[0] >= pull.x - 100 - .001);
       if (d - bodyRadius >= MATERIAL.pullCrownDistance) {
-        assert(radii[0] >= d + pull.radius * MATERIAL.pullCrownRatio - .2);
+        assert(radii[0] >= pull.x - MATERIAL.center + pull.radius * MATERIAL.pullCrownRatio - .2);
       }
       if (d - bodyRadius <= 5) assert(radii[0] - bodyRadius < 11);
     }
@@ -96,7 +97,9 @@ test("one continuous contour contains the tip and remains finite through absorpt
     assert(!/NaN|Infinity/.test(membranePath(radii)));previous=radii;
   }
   const peak = previous[0];
-  assert(peak > MATERIAL.radius * 1.44 && peak < MATERIAL.radius * 1.53);
+  const fullPull = pulledCircle(motion, bodyRadius);
+  const expectedPeak = fullPull.x - MATERIAL.center + fullPull.radius * MATERIAL.pullCrownRatio;
+  assert(Math.abs(peak - expectedPeak) < .2, "the body ends at the smaller tip without bulging past it");
   const contour = Array.from(previous, (radius, index) => {
     const angle = index / previous.length * Math.PI * 2;
     return { x: radius * Math.cos(angle), y: radius * Math.sin(angle) };
@@ -345,8 +348,9 @@ test("the renderer preserves the dent trail within the current outline", (t) => 
     renderer.draw(null, null, null, speed);
     assert(renderer.sampleHeight(50, 100) < -10);
     m.advance(1296); renderer.draw();
-    const oldFlank = renderer.sampleHeight(50, 118);
-    if (speed === 60) assert(oldFlank < -1, "the slow trail is still wide at the old end");
+    const flank = 100 + dentDimensions(1).width * .55;
+    const oldFlank = renderer.sampleHeight(50, flank);
+    if (speed === 60) assert(oldFlank < -1, "the slow trail still has a visible flank at the old end");
     else assert(oldFlank >= 0, "the fast trail has already narrowed at the old end");
     run(m, 1296, 1424); renderer.draw();
     if (speed === 60) {

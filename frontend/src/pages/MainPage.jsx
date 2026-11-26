@@ -6,6 +6,7 @@ import MissionList from "../components/MissionList";
 import ActivityHistory from "../components/ActivityHistory";
 import client from "../api/client";
 import { todayKST } from "../utils/date";
+import { diaryEditorQuery } from "../api/records";
 import { lazy, Suspense } from "react";
 
 // 차트 라이브러리가 커서, 위쪽 카드가 먼저 보이도록 차트는 따로 불러온다
@@ -30,11 +31,8 @@ function TodayAchievements({ diaries }) {
 
 export default function MainPage() {
   const today = todayKST();
-  const diaryQuery = useQuery({
-    queryKey: ["diaries", "recent"],
-    queryFn: ({ signal }) => client.get("/api/diaries/recent", { signal }).then((r) => r.data),
-  });
-  const todayDiaries = (diaryQuery.data ?? []).filter((diary) => diary.diary_date === today);
+  const { data: diaryEditor } = useQuery(diaryEditorQuery(today));
+  const todayDiaries = diaryEditor?.diaries ?? [];
   const hasTodayDiary = todayDiaries.length > 0;
   const missionQuery = useQuery({
     queryKey: ["missions", "active"],
@@ -48,11 +46,11 @@ export default function MainPage() {
       <AppBar />
       <main className="main-content main-content--home">
         <header className="page-heading">
-          <h1>오늘의 기록</h1>
+          <h1>홈</h1>
         </header>
         <Link to={`/diary/${today}`} state={{ fromMain: true }} data-ripple-navigation className="today-diary-button">
           <Icon name="pencil" />
-          {hasTodayDiary ? "오늘 일기 열기" : "오늘 일기 쓰기"}
+          {diaryEditor?.can_create ? "오늘 일기 쓰기" : "오늘의 일기 열기"}
         </Link>
         {hasTodayDiary && <TodayAchievements diaries={todayDiaries} />}
         <MissionList
@@ -68,7 +66,7 @@ export default function MainPage() {
           <Suspense fallback={<p className="chart-sub">차트를 불러오는 중…</p>}>
             <RadarChartComponent />
           </Suspense>
-          <Link to="/analysis" className="chart-link">AI가 일기에서 찾은 문장 보기 <Icon name="arrowRight" /></Link>
+          <Link to="/analysis" state={{ fromMain: true }} className="chart-link">AI가 일기에서 찾은 문장 보기 <Icon name="arrowRight" /></Link>
         </section>
       </main>
     </div>
