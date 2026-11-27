@@ -187,7 +187,10 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
         {missions.length > 0 && (
           <ul className="main-scroll-list mission-items">
             {missions.map((mission) => (
-              <li key={mission.id} className="mission-item">
+              <li
+                key={mission.id}
+                className={`mission-item${(mission.response_type ?? "none") !== "none" || mission.material || mission.clarify ? " mission-item--task" : ""}`}
+              >
                 <div className="mission-body">
                   <p className="mission-content">{mission.content}</p>
                   <MissionTask

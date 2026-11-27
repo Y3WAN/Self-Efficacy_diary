@@ -2768,3 +2768,14 @@ body:has(.mallang-page) { overflow-x: clip; }
 .mission-grade { margin: 0 0 4px; font-weight: 700; color: var(--coral); }
 .mission-grade--ok { color: var(--green-ink); }
 .mission-feedback-text { margin: 0; line-height: 1.6; color: var(--text); }
+
+/* 답을 남기는 미션: 입력칸이 좁아지지 않게 버튼을 아래로 내리고,
+   목록 안 스크롤과 입력칸 스크롤이 겹치지 않게 목록 높이 제한을 푼다. */
+.mission-items.main-scroll-list { max-height: none; overflow: visible; }
+.mission-item--task .mission-body { flex-basis: 100%; }
+.mission-item--task > .mission-actions { flex-direction: row; align-items: center; gap: 12px; }
+.mission-answer .mission-feedback-input { field-sizing: content; min-height: 88px; max-height: 240px; }
+.mission-links .main-analysis-link span { word-break: keep-all; }
+@media (max-width: 440px) {
+  .mission-links { grid-template-columns: 1fr; }
+}
