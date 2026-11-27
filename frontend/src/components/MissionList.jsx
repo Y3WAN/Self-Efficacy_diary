@@ -131,6 +131,12 @@ function HelperPanel({ mission, onClose, onGiveUp }) {
 }
 
 
+// 조력자에게 직접 물어본 적이 있는지 (답 남기기 피드백은 제외).
+// 이미 대화로 충분히 이야기했으니 '해냈어요'에서 회고 입력칸을 또 띄우지 않는다.
+const talkedWithHelper = (mission) =>
+  (mission.help_messages ?? []).some((turn) => turn.role === "user" && turn.kind !== "answer");
+
+
 export default function MissionList({ missions, isPending, isError, onRetry }) {
   const qc = useQueryClient();
   const [result, setResult] = useState(null);
@@ -237,7 +243,9 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
                     <button
                       className="mission-done-btn"
                       disabled={updateMission.isPending}
-                      onClick={() => openFeedback(mission.id, "complete")}
+                      onClick={() => (talkedWithHelper(mission)
+                        ? updateMission.mutate({ id: mission.id, action: "complete" })
+                        : openFeedback(mission.id, "complete"))}
                     >해냈어요</button>
                     <button
                       className="mission-skip-btn"
