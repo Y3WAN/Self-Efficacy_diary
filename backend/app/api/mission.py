@@ -17,9 +17,9 @@ from app.services.elo_service import (
 )
 from app.services.mission_service import draft_mission, load_plan
 from app.services.mission_kb import public_guide, public_material
-from app.services.mission_planner import feedback_for, grade_choice
+from app.services.mission_planner import WRITTEN_RESPONSE_TYPES, assess_written_answer, feedback_for, grade_choice
 from app.services.helper_service import MAX_HELP_TURNS, ask_helper, load_chat, remaining_turns
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints
 
 logger = logging.getLogger(__name__)
 
@@ -283,10 +283,13 @@ async def mission_stack(
     )
 
 
-async def _get_active_mission(mission_id: int, user: User, db: AsyncSession) -> Mission:
-    result = await db.execute(
-        select(Mission).where(Mission.id == mission_id, Mission.user_id == user.id)
-    )
+async def _get_active_mission(
+    mission_id: int, user: User, db: AsyncSession, *, for_update: bool = False,
+) -> Mission:
+    query = select(Mission).where(Mission.id == mission_id, Mission.user_id == user.id)
+    if for_update:
+        query = query.with_for_update().execution_options(populate_existing=True)
+    result = await db.execute(query)
     mission = result.scalar_one_or_none()
     if not mission:
         raise HTTPException(status_code=404, detail="Mission not found")
@@ -367,6 +370,9 @@ async def ask_mission_helper(
     if not reply:
         raise HTTPException(status_code=502, detail="AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.")
 
+    mission = await _get_active_mission(mission_id, current_user, db, for_update=True)
+    if remaining_turns(mission) <= 0:
+        raise HTTPException(status_code=409, detail="상담 기회를 모두 썼어요")
     chat = load_chat(mission)
     answer = {"role": "assistant", "content": reply}
     if expert:
@@ -432,6 +438,9 @@ async def retarget_mission(
     if not draft.content:
         raise HTTPException(status_code=502, detail="AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.")
 
+    mission = await _get_active_mission(mission_id, current_user, db, for_update=True)
+    if load_plan(mission) != plan:
+        raise HTTPException(status_code=409, detail="미션이 이미 바뀌었어요")
     draft.apply_to(mission)
     mission.answer = None
     mission.difficulty = LEVEL_RATINGS[new_level]
@@ -487,6 +496,9 @@ async def clarify_mission(
     )
     if not draft.content:
         raise HTTPException(status_code=502, detail="AI 응답을 받지 못했어요. 잠시 후 다시 시도해 주세요.")
+    mission = await _get_active_mission(mission_id, current_user, db, for_update=True)
+    if load_attempts(mission) or load_plan(mission) != plan:
+        raise HTTPException(status_code=409, detail="지금은 확인할 질문이 없어요")
     draft.apply_to(mission)
     await db.commit()
     await db.refresh(mission)
@@ -497,6 +509,13 @@ class AnswerRequest(BaseModel):
     choice: Optional[int] = None  # 객관식 보기 번호 (0부터)
     scale: Optional[int] = None  # 부담 정도 1~5
     text: Optional[Annotated[str, StringConstraints(strip_whitespace=True, max_length=300)]] = None
+    attempt_index: int | None = Field(default=None, ge=0, lt=MAX_ATTEMPTS)
+
+
+def _matches_saved_answer(attempts: list[dict], index: int, submission: dict) -> bool:
+    return index < len(attempts) and all(
+        attempts[index].get(key) == submission.get(key) for key in ("choice", "scale", "text")
+    )
 
 
 @router.post("/{mission_id}/answer", response_model=MissionResponse)
@@ -517,7 +536,8 @@ async def answer_mission(
     if response_type == "none":
         raise HTTPException(status_code=409, detail="답을 남기는 미션이 아니에요")
     attempts = load_attempts(mission)
-    if len(attempts) >= max_attempts(response_type):
+    attempt_index = len(attempts)
+    if body.attempt_index is None and attempt_index >= max_attempts(response_type):
         raise HTTPException(status_code=409, detail="이미 답을 남겼어요")
 
     attempt: dict = {}
@@ -536,25 +556,56 @@ async def answer_mission(
     if response_type == "text" and not body.text:
         raise HTTPException(status_code=422, detail="해 본 내용을 적어 주세요")
 
-    attempt["feedback"] = await feedback_for(plan, mission.content, mission.completion or "", attempt)
+    if body.attempt_index is not None and body.attempt_index != attempt_index:
+        if _matches_saved_answer(attempts, body.attempt_index, attempt):
+            return MissionResponse.of(mission)
+        raise HTTPException(status_code=409, detail="답이 이미 갱신됐어요. 미션을 다시 불러와 주세요.")
+    if attempt_index >= max_attempts(response_type):
+        raise HTTPException(status_code=409, detail="이미 답을 남겼어요")
+
+    previous_answer, previous_plan = mission.answer, mission.plan
+    content, completion = mission.content, mission.completion or ""
+    material_id, user_id = mission.material_id, mission.user_id
+    # AI가 답을 확인하는 동안 조회 트랜잭션의 DB 연결을 잡아 두지 않는다.
+    await db.rollback()
+    if response_type in WRITTEN_RESPONSE_TYPES and body.text:
+        assessment = await assess_written_answer(plan, content, completion, attempt)
+        if assessment is None:
+            raise HTTPException(status_code=502, detail="답을 확인하지 못했어요. 잠시 후 다시 남겨 주세요.")
+        attempt.update(assessment.model_dump())
+    else:
+        attempt["feedback"] = await feedback_for(plan, content, completion, attempt)
     attempt["at"] = datetime.now(timezone.utc).isoformat()
     attempts.append(attempt)
-    mission.answer = json.dumps(attempts, ensure_ascii=False)
 
     # 조력자 흐름 재사용: 답과 피드백을 상담 기록에 남긴다 (상담 횟수는 그대로)
     summary = []
     if "choice" in attempt:
-        material = public_material(mission.material_id)
+        material = public_material(material_id)
         summary.append(f"내 답: {attempt['choice'] + 1}번 {material['choices'][attempt['choice']]}")
     if "scale" in attempt:
         summary.append(f"부담: {attempt['scale']}/5")
     if attempt.get("text"):
         summary.append(attempt["text"])
+    mission = await db.scalar(
+        select(Mission).where(Mission.id == mission_id, Mission.user_id == user_id)
+        .with_for_update().execution_options(populate_existing=True)
+    )
+    if mission is None:
+        raise HTTPException(status_code=404, detail="Mission not found")
+    if mission.status != "active" or mission.plan != previous_plan:
+        raise HTTPException(status_code=409, detail="미션이 이미 바뀌었어요. 다시 불러와 주세요.")
+    if mission.answer != previous_answer:
+        if _matches_saved_answer(load_attempts(mission), attempt_index, attempt):
+            return MissionResponse.of(mission)
+        raise HTTPException(status_code=409, detail="답이 이미 갱신됐어요. 미션을 다시 불러와 주세요.")
+
     chat = load_chat(mission)
     chat += [
         {"role": "user", "content": " · ".join(summary), "kind": "answer"},
         {"role": "assistant", "content": attempt["feedback"], "kind": "feedback"},
     ]
+    mission.answer = json.dumps(attempts, ensure_ascii=False)
     mission.help_chat = json.dumps(chat, ensure_ascii=False)
     await db.commit()
     await db.refresh(mission)

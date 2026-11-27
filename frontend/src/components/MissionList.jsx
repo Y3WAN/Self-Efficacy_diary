@@ -149,6 +149,13 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
   const openFeedback = (id, action) => { setHelperId(null); setPending({ id, action }); setNote(""); };
   const openHelper = (id) => { setPending(null); setHelperId(id); };
 
+  const applyTaskUpdate = async (updated) => {
+    const queryKey = ["missions", "active"];
+    // An earlier list response can arrive after the answer has been saved.
+    await qc.cancelQueries({ queryKey, exact: true });
+    qc.setQueryData(queryKey, (old) => old?.map((m) => (m.id === updated.id ? updated : m)));
+  };
+
   const updateMission = useMutation({
     mutationFn: ({ id, action, reflection }) =>
       client.post(`/api/missions/${id}/${action}`, reflection ? { reflection } : undefined),
@@ -196,8 +203,7 @@ export default function MissionList({ missions, isPending, isError, onRetry }) {
                   <MissionTask
                     mission={mission}
                     post={(path, body) => client.post(path, body).then((r) => r.data)}
-                    onUpdated={(updated) =>
-                      qc.setQueryData(["missions", "active"], (old) => old?.map((m) => (m.id === updated.id ? updated : m)))}
+                    onUpdated={applyTaskUpdate}
                     onError={(message) => toast.error(message)}
                   />
                 </div>

@@ -2740,7 +2740,11 @@ body:has(.mallang-page) { overflow-x: clip; }
 
 /* ── 분야별 미션: 완료 기준·자료·확인 질문·답 남기기 (MissionTask) ── */
 .mission-task { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
-.mission-completion { margin: 0; font-size: .86rem; color: var(--green-ink); display: flex; gap: 6px; align-items: flex-start; }
+.mission-completion {
+  margin: 0; font-size: .86rem; color: var(--text-muted);
+  display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline;
+}
+.mission-assessment-status { color: var(--text); font-weight: 700; }
 .mission-material, .mission-guide, .mission-clarify, .mission-answer-result {
   border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; background: var(--card);
 }

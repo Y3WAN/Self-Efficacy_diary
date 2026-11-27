@@ -1,50 +1,74 @@
 import Icon from "./Icon";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import MissionCompletion from "./MissionCompletion";
 
 // 분야별 미션의 '해 보기' 부분: 완료 기준, 함께 주는 자료(지문·문제·카드), 한 가지 확인 질문,
 // 답·수행 결과 남기기와 그 답에 맞춘 피드백. 기존 미션(필드 없음)에서는 아무것도 그리지 않는다.
 // post(path, body) → 갱신된 미션을 돌려주는 함수, onUpdated(mission)로 화면을 바꾼다.
-export default function MissionTask({ mission, post, onUpdated, onError }) {
+export default function MissionTask({ mission, post, onUpdated, onError, onBusyChange }) {
   const [choice, setChoice] = useState(null);
   const [scale, setScale] = useState(null);
   const [text, setText] = useState("");
   const [custom, setCustom] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState(null);
+  const [checkFailed, setCheckFailed] = useState(false);
+  const inFlight = useRef(false);
 
   const material = mission.material;
   const attempts = mission.attempts ?? [];
   const last = attempts[attempts.length - 1];
   const type = mission.response_type ?? "none";
   const canAnswer = type !== "none" && (mission.attempts_remaining ?? 0) > 0;
+  const isWrittenType = type === "text" || type === "scale_text";
+  const busy = pending !== null;
+  const isChecking = pending === "assessment";
+  const revisionPrompt = isWrittenType && last?.status === "needs_revision"
+    ? last.retry_hint || mission.response_prompt
+    : null;
+  const answerPrompt = revisionPrompt || mission.response_prompt;
+  const ready = type === "choice" ? choice !== null : type === "scale_text" ? scale !== null : text.trim().length > 0;
 
   const send = async (path, body, reset) => {
-    if (busy) return;
-    setBusy(true);
+    if (inFlight.current) return;
+    inFlight.current = true;
+    const checksWrittenAnswer = path === "answer" && isWrittenType && Boolean(body.text);
+    setPending(checksWrittenAnswer ? "assessment" : path);
+    setCheckFailed(false);
+    onBusyChange?.(true);
     try {
-      onUpdated(await post(`/api/missions/${mission.id}/${path}`, body));
-      reset?.();
+      const updated = await post(`/api/missions/${mission.id}/${path}`, body);
+      await onUpdated(updated);
+      reset?.(updated);
     } catch (error) {
-      onError?.(error.response?.data?.detail || "저장하지 못했어요. 잠시 후 다시 해 주세요.");
+      if (checksWrittenAnswer && (!error.response || error.response.status === 502)) {
+        setCheckFailed(true);
+      } else {
+        onError?.(error.response?.data?.detail || "저장하지 못했어요. 잠시 후 다시 해 주세요.");
+      }
     } finally {
-      setBusy(false);
+      inFlight.current = false;
+      setPending(null);
+      onBusyChange?.(false);
     }
   };
 
   const submitAnswer = (event) => {
     event.preventDefault();
-    const body = { text: text.trim() || undefined };
+    if (!canAnswer || !ready) return;
+    const body = { text: text.trim() || undefined, attempt_index: attempts.length };
     if (type === "choice") body.choice = choice;
     if (type === "scale_text") body.scale = scale;
-    send("answer", body, () => { setText(""); setChoice(null); setScale(null); });
+    send("answer", body, (updated) => {
+      if (updated.attempts?.at(-1)?.status === "needs_revision") return;
+      setText("");
+      setChoice(null);
+      setScale(null);
+    });
   };
-
-  const ready = type === "choice" ? choice !== null : type === "scale_text" ? scale !== null : text.trim().length > 0;
 
   return (
     <div className="mission-task">
-      {mission.completion && (
-        <p className="mission-completion"><Icon name="check" /> 다 했는지 확인: {mission.completion}</p>
-      )}
+      <MissionCompletion mission={mission} isChecking={isChecking} checkFailed={checkFailed} />
 
       {mission.help_guide && (
         <div className="mission-guide" role="note">
@@ -109,17 +133,18 @@ export default function MissionTask({ mission, post, onUpdated, onError }) {
         </section>
       )}
 
-      {last && (
+      {last && !isChecking && !checkFailed && (
         <div className="mission-answer-result" aria-live="polite">
           {last.correct === true && <p className="mission-grade mission-grade--ok">맞았어요</p>}
           {last.correct === false && <p className="mission-grade">정답은 {material?.answer + 1}번이에요</p>}
           <p className="mission-feedback-text">{last.feedback}</p>
+          {!canAnswer && revisionPrompt && <p className="mission-feedback-text">{revisionPrompt}</p>}
         </div>
       )}
 
       {canAnswer && (
         <form className="mission-answer" onSubmit={submitAnswer}>
-          {mission.response_prompt && <label htmlFor={`answer-${mission.id}`} className="mission-answer-prompt">{mission.response_prompt}</label>}
+          {answerPrompt && <label htmlFor={`answer-${mission.id}`} className="mission-answer-prompt">{answerPrompt}</label>}
           {type === "scale_text" && (
             <div className="mission-scale" role="radiogroup" aria-label="부담 정도 1~5">
               {[1, 2, 3, 4, 5].map((n) => (

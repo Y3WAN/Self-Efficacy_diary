@@ -311,10 +311,12 @@ async def draft_mission(
         "blocker_type": sel.blocker_key,
         "material_id": fields["material_id"],
         "response_type": fields["response_type"],
-        "response_prompt": planner.response_prompt(sel, fields["response_type"]),
+        "response_prompt": fields["response_prompt"],
         "clarify": sel.clarify,
         "checks": fields["checks"],
     })
+    if fields["answer_criteria"]:
+        plan["answer_criteria"] = fields["answer_criteria"]
     logger.info("Planned mission domain=%s blocker=%s mode=%s material=%s checks=%s",
                 sel.domain_key, sel.blocker_key, sel.mode, fields["material_id"], fields["checks"])
     return MissionDraft(

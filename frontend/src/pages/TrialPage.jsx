@@ -67,6 +67,7 @@ export default function TrialPage() {
   const [levelChange, setLevelChange] = useState(null); // { from, to, harder }
   const [missionError, setMissionError] = useState("");
   const [missionBusy, setMissionBusy] = useState(false);
+  const [taskBusy, setTaskBusy] = useState(false);
 
   const auth = (t) => ({ headers: { Authorization: `Bearer ${t}` } });
 
@@ -151,7 +152,7 @@ export default function TrialPage() {
   // 답에 따라 같은 일기·같은 원천으로 한 단계 어렵거나 쉬운 미션을 바로 받는다.
   // 실제로 해 본 결과가 아니므로 완료·실패 처리(ELO 반영)는 하지 않는다.
   const changeLevel = async (harder) => {
-    if (!result?.mission || missionBusy) return;
+    if (!result?.mission || missionBusy || taskBusy) return;
     const from = result.mission.level;
     setMissionBusy(true);
     setMissionError("");
@@ -326,17 +327,21 @@ export default function TrialPage() {
                     <MissionTask
                       mission={result.mission}
                       post={(path, body) => api.post(path, body, auth(token)).then((r) => r.data)}
-                      onUpdated={(mission) => setResult((prev) => ({ ...prev, mission }))}
+                      onUpdated={(mission) => setResult((prev) => prev?.mission?.id === mission.id ? { ...prev, mission } : prev)}
                       onError={setMissionError}
+                      onBusyChange={(busy) => {
+                        setTaskBusy(busy);
+                        if (busy) setMissionError("");
+                      }}
                     />
                   )}
 
                   <p className="trial-mission-question">이 미션의 난이도는 어때요?</p>
                   <div className="trial-mission-actions">
-                    <button type="button" className="trial-btn-ok" disabled={missionBusy || level >= 5} onClick={() => changeLevel(true)}>
+                    <button type="button" className="trial-btn-ok" disabled={missionBusy || taskBusy || level >= 5} onClick={() => changeLevel(true)}>
                       쉬울 것 같아요 👍
                     </button>
-                    <button type="button" className="trial-btn-hard" disabled={missionBusy || level <= 1} onClick={() => changeLevel(false)}>
+                    <button type="button" className="trial-btn-hard" disabled={missionBusy || taskBusy || level <= 1} onClick={() => changeLevel(false)}>
                       어려울 것 같아요 😅
                     </button>
                   </div>
@@ -350,7 +355,7 @@ export default function TrialPage() {
           )}
 
           {step !== "pending" && step !== "composing" && (
-            <button type="button" className="trial-next" onClick={reset}>🔄 다음 사람 체험하기</button>
+            <button type="button" className="trial-next" onClick={reset} disabled={taskBusy}>🔄 다음 사람 체험하기</button>
           )}
         </section>
       )}

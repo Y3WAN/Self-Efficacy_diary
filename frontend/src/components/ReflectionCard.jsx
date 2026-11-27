@@ -1,5 +1,6 @@
 import Icon from "./Icon";
 import { Link } from "react-router-dom";
+import MissionCompletion from "./MissionCompletion";
 
 // 일기 저장 직후 AI가 찾아 준 '오늘 해낸 것' + 이어지는 미션
 export default function ReflectionCard({ reflection, mission, isPending, isError, onRequest }) {
@@ -38,7 +39,7 @@ export default function ReflectionCard({ reflection, mission, isPending, isError
           <p className="reflection-label"><Icon name="target" /> 이어서 해 볼 미션</p>
           <p className="reflection-mission-content">{mission.content}</p>
           {mission.reason && <p className="reflection-mission-reason">{mission.reason}</p>}
-          {mission.completion && <p className="mission-completion"><Icon name="check" /> 다 했는지 확인: {mission.completion}</p>}
+          <MissionCompletion mission={mission} />
           {(mission.material || mission.clarify || mission.help_guide) && (
             <p className="reflection-mission-reason">
               {mission.help_guide ? "도움 받을 곳은" : mission.clarify ? "한 가지만 답하면 미션을 맞춰 드려요. 질문은" : "필요한 자료는"} 오늘의 미션에서 볼 수 있어요.
