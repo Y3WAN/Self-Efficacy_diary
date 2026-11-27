@@ -1905,6 +1905,7 @@ body:has(.mallang-page) { overflow-x: clip; }
   border: 0;
   border-radius: 50%;
   background: transparent;
+  -webkit-tap-highlight-color: transparent;
   touch-action: none;
   cursor: grab;
   transition: transform var(--mallang-rebound);
@@ -2603,6 +2604,16 @@ body:has(.mallang-page) { overflow-x: clip; }
   text-align: center;
 }
 .radar-trend-score strong { color: var(--accent-hover); }
+
+.radar-plot { -webkit-tap-highlight-color: transparent; }
+.radar-plot :is(.recharts-surface, .radar-mallang, .radar-tick):focus:not(:focus-visible) {
+  outline: none;
+}
+.radar-plot :is(.recharts-surface, .radar-tick):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .radar-mallang {
   cursor: pointer;
   transform-box: fill-box;
@@ -2628,7 +2639,7 @@ body:has(.mallang-page) { overflow-x: clip; }
   font-weight: 500;
   text-decoration: none;
 }
-.radar-tick:hover, .radar-tick:focus-visible { fill: var(--accent-hover); outline: none; }
+.radar-tick:hover, .radar-tick:focus-visible { fill: var(--accent-hover); }
 .mission-list.is-spotlight { animation: spotlight 2.4s ease-out; }
 @keyframes spotlight {
   0%, 60% { box-shadow: 0 0 0 4px var(--accent); }
