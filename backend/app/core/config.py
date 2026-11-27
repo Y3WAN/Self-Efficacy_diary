@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     GROQ_MODEL: str = "openai/gpt-oss-120b"
     # AI 호출 방식: "groq"(배포 기본값) | "claude_code"(로컬 전용, 이 PC에 로그인된 claude CLI 사용)
     LLM_PROVIDER: str = "groq"
-    CLAUDE_CODE_MODEL: str = "sonnet"
+    CLAUDE_CODE_MODEL: str = "claude-opus-5-5"
     CLAUDE_CODE_TIMEOUT: int = 120
     FRONTEND_URL: str = "http://localhost:5173"
     # 운영 환경에서는 반드시 False (포인트 어뷰징 가능)
